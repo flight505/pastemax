@@ -3,6 +3,7 @@ import Sidebar from "./components/Sidebar";
 import FileList from "./components/FileList";
 import CopyButton from "./components/CopyButton";
 import UserInstructions from "./components/UserInstructions";
+import ControlContainer from "./components/ControlContainer";
 import { FileData } from "./types/FileTypes";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
@@ -67,6 +68,9 @@ const App = () => {
 
   // NEW: State for user instructions
   const [userInstructions, setUserInstructions] = useState("");
+
+  // Add a new state for showing/hiding user instructions
+  const [showUserInstructions, setShowUserInstructions] = useState(true);
 
   // Check if we're running in Electron or browser environment
   const isElectron = window.electron !== undefined;
@@ -534,50 +538,23 @@ const App = () => {
                 toggleFileSelection={toggleFileSelection}
               />
 
-              {/* Render the user instructions textbox */}
-              <div className="user-instructions-container">
-                <UserInstructions
-                  instructions={userInstructions}
-                  setInstructions={setUserInstructions}
-                />
-              </div>
-
-              <div className="copy-button-container">
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "12px",
-                    width: "100%",
-                    maxWidth: "400px",
-                  }}
-                >
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={includeFileTree}
-                      onChange={() => setIncludeFileTree(!includeFileTree)}
-                    />
-                    <span>Include File Tree</span>
-                  </label>
-                  <CopyButton
-                    text={getSelectedFilesContent()}
-                    className="primary full-width"
-                  >
-                    <span>
-                      COPY ALL SELECTED ({selectedFiles.length} files)
-                    </span>
-                  </CopyButton>
+              {showUserInstructions && (
+                <div className="user-instructions-container">
+                  <UserInstructions
+                    instructions={userInstructions}
+                    setInstructions={setUserInstructions}
+                  />
                 </div>
-              </div>
+              )}
+
+              <ControlContainer
+                includeFileTree={includeFileTree}
+                setIncludeFileTree={setIncludeFileTree}
+                showUserInstructions={showUserInstructions}
+                setShowUserInstructions={setShowUserInstructions}
+                getSelectedFilesContent={getSelectedFilesContent}
+                selectedFilesCount={selectedFiles.length}
+              />
             </div>
           </div>
         )}
