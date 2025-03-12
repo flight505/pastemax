@@ -16,6 +16,11 @@ const FileList = ({
       !file.isSkipped,
   );
 
+  // Find the maximum token count for relative scaling
+  const maxTokenCount = displayableFiles.length > 0
+    ? Math.max(...displayableFiles.map(file => file.tokenCount))
+    : 5000; // Default fallback
+
   return (
     <div className="file-list-container">
       {displayableFiles.length > 0 ? (
@@ -26,6 +31,7 @@ const FileList = ({
               file={file}
               isSelected={true} // All displayed files are selected
               toggleSelection={toggleFileSelection}
+              maxTokenCount={maxTokenCount}
             />
           ))}
         </div>

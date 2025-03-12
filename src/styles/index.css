@@ -484,7 +484,9 @@ input[type="search"]:focus {
   border-radius: 4px;
   position: relative;
   transition: all 0.2s ease;
-  height: 80px;
+  height: auto;
+  min-height: 80px;
+  padding-bottom: 16px;
   background-color: var(--background-primary);
 }
 
@@ -523,6 +525,7 @@ input[type="search"]:focus {
   display: flex;
   flex-direction: column;
   margin-bottom: 0;
+  flex-grow: 1;
 }
 
 .file-card-tokens {
@@ -983,4 +986,33 @@ input[type="text"].search-input:focus {
   .copy-button-wrapper {
     width: 100%;
   }
+}
+
+/* Token bar styles */
+.token-bar-container {
+  height: 4px;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+  position: relative;
+}
+
+.token-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.1), var(--primary-button-background) 95%);
+  transition: width 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode .token-bar-container {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .token-bar {
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.1), var(--accent-blue) 95%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
