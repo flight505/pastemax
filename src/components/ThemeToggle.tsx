@@ -13,7 +13,6 @@ const ThemeToggle = (): JSX.Element => {
         title="Light Mode"
       >
         <Sun size={16} />
-        <span>Light</span>
       </button>
       <button
         className={`theme-segment ${theme === "dark" ? "active" : ""}`}
@@ -21,7 +20,6 @@ const ThemeToggle = (): JSX.Element => {
         title="Dark Mode"
       >
         <Moon size={16} />
-        <span>Dark</span>
       </button>
       <button
         className={`theme-segment ${theme === "system" ? "active" : ""}`}
@@ -29,7 +27,6 @@ const ThemeToggle = (): JSX.Element => {
         title="Use System Settings"
       >
         <Monitor size={16} />
-        <span>Auto</span>
       </button>
     </div>
   );

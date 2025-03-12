@@ -17,6 +17,7 @@
   --error-color: hsl(0, 84.2%, 60.2%);
   --primary-button-background: hsl(240, 5.9%, 10%);
   --primary-button-text: hsl(0, 0%, 98%);
+  --file-card-selected-border: hsl(240, 5.9%, 90%);
   
   /* User instructions area specific colors */
   --instructions-background: hsl(240, 5%, 96%);
@@ -45,6 +46,7 @@
   --error-color: hsl(0, 62.8%, 30.6%);
   --primary-button-background: hsl(0, 0%, 98%);
   --primary-button-text: hsl(240, 5.9%, 10%);
+  --file-card-selected-border: hsl(240, 3.7%, 25%);
   
   /* User instructions area specific colors */
   --instructions-background: hsl(240, 3.7%, 8%);
@@ -575,12 +577,13 @@ input[type="radio"] {
 }
 
 .file-card.selected {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 1px var(--accent-blue);
+  border-color: var(--file-card-selected-border);
+  box-shadow: 0 0 0 1px var(--file-card-selected-border);
 }
 
 .dark-mode .file-card.selected {
   background-color: var(--card-background);
+  border-color: var(--file-card-selected-border);
 }
 
 .file-card-header {
@@ -899,29 +902,20 @@ input[type="text"].search-input:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 0 12px;
+  width: 36px;
   height: 28px;
   border: none;
   background: none;
-  font-size: 13px;
-  font-weight: 500;
   color: var(--text-secondary);
   position: relative;
   z-index: 1;
   transition: color 0.2s ease;
   border-radius: var(--radius);
   cursor: pointer;
-  white-space: nowrap;
-  min-width: 70px;
 }
 
 .theme-segment:focus {
   outline: none;
-}
-
-.theme-segment span {
-  font-size: 12px;
 }
 
 .theme-segment.active {
