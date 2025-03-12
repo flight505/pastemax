@@ -61,7 +61,7 @@ const App = () => {
     status: "idle" | "processing" | "complete" | "error";
     message: string;
   });
-  const [includeFileTree, setIncludeFileTree] = useState(false);
+  const [fileTreeMode, setFileTreeMode] = useState<FileTreeMode>("none");
 
   // State for sort dropdown
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
@@ -376,14 +376,35 @@ const App = () => {
 
     let concatenatedString = "";
 
-    // Add ASCII file tree if enabled
-    if (includeFileTree && selectedFolder) {
-      const asciiTree = generateAsciiFileTree(sortedSelected, selectedFolder);
+    // Add ASCII file tree based on the selected mode
+    if (fileTreeMode !== "none" && selectedFolder) {
+      let filesToInclude = sortedSelected;
+      
+      // For the 'complete' mode, include all files
+      if (fileTreeMode === "complete") {
+        filesToInclude = allFiles;
+      }
+      
+      // For all modes, we pass the fileTreeMode parameter to the function
+      const asciiTree = generateAsciiFileTree(filesToInclude, selectedFolder, fileTreeMode);
       concatenatedString += `<file_map>\n${selectedFolder}\n${asciiTree}\n</file_map>\n\n`;
     }
 
+    // Improve formatting of file header - add file path and token count
     sortedSelected.forEach((file: FileData) => {
-      concatenatedString += `\n\n// ---- File: ${file.name} ----\n\n`;
+      // Extract relative path from the full path
+      let relativePath = "";
+      if (selectedFolder && file.path.startsWith(selectedFolder)) {
+        relativePath = file.path.substring(selectedFolder.length);
+        if (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+          relativePath = relativePath.substring(1);
+        }
+      } else {
+        relativePath = file.path;
+      }
+      
+      // Add formatted file header with token count and path
+      concatenatedString += `\n\n// ---- File: ${relativePath} (${file.tokenCount} tokens) ----\n\n`;
       concatenatedString += file.content;
     });
 
@@ -548,8 +569,8 @@ const App = () => {
               )}
 
               <ControlContainer
-                includeFileTree={includeFileTree}
-                setIncludeFileTree={setIncludeFileTree}
+                fileTreeMode={fileTreeMode}
+                setFileTreeMode={setFileTreeMode}
                 showUserInstructions={showUserInstructions}
                 setShowUserInstructions={setShowUserInstructions}
                 getSelectedFilesContent={getSelectedFilesContent}

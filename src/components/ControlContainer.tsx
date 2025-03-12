@@ -1,10 +1,11 @@
 import React from 'react';
 import Switch from './Switch';
 import CopyButton from './CopyButton';
+import { FileTreeMode } from '../types/FileTypes';
 
 interface ControlContainerProps {
-  includeFileTree: boolean;
-  setIncludeFileTree: (value: boolean) => void;
+  fileTreeMode: FileTreeMode;
+  setFileTreeMode: (value: FileTreeMode) => void;
   showUserInstructions: boolean;
   setShowUserInstructions: (value: boolean) => void;
   getSelectedFilesContent: () => string;
@@ -12,8 +13,8 @@ interface ControlContainerProps {
 }
 
 const ControlContainer: React.FC<ControlContainerProps> = ({
-  includeFileTree,
-  setIncludeFileTree,
+  fileTreeMode,
+  setFileTreeMode,
   showUserInstructions,
   setShowUserInstructions,
   getSelectedFilesContent,
@@ -33,12 +34,18 @@ const ControlContainer: React.FC<ControlContainerProps> = ({
         </div>
         
         <div className="control-item">
-          <Switch
-            checked={includeFileTree}
-            onChange={() => setIncludeFileTree(!includeFileTree)}
-            label="Include File Tree"
-            id="include-file-tree-toggle"
-          />
+          <label className="switch-label" htmlFor="file-tree-mode">File Tree:</label>
+          <select
+            id="file-tree-mode"
+            value={fileTreeMode}
+            onChange={(e) => setFileTreeMode(e.target.value as FileTreeMode)}
+            className="file-tree-mode-select"
+          >
+            <option value="none">None</option>
+            <option value="selected">Selected Files Only</option>
+            <option value="selected-with-roots">Selected Files with Path</option>
+            <option value="complete">Complete Tree</option>
+          </select>
         </div>
         
         <div className="control-item copy-button-wrapper">

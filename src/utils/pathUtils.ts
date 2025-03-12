@@ -122,9 +122,14 @@ export function extname(path: string | null | undefined): string {
  * Generate an ASCII representation of the file tree for the selected files
  * @param files Array of selected FileData objects
  * @param rootPath The root directory path
+ * @param mode The FileTreeMode to use for generation
  * @returns ASCII string representing the file tree
  */
-export function generateAsciiFileTree(files: { path: string }[], rootPath: string): string {
+export function generateAsciiFileTree(
+  files: { path: string }[], 
+  rootPath: string,
+  mode: FileTreeMode = "selected"
+): string {
   if (!files.length) return "No files selected.";
 
   // Normalize the root path for consistent path handling
@@ -135,12 +140,19 @@ export function generateAsciiFileTree(files: { path: string }[], rootPath: strin
     name: string;
     isFile: boolean;
     children: Record<string, TreeNode>;
+    // Add a flag to identify if this node contains a selected file
+    hasSelectedFile?: boolean;
   }
   
-  const root: TreeNode = { name: basename(normalizedRoot), isFile: false, children: {} };
+  const root: TreeNode = { 
+    name: basename(normalizedRoot), 
+    isFile: false, 
+    children: {},
+    hasSelectedFile: false
+  };
   
   // Insert a file path into the tree
-  const insertPath = (filePath: string, node: TreeNode) => {
+  const insertPath = (filePath: string, node: TreeNode, isSelected: boolean = true) => {
     const normalizedPath = filePath.replace(/\\/g, "/");
     if (!normalizedPath.startsWith(normalizedRoot)) return;
     
@@ -158,23 +170,63 @@ export function generateAsciiFileTree(files: { path: string }[], rootPath: strin
         currentNode.children[part] = {
           name: part,
           isFile,
-          children: {}
+          children: {},
+          hasSelectedFile: isSelected && isFile
         };
+      }
+      
+      // If this file is selected, mark this node and all parent nodes
+      if (isSelected && isFile && i === pathParts.length - 1) {
+        currentNode.children[part].hasSelectedFile = true;
       }
       
       currentNode = currentNode.children[part];
     }
+    
+    // Mark parent directories as having selected files
+    if (isSelected) {
+      let tempNode = node;
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        const part = pathParts[i];
+        if (tempNode.children[part]) {
+          tempNode.children[part].hasSelectedFile = true;
+          tempNode = tempNode.children[part];
+        }
+      }
+    }
   };
   
-  // Insert all files into the tree
-  files.forEach(file => insertPath(file.path, root));
+  // Insert files into the tree based on the mode
+  if (mode === "complete") {
+    // In complete mode, insert all files, marking the selected ones
+    files.forEach(file => {
+      // Determine if this file is among the selected files
+      // This requires a full list of files, where some might be selected and others not
+      const isSelected = "selected" in file ? file.selected : true;
+      insertPath(file.path, root, isSelected);
+    });
+  } else {
+    // In selected mode or selected-with-roots mode, all files we're given are selected
+    files.forEach(file => insertPath(file.path, root, true));
+  }
   
   // Generate ASCII representation
   const generateAscii = (node: TreeNode, prefix = "", isLast = true, isRoot = true): string => {
+    // For selected-with-roots mode, only include nodes that have selected files
+    if (mode === "selected-with-roots" && !node.hasSelectedFile && !isRoot) {
+      return "";
+    }
+    
     if (!isRoot) {
       let result = prefix;
       result += isLast ? "└── " : "├── ";
       result += node.name;
+      
+      // In complete mode, mark selected files with a '*'
+      if (mode === "complete" && node.hasSelectedFile && node.isFile) {
+        result += " *";
+      }
+      
       result += "\n";
       prefix += isLast ? "    " : "│   ";
       
@@ -202,9 +254,13 @@ export function generateAsciiFileTree(files: { path: string }[], rootPath: strin
       });
       
       return children
-        .map((child, index) =>
-          generateAscii(child, prefix, index === children.length - 1, false)
-        )
+        .map((child, index) => {
+          // For selected-with-roots mode, only include nodes that have selected files
+          if (mode === "selected-with-roots" && !child.hasSelectedFile) {
+            return "";
+          }
+          return generateAscii(child, prefix, index === children.length - 1, false);
+        })
         .join("");
     }
   };
