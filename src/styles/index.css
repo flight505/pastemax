@@ -106,9 +106,11 @@ button:hover {
   background-color: var(--hover-color);
 }
 
+/* General button focus styles */
 button:focus {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent-color);
+  outline-offset: 0;
 }
 
 button.primary {
@@ -894,8 +896,9 @@ input[type="text"].search-input:focus {
   width: fit-content;
   position: relative;
   height: 36px;
-  border: 1px solid hsl(240 5.9% 90% / 0.2);
+  border: 1px solid hsla(240, 5.9%, 90%, 0.2);
   gap: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .theme-segments-background {
@@ -907,7 +910,7 @@ input[type="text"].search-input:focus {
   background-color: var(--background-primary);
   border-radius: 9999px;
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   z-index: 0;
 }
 
@@ -933,6 +936,17 @@ input[type="text"].search-input:focus {
   background: none;
 }
 
+/* Theme segment specific focus styles */
+.theme-segment:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.theme-segment:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent-color);
+}
+
 .theme-segment.active {
   color: var(--text-primary);
 }
@@ -952,12 +966,12 @@ input[type="text"].search-input:focus {
 
 /* For dark mode, adjust active segment appearance */
 .dark-mode .theme-segmented-control {
-  border-color: hsl(240 3.7% 15.9% / 0.2);
+  border-color: hsla(240, 3.7%, 25%, 0.2);
 }
 
 .dark-mode .theme-segments-background {
   background-color: var(--background-selected);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* Animation for segment transition */
