@@ -5,7 +5,7 @@
   --background-selected: hsl(240, 4.8%, 95.9%);
   --card-background: hsl(0, 0%, 100%); /* Pure white for cards in light mode */
   --card-foreground: hsl(240, 10%, 3.9%);
-  --accent-blue: hsl(240, 3.8%, 46.1%); /* Changed from blue to gray for better shadcn alignment */
+  --accent-color: hsl(240, 3.8%, 46.1%); /* Changed from blue to gray for better shadcn alignment */
   --border-color: hsl(240, 5.9%, 90%);
   --hover-color: hsl(240, 4.8%, 95.9%);
   --text-primary: hsl(240, 10%, 3.9%);
@@ -34,7 +34,7 @@
   --background-selected: hsl(240, 3.7%, 15.9%);
   --card-background: hsl(240, 10%, 3.9%); /* Pure black for cards in dark mode */
   --card-foreground: hsl(0, 0%, 98%);
-  --accent-blue: hsl(240, 5%, 64.9%); /* Changed to match the shadcn gray in dark mode */
+  --accent-color: hsl(240, 5%, 64.9%); /* Changed to match the shadcn gray in dark mode */
   --border-color: hsl(240, 3.7%, 15.9%);
   --hover-color: hsl(240, 3.7%, 15.9%);
   --text-primary: hsl(0, 0%, 98%);
@@ -107,7 +107,7 @@ button:hover {
 }
 
 button:focus {
-  outline: 2px solid var(--accent-blue);
+  outline: 2px solid var(--accent-color);
   outline-offset: 1px;
 }
 
@@ -141,14 +141,14 @@ input[type="search"] {
 
 input[type="text"]:focus,
 input[type="search"]:focus {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 1px var(--accent-blue);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
 }
 
 /* Form element styling - checkboxes and radios */
 input[type="checkbox"],
 input[type="radio"] {
-  accent-color: var(--accent-blue);
+  accent-color: var(--accent-color);
   cursor: pointer;
 }
 
@@ -420,7 +420,7 @@ input[type="radio"] {
 .tree-item-checkbox {
   margin-right: 8px;
   cursor: pointer;
-  accent-color: var(--accent-blue);
+  accent-color: var(--accent-color);
 }
 
 .tree-item-name {
@@ -517,7 +517,7 @@ input[type="radio"] {
 .sort-option.active {
   background-color: var(--background-selected);
   font-weight: 600;
-  color: var(--accent-blue);
+  color: var(--accent-color);
 }
 
 .file-stats {
@@ -750,7 +750,7 @@ input[type="radio"] {
 .spinner {
   border: 3px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
-  border-top: 3px solid var(--accent-blue);
+  border-top: 3px solid var(--accent-color);
   width: 24px;
   height: 24px;
   animation: spin 1s linear infinite;
@@ -798,8 +798,8 @@ input[type="radio"] {
 }
 
 .search-bar.focused {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 1px var(--accent-blue);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
 }
 
 .search-icon {
@@ -833,8 +833,8 @@ input[type="text"].search-input {
 .search-bar .search-input:focus,
 input[type="search"].search-input:focus,
 input[type="text"].search-input:focus {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 1px var(--accent-blue);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
 }
 
 .search-clear-btn {
@@ -889,13 +889,26 @@ input[type="text"].search-input:focus {
 .theme-segmented-control {
   display: flex;
   background-color: var(--background-secondary);
-  border-radius: var(--radius);
+  border-radius: 9999px;
   padding: 2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   width: fit-content;
   position: relative;
-  height: 32px;
-  overflow: hidden;
+  height: 36px;
+  border: 1px solid hsl(240 5.9% 90% / 0.2);
+  gap: 2px;
+}
+
+.theme-segments-background {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(33.33% - 2px);
+  height: calc(100% - 4px);
+  background-color: var(--background-primary);
+  border-radius: 9999px;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  z-index: 0;
 }
 
 .theme-segment {
@@ -903,35 +916,53 @@ input[type="text"].search-input:focus {
   align-items: center;
   justify-content: center;
   width: 36px;
-  height: 28px;
+  height: 32px;
   border: none;
   background: none;
   color: var(--text-secondary);
   position: relative;
   z-index: 1;
-  transition: color 0.2s ease;
-  border-radius: var(--radius);
+  transition: color 0.15s ease;
+  border-radius: 9999px;
   cursor: pointer;
+  padding: 0;
 }
 
-.theme-segment:focus {
-  outline: none;
+.theme-segment:hover {
+  color: var(--text-primary);
+  background: none;
 }
 
 .theme-segment.active {
   color: var(--text-primary);
-  background-color: var(--background-primary);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Position the background based on active segment */
+.theme-segmented-control .theme-segment:nth-child(2).active ~ .theme-segments-background {
+  transform: translateX(0);
+}
+
+.theme-segmented-control .theme-segment:nth-child(3).active ~ .theme-segments-background {
+  transform: translateX(100%);
+}
+
+.theme-segmented-control .theme-segment:nth-child(4).active ~ .theme-segments-background {
+  transform: translateX(200%);
 }
 
 /* For dark mode, adjust active segment appearance */
-.dark-mode .theme-segment.active {
-  background-color: rgba(255, 255, 255, 0.1);
+.dark-mode .theme-segmented-control {
+  border-color: hsl(240 3.7% 15.9% / 0.2);
+}
+
+.dark-mode .theme-segments-background {
+  background-color: var(--background-selected);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Animation for segment transition */
 .theme-segment {
-  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  transition: color 0.15s ease;
 }
 
 .header-actions {
@@ -968,8 +999,8 @@ input[type="text"].search-input:focus {
 
 .user-instructions textarea:focus {
   outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 1px var(--accent-blue);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
 }
 
 .user-instructions-header {
@@ -1021,8 +1052,8 @@ input[type="text"].search-input:focus {
 
 .file-tree-mode-select:focus {
   outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 1px var(--accent-blue);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
 }
 
 .dark-mode .file-tree-mode-select {
@@ -1054,7 +1085,7 @@ input[type="text"].search-input:focus {
 }
 
 .switch-checked {
-  background-color: var(--accent-blue);
+  background-color: var(--accent-color);
   opacity: 1;
 }
 
@@ -1129,7 +1160,7 @@ input[type="text"].search-input:focus {
 .token-bar {
   height: 100%;
   width: 0;
-  background: var(--accent-blue);
+  background: var(--accent-color);
   transition: width 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
   border-radius: 9999px;
 }
@@ -1139,5 +1170,5 @@ input[type="text"].search-input:focus {
 }
 
 .dark-mode .token-bar {
-  background: var(--accent-blue);
+  background: var(--accent-color);
 }

@@ -7,26 +7,27 @@ const ThemeToggle = (): JSX.Element => {
   
   return (
     <div className="theme-segmented-control">
+      <div className="theme-segments-background" />
       <button
         className={`theme-segment ${theme === "light" ? "active" : ""}`}
         onClick={() => setTheme("light")}
         title="Light Mode"
       >
-        <Sun size={16} />
+        <Sun size={18} strokeWidth={1.5} />
       </button>
       <button
         className={`theme-segment ${theme === "dark" ? "active" : ""}`}
         onClick={() => setTheme("dark")}
         title="Dark Mode"
       >
-        <Moon size={16} />
+        <Moon size={18} strokeWidth={1.5} />
       </button>
       <button
         className={`theme-segment ${theme === "system" ? "active" : ""}`}
         onClick={() => setTheme("system")}
         title="Use System Settings"
       >
-        <Monitor size={16} />
+        <Monitor size={18} strokeWidth={1.5} />
       </button>
     </div>
   );
