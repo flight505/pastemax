@@ -34,7 +34,7 @@ const ThemeToggle = (): JSX.Element => {
     
     return () => clearTimeout(timer);
   }, []);
-  
+
   return (
     <div className="theme-segmented-control">
       <div 

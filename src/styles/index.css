@@ -1,11 +1,11 @@
 :root {
-  /* Monochrome light theme */
+  /* Monochrome Zinc theme - shadcn inspired */
   --background-primary: hsl(0, 0%, 100%);
   --background-secondary: hsl(240, 4.8%, 95.9%);
   --background-selected: hsl(240, 4.8%, 95.9%);
-  --card-background: hsl(0, 0%, 100%); /* Pure white for cards in light mode */
+  --card-background: hsl(0, 0%, 100%);
   --card-foreground: hsl(240, 10%, 3.9%);
-  --accent-color: hsl(240, 3.8%, 46.1%); /* Changed from blue to gray for better shadcn alignment */
+  --accent-color: hsl(240, 3.8%, 46.1%);
   --border-color: hsl(240, 5.9%, 90%);
   --hover-color: hsl(240, 4.8%, 95.9%);
   --text-primary: hsl(240, 10%, 3.9%);
@@ -23,18 +23,21 @@
   --instructions-background: hsl(240, 5%, 96%);
   --instructions-border: hsl(240, 5.9%, 90%);
   
+  /* Ring for focus states */
+  --ring-color: hsl(240, 5.9%, 10%);
+  
   /* Border radius */
   --radius: 0.5rem;
 }
 
 .dark-mode {
-  /* Monochrome dark theme */
+  /* Monochrome dark Zinc theme - shadcn inspired */
   --background-primary: hsl(240, 10%, 3.9%);
   --background-secondary: hsl(240, 3.7%, 15.9%);
   --background-selected: hsl(240, 3.7%, 15.9%);
-  --card-background: hsl(240, 10%, 3.9%); /* Pure black for cards in dark mode */
+  --card-background: hsl(240, 10%, 3.9%);
   --card-foreground: hsl(0, 0%, 98%);
-  --accent-color: hsl(240, 5%, 64.9%); /* Changed to match the shadcn gray in dark mode */
+  --accent-color: hsl(240, 5%, 64.9%);
   --border-color: hsl(240, 3.7%, 15.9%);
   --hover-color: hsl(240, 3.7%, 15.9%);
   --text-primary: hsl(0, 0%, 98%);
@@ -51,6 +54,9 @@
   /* User instructions area specific colors */
   --instructions-background: hsl(240, 3.7%, 8%);
   --instructions-border: hsl(240, 3.7%, 20%);
+  
+  /* Ring for focus states */
+  --ring-color: hsl(240, 4.9%, 83.9%);
 }
 
 * {
@@ -226,6 +232,7 @@ input[type="radio"] {
   align-items: center;
   justify-content: space-between;
   background-color: var(--background-primary);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
 }
 
 .header h1 {
@@ -264,6 +271,7 @@ input[type="radio"] {
   white-space: nowrap;
   color: var(--text-secondary);
   font-size: 13px;
+  border: 1px solid transparent;
 }
 
 .select-folder-btn {
@@ -339,6 +347,15 @@ input[type="radio"] {
   background-color: var(--background-primary);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+}
+
+.sidebar-action-btn:hover {
+  background-color: var(--background-primary);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .file-tree {
@@ -573,7 +590,7 @@ input[type="radio"] {
   display: flex;
   flex-direction: column;
   padding: 1.25rem;
-  border: 0.5px solid var(--border-color);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius);
   position: relative;
   transition: all 0.15s ease;
@@ -581,23 +598,19 @@ input[type="radio"] {
   min-height: 90px;
   background-color: var(--card-background);
   color: var(--card-foreground);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .file-card:hover {
   background-color: var(--card-background);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border-color: var(--border-color);
+  transform: translateY(-1px);
 }
 
 .file-card.selected {
   border-color: var(--file-card-selected-border);
   box-shadow: 0 0 0 1px var(--file-card-selected-border);
-}
-
-.dark-mode .file-card.selected {
-  background-color: var(--card-background);
-  border-color: var(--file-card-selected-border);
 }
 
 .file-card-header {
@@ -922,7 +935,6 @@ input[type="text"].search-input:focus {
   height: calc(100% - 4px);
   background-color: var(--background-primary);
   border-radius: 9999px;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
   z-index: 0;
   transform: translateX(0);
@@ -1203,8 +1215,20 @@ input[type="text"].search-input:focus {
   display: flex;
   align-items: center;
   transition: color 0.2s ease;
+  padding: 4px 8px;
+  border-radius: var(--radius);
 }
 
 .header-link:hover {
   color: var(--text-primary);
+  background-color: var(--background-secondary);
+}
+
+/* Enhanced focus styles */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.theme-segment:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--ring-color);
 }
