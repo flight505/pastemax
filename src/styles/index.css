@@ -220,7 +220,7 @@ input[type="radio"] {
 }
 
 .header {
-  padding: 16px 24px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -235,33 +235,45 @@ input[type="radio"] {
   color: var(--text-primary);
 }
 
-.folder-info {
+.header-actions {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
+.header-separator {
+  height: 16px;
+  width: 1px;
+  background-color: var(--border-color);
+  opacity: 0.6;
+}
+
+.folder-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .selected-folder {
-  padding: 6px 12px;
+  padding: 4px 8px;
   border-radius: var(--radius);
-  background-color: var(--hover-color);
+  background-color: var(--background-secondary);
   max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .select-folder-btn {
   background-color: var(--background-primary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
-  padding: 8px 16px;
+  padding: 4px 10px;
+  font-size: 13px;
   font-weight: 500;
-}
-
-.select-folder-btn:hover {
-  background-color: var(--hover-color);
+  height: 28px;
 }
 
 .main-content {
@@ -895,10 +907,11 @@ input[type="text"].search-input:focus {
   padding: 2px;
   width: fit-content;
   position: relative;
-  height: 36px;
-  border: 1px solid hsla(240, 5.9%, 90%, 0.2);
-  gap: 2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  height: 28px;
+  border: 1px solid hsla(240, 5.9%, 90%, 0.3);
+  gap: 1px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  overflow: hidden;
 }
 
 .theme-segments-background {
@@ -909,23 +922,40 @@ input[type="text"].search-input:focus {
   height: calc(100% - 4px);
   background-color: var(--background-primary);
   border-radius: 9999px;
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
   z-index: 0;
+  transform: translateX(0);
+}
+
+.theme-segments-background.animated {
+  transition-property: transform, box-shadow;
+}
+
+.theme-segments-background.light {
+  transform: translateX(0);
+}
+
+.theme-segments-background.dark {
+  transform: translateX(100%);
+}
+
+.theme-segments-background.system {
+  transform: translateX(200%);
 }
 
 .theme-segment {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 32px;
+  width: 28px;
+  height: 24px;
   border: none;
   background: none;
   color: var(--text-secondary);
   position: relative;
   z-index: 1;
-  transition: color 0.15s ease;
+  transition: color 0.2s ease;
   border-radius: 9999px;
   cursor: pointer;
   padding: 0;
@@ -951,38 +981,15 @@ input[type="text"].search-input:focus {
   color: var(--text-primary);
 }
 
-/* Position the background based on active segment */
-.theme-segmented-control .theme-segment:nth-child(2).active ~ .theme-segments-background {
-  transform: translateX(0);
-}
-
-.theme-segmented-control .theme-segment:nth-child(3).active ~ .theme-segments-background {
-  transform: translateX(100%);
-}
-
-.theme-segmented-control .theme-segment:nth-child(4).active ~ .theme-segments-background {
-  transform: translateX(200%);
-}
-
 /* For dark mode, adjust active segment appearance */
 .dark-mode .theme-segmented-control {
-  border-color: hsla(240, 3.7%, 25%, 0.2);
+  border-color: hsla(240, 3.7%, 25%, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
 .dark-mode .theme-segments-background {
   background-color: var(--background-selected);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-
-/* Animation for segment transition */
-.theme-segment {
-  transition: color 0.15s ease;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .user-instructions-container {
@@ -1185,4 +1192,19 @@ input[type="text"].search-input:focus {
 
 .dark-mode .token-bar {
   background: var(--accent-color);
+}
+
+/* Header link styling */
+.header-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.header-link:hover {
+  color: var(--text-primary);
 }

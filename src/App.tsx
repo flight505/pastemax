@@ -8,6 +8,7 @@ import { FileData } from "./types/FileTypes";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
+import { Github } from "lucide-react";
 
 // Access the electron API from the window object
 declare global {
@@ -472,21 +473,29 @@ const App = () => {
         <header className="header">
           <h1>PasteMax</h1>
           <div className="header-actions">
-            <ThemeToggle />
+            <a href="#" className="header-link">Guide</a>
+            <div className="header-separator"></div>
+            
             <div className="folder-info">
-              {selectedFolder ? (
-                <div className="selected-folder">{selectedFolder}</div>
-              ) : (
-                <span>No folder selected</span>
-              )}
-              <button
-                className="select-folder-btn"
-                onClick={openFolder}
+              <span className="selected-folder" title={selectedFolder || "No folder selected"}>
+                {selectedFolder ? selectedFolder : "No folder selected"}
+              </span>
+              <button 
+                className="select-folder-btn" 
+                onClick={openFolder} 
                 disabled={processingStatus.status === "processing"}
               >
                 Select Folder
               </button>
             </div>
+            
+            <div className="header-separator"></div>
+            <ThemeToggle />
+            
+            <div className="header-separator"></div>
+            <a href="https://github.com/user/pastemax" className="header-link" target="_blank" rel="noopener noreferrer" title="View on GitHub">
+              <Github size={18} />
+            </a>
           </div>
         </header>
 
