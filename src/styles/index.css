@@ -1260,31 +1260,64 @@ textarea:focus-visible,
   color: var(--text-primary);
 }
 
+.file-tree-btn.active {
+  background-color: var(--hover-color);
+  color: var(--text-primary);
+  position: relative;
+}
+
+/* Add a subtle indicator for active buttons */
+.file-tree-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
+  background-color: var(--accent-color);
+  border-radius: 2px;
+}
+
+/* Dropdown menu styles */
 .dropdown-container {
   position: relative;
 }
 
 .dropdown-menu {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   left: 0;
   min-width: 160px;
   background-color: var(--background-primary);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: var(--radius);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 100;
-  margin-top: 4px;
+  animation: dropdown-fade-in 0.15s ease-in-out;
+}
+
+@keyframes dropdown-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dropdown-item {
   padding: 8px 12px;
   cursor: pointer;
   font-size: 0.85rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .dropdown-item:hover {
   background-color: var(--hover-color);
+  color: var(--text-primary);
 }
 
 /* Ignore Patterns Modal */
@@ -1462,4 +1495,88 @@ textarea:focus-visible,
 /* Dark mode adjustments */
 .dark-mode .highlight-text {
   background-color: rgba(255, 193, 7, 0.05);
+}
+
+/* Empty state styling */
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: var(--background-secondary);
+}
+
+.empty-state-content {
+  max-width: 500px;
+  text-align: center;
+  padding: 2rem;
+  background-color: var(--background-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state-content h2 {
+  margin-top: 0;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state-content p {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.empty-state-content ul {
+  text-align: left;
+  color: var(--text-secondary);
+  margin-bottom: 0;
+  padding-left: 1.5rem;
+}
+
+.empty-state-content li {
+  margin-bottom: 0.5rem;
+}
+
+/* Folder path display in content header */
+.folder-path-display {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+  padding-right: 1rem;
+  border-right: 1px solid var(--border-color);
+  margin-right: 1rem;
+}
+
+/* Sidebar empty state */
+.sidebar-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100% - 40px); /* Adjust height to account for the header */
+  padding: 1rem;
+  text-align: center;
+}
+
+.sidebar-empty-icon {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  margin-bottom: 1rem;
+}
+
+.sidebar-empty-state h3 {
+  margin: 0 0 0.75rem 0;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+}
+
+.sidebar-empty-state p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
 }

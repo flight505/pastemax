@@ -4,6 +4,7 @@ import SearchBar from "./SearchBar";
 import TreeItem from "./TreeItem";
 import FileTreeHeader from "./FileTreeHeader";
 import IgnorePatterns from "./IgnorePatterns";
+import { FolderPlus } from "lucide-react";
 
 const Sidebar = ({
   selectedFolder,
@@ -348,54 +349,64 @@ const Sidebar = ({
         onOpenIgnorePatterns={handleOpenIgnorePatterns}
       />
       
-      <div className="sidebar-search">
-        <SearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
-      </div>
-
-      <div className="sidebar-actions">
-        <button
-          className="sidebar-action-btn"
-          onClick={selectAllFiles}
-          title="Select all files"
-        >
-          Select All
-        </button>
-        <button
-          className="sidebar-action-btn"
-          onClick={deselectAllFiles}
-          title="Deselect all files"
-        >
-          Deselect All
-        </button>
-      </div>
-
-      <div className="file-tree">
-        {isTreeBuildingComplete ? (
-          flattenedFilteredTree.length > 0 ? (
-            flattenedFilteredTree.map((node) => (
-              <TreeItem
-                key={node.id}
-                node={node}
-                selectedFiles={selectedFiles}
-                toggleFileSelection={toggleFileSelection}
-                toggleFolderSelection={toggleFolderSelection}
-                toggleExpanded={toggleExpanded}
-              />
-            ))
-          ) : (
-            <div className="tree-empty">
-              {searchTerm
-                ? "No files match your search."
-                : "No files in this folder."}
-            </div>
-          )
-        ) : (
-          <div className="tree-loading">
-            <div className="spinner"></div>
-            <p>Loading files...</p>
+      {selectedFolder ? (
+        <>
+          <div className="sidebar-search">
+            <SearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
           </div>
-        )}
-      </div>
+
+          <div className="sidebar-actions">
+            <button
+              className="sidebar-action-btn"
+              onClick={selectAllFiles}
+              title="Select all files"
+            >
+              Select All
+            </button>
+            <button
+              className="sidebar-action-btn"
+              onClick={deselectAllFiles}
+              title="Deselect all files"
+            >
+              Deselect All
+            </button>
+          </div>
+
+          <div className="file-tree">
+            {isTreeBuildingComplete ? (
+              flattenedFilteredTree.length > 0 ? (
+                flattenedFilteredTree.map((node) => (
+                  <TreeItem
+                    key={node.id}
+                    node={node}
+                    selectedFiles={selectedFiles}
+                    toggleFileSelection={toggleFileSelection}
+                    toggleFolderSelection={toggleFolderSelection}
+                    toggleExpanded={toggleExpanded}
+                  />
+                ))
+              ) : (
+                <div className="tree-empty">
+                  {searchTerm
+                    ? "No files match your search."
+                    : "No files in this folder."}
+                </div>
+              )
+            ) : (
+              <div className="tree-loading">
+                <div className="spinner"></div>
+                <p>Loading files...</p>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="sidebar-empty-state">
+          <FolderPlus size={48} className="sidebar-empty-icon" />
+          <h3>No Folder Selected</h3>
+          <p>Click the folder icon above to select a project folder.</p>
+        </div>
+      )}
 
       <div
         className="sidebar-resize-handle"

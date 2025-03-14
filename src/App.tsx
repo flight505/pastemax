@@ -536,23 +536,7 @@ const App = () => {
           <div className="header-actions">
             <a href="#" className="header-link">Guide</a>
             <div className="header-separator"></div>
-            
-            <div className="folder-info">
-              <span className="selected-folder" title={selectedFolder || "No folder selected"}>
-                {selectedFolder ? selectedFolder : "No folder selected"}
-              </span>
-              <button 
-                className="select-folder-btn" 
-                onClick={openFolder} 
-                disabled={processingStatus.status === "processing"}
-              >
-                Select Folder
-              </button>
-            </div>
-            
-            <div className="header-separator"></div>
             <ThemeToggle />
-            
             <div className="header-separator"></div>
             <a href="https://github.com/user/pastemax" className="header-link" target="_blank" rel="noopener noreferrer" title="View on GitHub">
               <Github size={18} />
@@ -571,34 +555,38 @@ const App = () => {
           <div className="error-message">Error: {processingStatus.message}</div>
         )}
 
-        {selectedFolder && (
-          <div className="main-content">
-            <Sidebar
-              selectedFolder={selectedFolder}
-              openFolder={openFolder}
-              allFiles={allFiles}
-              selectedFiles={selectedFiles}
-              toggleFileSelection={toggleFileSelection}
-              toggleFolderSelection={toggleFolderSelection}
-              searchTerm={searchTerm}
-              onSearchChange={handleSearchChange}
-              selectAllFiles={selectAllFiles}
-              deselectAllFiles={deselectAllFiles}
-              expandedNodes={expandedNodes}
-              toggleExpanded={toggleExpanded}
-              // New props
-              reloadFolder={reloadFolder}
-              clearSelection={clearSelection}
-              removeAllFolders={removeAllFolders}
-              ignorePatterns={ignorePatterns}
-              setIgnorePatterns={setIgnorePatterns}
-              loadIgnorePatterns={loadIgnorePatterns}
-              saveIgnorePatterns={saveIgnorePatterns}
-            />
+        <div className="main-content">
+          <Sidebar
+            selectedFolder={selectedFolder}
+            openFolder={openFolder}
+            allFiles={allFiles}
+            selectedFiles={selectedFiles}
+            toggleFileSelection={toggleFileSelection}
+            toggleFolderSelection={toggleFolderSelection}
+            searchTerm={searchTerm}
+            onSearchChange={handleSearchChange}
+            selectAllFiles={selectAllFiles}
+            deselectAllFiles={deselectAllFiles}
+            expandedNodes={expandedNodes}
+            toggleExpanded={toggleExpanded}
+            // New props
+            reloadFolder={reloadFolder}
+            clearSelection={clearSelection}
+            removeAllFolders={removeAllFolders}
+            ignorePatterns={ignorePatterns}
+            setIgnorePatterns={setIgnorePatterns}
+            loadIgnorePatterns={loadIgnorePatterns}
+            saveIgnorePatterns={saveIgnorePatterns}
+          />
+          
+          {selectedFolder ? (
             <div className="content-area">
               <div className="content-header">
                 <div className="content-title">Selected Files</div>
                 <div className="content-actions">
+                  <div className="folder-path-display" title={selectedFolder}>
+                    {selectedFolder}
+                  </div>
                   <div className="sort-dropdown">
                     <button
                       className="sort-dropdown-button"
@@ -664,8 +652,22 @@ const App = () => {
                 removeAllFolders={removeAllFolders}
               />
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="content-area empty-state">
+              <div className="empty-state-content">
+                <h2>Welcome to PasteMax</h2>
+                <p>Select a folder from the file tree panel to start working with your files.</p>
+                <p>PasteMax helps you format your code for AI models by:</p>
+                <ul>
+                  <li>Selecting specific files</li>
+                  <li>Organizing them in a tree structure</li>
+                  <li>Adding custom instructions</li>
+                  <li>Calculating token counts</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </ThemeProvider>
   );
