@@ -98,7 +98,7 @@ const FileTreeHeader = ({
       <div className="dropdown-container">
         <button 
           className={`file-tree-btn ${activeDropdown === 'sort' ? 'active' : ''}`}
-          onClick={(e) => {
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation(); // Prevent immediate closure
             toggleDropdown('sort');
           }}
@@ -142,7 +142,7 @@ const FileTreeHeader = ({
       <div className="dropdown-container">
         <button 
           className={`file-tree-btn ${activeDropdown === 'clear' ? 'active' : ''}`}
-          onClick={(e) => {
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation(); // Prevent immediate closure
             toggleDropdown('clear');
           }}

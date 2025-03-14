@@ -21,12 +21,12 @@ type ThemeProviderProps = { children: JSX.Element | JSX.Element[] };
 
 export const ThemeProvider = ({ children }: ThemeProviderProps): JSX.Element => {
   // Initialize theme from localStorage or default to "system"
-  const [theme, setThemeState] = useState(() => {
+  const [theme, setThemeState] = useState<ThemeType>(() => {
     const savedTheme = localStorage.getItem("theme") as ThemeType;
     return savedTheme && ["light", "dark", "system"].includes(savedTheme) ? savedTheme : "system";
   });
   
-  const [currentTheme, setCurrentTheme] = useState("light");
+  const [currentTheme, setCurrentTheme] = useState<"light" | "dark">("light");
 
   // Function to set theme and save to localStorage
   const setTheme = (newTheme: ThemeType) => {

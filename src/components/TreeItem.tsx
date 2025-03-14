@@ -79,12 +79,12 @@ const TreeItem = ({
     }
   }, [isDirectoryPartiallySelected]);
 
-  const handleToggle = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleToggle = (e: React.MouseEvent<HTMLDivElement>): void => {
     e.stopPropagation();
     toggleExpanded(id);
   };
 
-  const handleItemClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleItemClick = (): void => {
     if (type === "directory") {
       toggleExpanded(id);
     } else if (type === "file" && !isDisabled) {
@@ -92,7 +92,7 @@ const TreeItem = ({
     }
   };
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     e.stopPropagation();
     if (type === "file") {
       toggleFileSelection(path);

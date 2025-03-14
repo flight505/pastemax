@@ -7,7 +7,12 @@ interface SwitchProps {
   id?: string;
 }
 
-const Switch: React.FC<SwitchProps> = ({ checked, onChange, label, id }) => {
+const Switch = ({ 
+  checked, 
+  onChange, 
+  label, 
+  id 
+}: SwitchProps): JSX.Element => {
   const switchId = id || `switch-${Math.random().toString(36).substring(2, 9)}`;
 
   return (
@@ -23,7 +28,7 @@ const Switch: React.FC<SwitchProps> = ({ checked, onChange, label, id }) => {
         role="switch"
         aria-checked={checked}
         tabIndex={0}
-        onKeyDown={(e) => {
+        onKeyDown={(e: React.KeyboardEvent) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             onChange();

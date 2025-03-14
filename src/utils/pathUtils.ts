@@ -2,6 +2,8 @@
  * Browser-compatible path utilities to replace Node.js path module
  */
 
+import { FileTreeMode } from "../types/FileTypes";
+
 /**
  * Normalizes a file path to use forward slashes regardless of operating system
  * This helps with path comparison across different platforms
@@ -202,7 +204,7 @@ export function generateAsciiFileTree(
     files.forEach(file => {
       // Determine if this file is among the selected files
       // This requires a full list of files, where some might be selected and others not
-      const isSelected = "selected" in file ? file.selected : true;
+      const isSelected = "selected" in file ? Boolean(file.selected) : true;
       insertPath(file.path, root, isSelected);
     });
   } else {

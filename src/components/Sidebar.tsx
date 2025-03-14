@@ -88,6 +88,42 @@ const Sidebar = ({
     }
   }, [selectedFolder, loadIgnorePatterns]);
 
+  // Sort file tree nodes based on current sort order
+  const sortFileTreeNodes = (nodes: TreeNode[]): TreeNode[] => {
+    return [...nodes].sort((a, b) => {
+      // Always sort directories first
+      if (a.type === "directory" && b.type === "file") return -1;
+      if (a.type === "file" && b.type === "directory") return 1;
+      
+      // Sort based on selected sort order
+      switch (fileTreeSortOrder) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "ext-asc": {
+          const extA = a.name.includes('.') ? a.name.split('.').pop() || '' : '';
+          const extB = b.name.includes('.') ? b.name.split('.').pop() || '' : '';
+          return extA.localeCompare(extB) || a.name.localeCompare(b.name);
+        }
+        case "ext-desc": {
+          const extA = a.name.includes('.') ? a.name.split('.').pop() || '' : '';
+          const extB = b.name.includes('.') ? b.name.split('.').pop() || '' : '';
+          return extB.localeCompare(extA) || a.name.localeCompare(b.name);
+        }
+        case "date-newest":
+          if (a.type === "file" && b.type === "file") {
+            const dateA = a.fileData?.lastModified || 0;
+            const dateB = b.fileData?.lastModified || 0;
+            return dateB - dateA;
+          }
+          return a.name.localeCompare(b.name);
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+  };
+
   // Build file tree structure from flat list of files
   useEffect(() => {
     if (allFiles.length === 0) {
@@ -202,43 +238,7 @@ const Sidebar = ({
     // Use a timeout to not block UI
     const buildTreeTimeoutId = setTimeout(buildTree, 0);
     return () => clearTimeout(buildTreeTimeoutId);
-  }, [allFiles, selectedFolder, expandedNodes, fileTreeSortOrder]);
-
-  // Sort file tree nodes based on current sort order
-  const sortFileTreeNodes = (nodes: TreeNode[]): TreeNode[] => {
-    return [...nodes].sort((a, b) => {
-      // Always sort directories first
-      if (a.type === "directory" && b.type === "file") return -1;
-      if (a.type === "file" && b.type === "directory") return 1;
-      
-      // Sort based on selected sort order
-      switch (fileTreeSortOrder) {
-        case "name-asc":
-          return a.name.localeCompare(b.name);
-        case "name-desc":
-          return b.name.localeCompare(a.name);
-        case "ext-asc": {
-          const extA = a.name.includes('.') ? a.name.split('.').pop() || '' : '';
-          const extB = b.name.includes('.') ? b.name.split('.').pop() || '' : '';
-          return extA.localeCompare(extB) || a.name.localeCompare(b.name);
-        }
-        case "ext-desc": {
-          const extA = a.name.includes('.') ? a.name.split('.').pop() || '' : '';
-          const extB = b.name.includes('.') ? b.name.split('.').pop() || '' : '';
-          return extB.localeCompare(extA) || a.name.localeCompare(b.name);
-        }
-        case "date-newest":
-          if (a.type === "file" && b.type === "file") {
-            const dateA = a.fileData?.lastModified || 0;
-            const dateB = b.fileData?.lastModified || 0;
-            return dateB - dateA;
-          }
-          return a.name.localeCompare(b.name);
-        default:
-          return a.name.localeCompare(b.name);
-      }
-    });
-  };
+  }, [allFiles, selectedFolder, expandedNodes, fileTreeSortOrder, sortFileTreeNodes]);
 
   // Apply expanded state as a separate operation when expandedNodes change
   useEffect(() => {
@@ -264,7 +264,7 @@ const Sidebar = ({
     };
 
     setFileTree((prevTree: TreeNode[]) => applyExpandedState(prevTree));
-  }, [expandedNodes]);
+  }, [expandedNodes, fileTree.length]);
 
   // Handler for opening ignore patterns modal
   const handleOpenIgnorePatterns = () => {
