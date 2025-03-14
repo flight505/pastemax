@@ -390,14 +390,12 @@ input[type="radio"] {
 .tree-item {
   display: flex;
   align-items: center;
-  padding: 6px 8px;
-  margin: 2px 0;
-  border-radius: var(--radius);
+  padding: 2px 4px;
   cursor: pointer;
-  user-select: none;
   position: relative;
+  font-size: 0.85rem;
+  border-radius: 4px;
   transition: background-color 0.1s ease;
-  color: var(--text-primary);
 }
 
 .tree-item:hover {
@@ -455,18 +453,18 @@ input[type="radio"] {
 }
 
 .tree-item-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--card-foreground);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  margin-left: 4px;
+  flex: 1;
+  font-size: 0.85rem;
 }
 
 .tree-item-tokens {
-  font-size: 11px;
+  margin-left: 4px;
   color: var(--text-secondary);
-  margin-left: 6px;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
@@ -1231,4 +1229,237 @@ textarea:focus-visible,
 .theme-segment:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--ring-color);
+}
+
+/* Add styles for the new file tree header */
+.file-tree-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--background-secondary);
+}
+
+.file-tree-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-right: 4px;
+  padding: 0;
+}
+
+.file-tree-btn:hover {
+  background-color: var(--hover-color);
+  color: var(--text-primary);
+}
+
+.dropdown-container {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 160px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  margin-top: 4px;
+}
+
+.dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.dropdown-item:hover {
+  background-color: var(--hover-color);
+}
+
+/* Ignore Patterns Modal */
+.ignore-patterns-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ignore-patterns-content {
+  background-color: var(--background-primary);
+  border-radius: 8px;
+  width: 600px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ignore-patterns-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ignore-patterns-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text-primary);
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.ignore-patterns-description, .scope-description {
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.scope-selector {
+  display: flex;
+  margin-bottom: 12px;
+}
+
+.scope-btn {
+  padding: 6px 12px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.scope-btn:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.scope-btn:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.scope-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.folder-selector {
+  margin-bottom: 12px;
+}
+
+.folder-selector label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+}
+
+.folder-selector select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+}
+
+.path-display {
+  padding: 8px;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.patterns-input {
+  width: 100%;
+  min-height: 200px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+  font-family: monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+  margin-bottom: 12px;
+}
+
+.highlight-text {
+  padding: 8px;
+  background-color: rgba(255, 193, 7, 0.1);
+  border-left: 3px solid #ffc107;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+
+.modal-status {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.unsaved {
+  color: #e53935;
+  font-size: 0.85rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cancel-btn, .save-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.cancel-btn {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  margin-right: 8px;
+}
+
+.save-btn {
+  background-color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  color: white;
+}
+
+.save-btn:disabled {
+  background-color: var(--background-secondary);
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+/* Dark mode adjustments */
+.dark-mode .highlight-text {
+  background-color: rgba(255, 193, 7, 0.05);
 }

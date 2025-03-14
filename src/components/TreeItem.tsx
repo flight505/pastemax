@@ -79,12 +79,12 @@ const TreeItem = ({
     }
   }, [isDirectoryPartiallySelected]);
 
-  const handleToggle = (e: any) => {
+  const handleToggle = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     toggleExpanded(id);
   };
 
-  const handleItemClick = (e: any) => {
+  const handleItemClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (type === "directory") {
       toggleExpanded(id);
     } else if (type === "file" && !isDisabled) {
@@ -92,7 +92,7 @@ const TreeItem = ({
     }
   };
 
-  const handleCheckboxChange = (e: any) => {
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
     if (type === "file") {
       toggleFileSelection(path);
@@ -112,7 +112,7 @@ const TreeItem = ({
       className={`tree-item ${isSelected ? "selected" : ""} ${
         isExcludedByDefault ? "excluded-by-default" : ""
       }`}
-      style={{ marginLeft: `${level * 16}px` }}
+      style={{ marginLeft: `${level * 12}px` }}
       onClick={handleItemClick}
     >
       {type === "directory" && (
@@ -121,7 +121,7 @@ const TreeItem = ({
           onClick={handleToggle}
           aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={14} />
         </div>
       )}
 
@@ -139,7 +139,7 @@ const TreeItem = ({
 
       <div className="tree-item-content">
         <div className="tree-item-icon">
-          {type === "directory" ? <Folder size={16} /> : <File size={16} />}
+          {type === "directory" ? <Folder size={14} /> : <File size={14} />}
         </div>
 
         <div className="tree-item-name">{name}</div>

@@ -4,7 +4,7 @@ import FileList from "./components/FileList";
 import CopyButton from "./components/CopyButton";
 import UserInstructions from "./components/UserInstructions";
 import ControlContainer from "./components/ControlContainer";
-import { FileData } from "./types/FileTypes";
+import { FileData, FileTreeMode, SortOrder } from "./types/FileTypes";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
@@ -62,7 +62,7 @@ const App = () => {
     status: "idle" | "processing" | "complete" | "error";
     message: string;
   });
-  const [fileTreeMode, setFileTreeMode] = useState<FileTreeMode>("none");
+  const [fileTreeMode, setFileTreeMode] = useState("none" as FileTreeMode);
 
   // State for sort dropdown
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
@@ -72,6 +72,10 @@ const App = () => {
 
   // Add a new state for showing/hiding user instructions
   const [showUserInstructions, setShowUserInstructions] = useState(true);
+
+  // NEW: State for file tree sorting and ignore patterns
+  const [fileTreeSortOrder, setFileTreeSortOrder] = useState("name-asc" as SortOrder);
+  const [ignorePatterns, setIgnorePatterns] = useState("");
 
   // Check if we're running in Electron or browser environment
   const isElectron = window.electron !== undefined;
@@ -271,7 +275,7 @@ const App = () => {
     
     setSelectedFiles((prev: string[]) => {
       // Check if the file is already selected
-      const isSelected = prev.some(path => arePathsEqual(path, normalizedPath));
+      const isSelected = prev.some((path: string) => arePathsEqual(path, normalizedPath));
       
       if (isSelected) {
         // Remove the file from selected files
@@ -303,7 +307,7 @@ const App = () => {
     );
 
     // Get paths of all selectable files in this folder
-    const selectableFilePaths = filesInFolder.map(file => normalizePath(file.path));
+    const selectableFilePaths = filesInFolder.map((file: FileData) => normalizePath(file.path));
     
     if (isSelected) {
       // Add all files from this folder that aren't already selected
@@ -312,8 +316,8 @@ const App = () => {
         const newSelection = [...prev];
         
         // Add each selectable file path if it's not already selected
-        selectableFilePaths.forEach(path => {
-          if (!newSelection.some(p => arePathsEqual(p, path))) {
+        selectableFilePaths.forEach((path: string) => {
+          if (!newSelection.some((p: string) => arePathsEqual(p, path))) {
             newSelection.push(path);
           }
         });
@@ -324,8 +328,8 @@ const App = () => {
       // Remove all files from this folder
       setSelectedFiles((prev: string[]) => {
         // Remove any currently selected files that are within this folder
-        return prev.filter(path => 
-          !selectableFilePaths.some(folderFilePath => 
+        return prev.filter((path: string) => 
+          !selectableFilePaths.some((folderFilePath: string) => 
             arePathsEqual(folderFilePath, path)
           )
         );
@@ -476,6 +480,54 @@ const App = () => {
     });
   };
 
+  // Add new methods for handling ignore patterns
+  const loadIgnorePatterns = (folderPath: string) => {
+    if (isElectron) {
+      window.electron.ipcRenderer.send("load-ignore-patterns", folderPath);
+    }
+  };
+
+  const saveIgnorePatterns = (patterns: string, isGlobal: boolean, folderPath: string) => {
+    if (isElectron) {
+      window.electron.ipcRenderer.send("save-ignore-patterns", { 
+        patterns, 
+        isGlobal, 
+        folderPath 
+      });
+    }
+  };
+
+  // Add handler for folder reload
+  const reloadFolder = () => {
+    if (isElectron && selectedFolder) {
+      setProcessingStatus({
+        status: "processing",
+        message: "Reloading files...",
+      });
+      window.electron.ipcRenderer.send("request-file-list", selectedFolder);
+    }
+  };
+
+  // Add handlers for clear functionality
+  const clearSelection = () => {
+    setSelectedFiles([]);
+  };
+
+  const removeAllFolders = () => {
+    setSelectedFolder(null);
+    setAllFiles([]);
+    setSelectedFiles([]);
+    setDisplayedFiles([]);
+    
+    // Clear localStorage
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_FILES);
+    localStorage.removeItem(STORAGE_KEYS.EXPANDED_NODES);
+    
+    // Clear sessionStorage flag to allow loading data next time
+    sessionStorage.removeItem("hasLoadedInitialData");
+  };
+
   return (
     <ThemeProvider>
       <div className="app-container">
@@ -534,6 +586,14 @@ const App = () => {
               deselectAllFiles={deselectAllFiles}
               expandedNodes={expandedNodes}
               toggleExpanded={toggleExpanded}
+              // New props
+              reloadFolder={reloadFolder}
+              clearSelection={clearSelection}
+              removeAllFolders={removeAllFolders}
+              ignorePatterns={ignorePatterns}
+              setIgnorePatterns={setIgnorePatterns}
+              loadIgnorePatterns={loadIgnorePatterns}
+              saveIgnorePatterns={saveIgnorePatterns}
             />
             <div className="content-area">
               <div className="content-header">
@@ -593,6 +653,15 @@ const App = () => {
                 setShowUserInstructions={setShowUserInstructions}
                 getSelectedFilesContent={getSelectedFilesContent}
                 selectedFilesCount={selectedFiles.length}
+                fileTreeSortOrder={fileTreeSortOrder}
+                setFileTreeSortOrder={setFileTreeSortOrder}
+                ignorePatterns={ignorePatterns}
+                setIgnorePatterns={setIgnorePatterns}
+                loadIgnorePatterns={loadIgnorePatterns}
+                saveIgnorePatterns={saveIgnorePatterns}
+                reloadFolder={reloadFolder}
+                clearSelection={clearSelection}
+                removeAllFolders={removeAllFolders}
               />
             </div>
           </div>

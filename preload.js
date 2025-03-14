@@ -88,3 +88,49 @@ contextBridge.exposeInMainWorld("electron", {
     },
   },
 });
+
+// Expose IPC API to renderer process
+contextBridge.exposeInMainWorld("electron", {
+  ipcRenderer: {
+    send: (channel, data) => {
+      // Only allow these channels to be sent
+      const validSendChannels = [
+        "open-folder", 
+        "request-file-list", 
+        "load-ignore-patterns", 
+        "save-ignore-patterns"
+      ];
+      if (validSendChannels.includes(channel)) {
+        ipcRenderer.send(channel, data);
+      }
+    },
+    on: (channel, func) => {
+      // Only allow these channels to be received
+      const validReceiveChannels = [
+        "folder-selected", 
+        "file-list-data", 
+        "file-processing-status", 
+        "ignore-patterns-loaded", 
+        "ignore-patterns-saved"
+      ];
+      if (validReceiveChannels.includes(channel)) {
+        // Wrap function to avoid exposing event object
+        const subscription = (event, ...args) => func(...args);
+        ipcRenderer.on(channel, subscription);
+        return subscription;
+      }
+    },
+    removeListener: (channel, func) => {
+      const validReceiveChannels = [
+        "folder-selected", 
+        "file-list-data", 
+        "file-processing-status", 
+        "ignore-patterns-loaded", 
+        "ignore-patterns-saved"
+      ];
+      if (validReceiveChannels.includes(channel)) {
+        ipcRenderer.removeListener(channel, func);
+      }
+    },
+  },
+});
