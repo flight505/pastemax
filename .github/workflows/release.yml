@@ -15,10 +15,10 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: "npm"
@@ -27,14 +27,14 @@ jobs:
         run: npm ci
 
       - name: Cache electron-builder cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: ${{ runner.os }}-electron-cache-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-electron-builder-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-electron-cache-
+            ${{ runner.os }}-electron-builder-
 
       # Code signing setup for macOS
       - name: Set up macOS code signing
@@ -83,26 +83,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload macOS artifacts
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v3
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: macos-artifacts
-          path: release-builds/*.{dmg,zip}
-
-      - name: Upload Windows artifacts
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v3
-        with:
-          name: windows-artifacts
-          path: release-builds/*.{exe,msi,appx}
-
-      - name: Upload Linux artifacts
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v3
-        with:
-          name: linux-artifacts
-          path: release-builds/*.{AppImage,deb,rpm}
+          name: ${{ matrix.os }}-artifacts
+          path: |
+            release-builds/*.dmg
+            release-builds/*.exe
+            release-builds/*.AppImage
+            release-builds/*.deb
+          if-no-files-found: warn
 
       - name: Release
         uses: softprops/action-gh-release@v1

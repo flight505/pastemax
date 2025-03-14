@@ -290,36 +290,45 @@ const App = () => {
     // Normalize the folder path
     const normalizedFolderPath = normalizePath(folderPath);
     
+    // Get all files that are under this folder path at any depth
     const filesInFolder = allFiles.filter(
-      (file: FileData) =>
-        normalizePath(file.path).startsWith(normalizedFolderPath) && 
-        !file.isBinary && 
-        !file.isSkipped,
-
+      (file: FileData) => {
+        const normalizedFilePath = normalizePath(file.path);
+        // Check if the file is within this folder (at any depth)
+        const isWithinFolder = normalizedFilePath.startsWith(normalizedFolderPath);
+        // Only include files that are not binary and not skipped
+        const isSelectable = !file.isBinary && !file.isSkipped;
+        return isWithinFolder && isSelectable;
+      }
     );
 
+    // Get paths of all selectable files in this folder
+    const selectableFilePaths = filesInFolder.map(file => normalizePath(file.path));
+    
     if (isSelected) {
       // Add all files from this folder that aren't already selected
-      const filePaths = filesInFolder.map((file: FileData) => normalizePath(file.path));
-      
       setSelectedFiles((prev: string[]) => {
+        // Start with current selection
         const newSelection = [...prev];
-        filePaths.forEach((path: string) => {
+        
+        // Add each selectable file path if it's not already selected
+        selectableFilePaths.forEach(path => {
           if (!newSelection.some(p => arePathsEqual(p, path))) {
             newSelection.push(path);
           }
         });
+        
         return newSelection;
       });
     } else {
       // Remove all files from this folder
       setSelectedFiles((prev: string[]) => {
-        const newSelection = prev.filter(
-          (path: string) =>
-
-            !filesInFolder.some((file: FileData) => arePathsEqual(normalizePath(file.path), path)),
+        // Remove any currently selected files that are within this folder
+        return prev.filter(path => 
+          !selectableFilePaths.some(folderFilePath => 
+            arePathsEqual(folderFilePath, path)
+          )
         );
-        return newSelection;
       });
     }
   };

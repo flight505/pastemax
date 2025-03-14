@@ -20,49 +20,56 @@ const TreeItem = ({
     arePathsEqual(selectedPath, path)
   );
 
+  // Recursive function to check if all files in a directory are selected
+  const areAllFilesInDirectorySelected = (node: TreeNode): boolean => {
+    if (node.type === "file") {
+      return selectedFiles.some(selectedPath =>
+        arePathsEqual(selectedPath, node.path)
+      );
+    }
+
+    if (
+      node.type === "directory" &&
+      node.children &&
+      node.children.length > 0
+    ) {
+      return node.children.every(child =>
+        areAllFilesInDirectorySelected(child)
+      );
+    }
+
+    return false;
+  };
+
+  // Recursive function to check if any file in a directory is selected
+  const isAnyFileInDirectorySelected = (node: TreeNode): boolean => {
+    if (node.type === "file") {
+      return selectedFiles.some(selectedPath =>
+        arePathsEqual(selectedPath, node.path)
+      );
+    }
+
+    if (
+      node.type === "directory" &&
+      node.children &&
+      node.children.length > 0
+    ) {
+      return node.children.some(child => isAnyFileInDirectorySelected(child));
+    }
+
+    return false;
+  };
+
   // For directories, check if all children are selected
   const isDirectorySelected =
-    type === "directory" && node.children
-      ? node.children.every((child: TreeNode) => {
-          if (child.type === "file") {
-            return selectedFiles.some(selectedPath => 
-              arePathsEqual(selectedPath, child.path)
-            );
-          } else if (child.type === "directory" && child.children) {
-            // Check recursively if this directory's children are all selected
-            return child.children.every((grandchild: TreeNode) => {
-              return (
-                grandchild.type === "file" &&
-                selectedFiles.some(selectedPath => 
-                  arePathsEqual(selectedPath, grandchild.path)
-                )
-              );
-            });
-          }
-          return false;
-        })
+    type === "directory" && node.children && node.children.length > 0
+      ? areAllFilesInDirectorySelected(node)
       : false;
 
   // Check if some but not all files in this directory are selected
   const isDirectoryPartiallySelected =
-    type === "directory" && node.children
-      ? node.children.some((child: TreeNode) => {
-          if (child.type === "file") {
-            return selectedFiles.some(selectedPath => 
-              arePathsEqual(selectedPath, child.path)
-            );
-          } else if (child.type === "directory" && child.children) {
-            return child.children.some((grandchild: TreeNode) => {
-              return (
-                grandchild.type === "file" &&
-                selectedFiles.some(selectedPath => 
-                  arePathsEqual(selectedPath, grandchild.path)
-                )
-              );
-            });
-          }
-          return false;
-        }) && !isDirectorySelected
+    type === "directory" && node.children && node.children.length > 0
+      ? isAnyFileInDirectorySelected(node) && !isDirectorySelected
       : false;
 
   // Update the indeterminate state manually whenever it changes
@@ -72,12 +79,12 @@ const TreeItem = ({
     }
   }, [isDirectoryPartiallySelected]);
 
-  const handleToggle = (e: React.MouseEvent) => {
+  const handleToggle = (e: any) => {
     e.stopPropagation();
     toggleExpanded(id);
   };
 
-  const handleItemClick = (e: React.MouseEvent) => {
+  const handleItemClick = (e: any) => {
     if (type === "directory") {
       toggleExpanded(id);
     } else if (type === "file" && !isDisabled) {
@@ -85,7 +92,7 @@ const TreeItem = ({
     }
   };
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCheckboxChange = (e: any) => {
     e.stopPropagation();
     if (type === "file") {
       toggleFileSelection(path);

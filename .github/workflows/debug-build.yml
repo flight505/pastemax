@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Fetch all history for potential debugging needs
 
@@ -34,7 +34,7 @@ jobs:
           df -h
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: "npm"
@@ -103,6 +103,40 @@ jobs:
 
           echo "==== DEEP LIST OF OUTPUT ===="
           find release-builds -type f || echo "No files in release-builds"
+
+      - name: Cache electron-builder cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: ${{ runner.os }}-electron-builder-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-builder-
+
+      - name: Upload macOS artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-debug-artifacts
+          path: release-builds/*.{dmg,zip}
+          if-no-files-found: warn
+
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-debug-artifacts
+          path: release-builds/*.{exe,msi}
+          if-no-files-found: warn
+
+      - name: Upload Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-debug-artifacts
+          path: release-builds/*.{AppImage,deb,rpm}
+          if-no-files-found: warn
 
       - name: Upload debug artifacts
         uses: actions/upload-artifact@v3
