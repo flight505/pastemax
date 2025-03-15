@@ -75,12 +75,15 @@ PasteMax uses Electron Builder for creating production builds across platforms.
 
 ```bash
 # Build for your current platform
-npm run build
+npm run package
 
 # Build for specific platform
-npm run build:win
-npm run build:mac
-npm run build:linux
+npm run package:win
+npm run package:mac
+npm run package:linux
+
+# Build for all platforms at once
+npm run package:all
 ```
 
 ### Building from Different OS
@@ -89,36 +92,36 @@ npm run build:linux
 
 ```bash
 # Build for Windows only
-npm run build:win
+npm run package:win
 
 # Build for macOS (requires code signing)
-npm run build:mac
+npm run package:mac
 
 # Build for Linux
-npm run build:linux
+npm run package:linux
 ```
 
 #### macOS
 
 ```bash
 # Build for macOS only
-npm run build:mac
+npm run package:mac
 
 # Build for Windows (works on Apple Silicon with cross-compilation)
-npm run build:win
+npm run package:win
 
 # Build for Linux
-npm run build:linux
+npm run package:linux
 ```
 
 #### Linux
 
 ```bash
 # Build for Linux only
-npm run build:linux
+npm run package:linux
 
 # Build for Windows
-npm run build:win
+npm run package:win
 
 # Build for macOS (requires macOS for code signing)
 # Not fully supported from Linux
