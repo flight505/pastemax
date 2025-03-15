@@ -9,6 +9,13 @@
 
 PasteMax is a desktop application designed to help developers easily format and export their code for sharing with AI models like Claude, ChatGPT, and others. It provides an intuitive interface to select specific files from your project, generate file trees, add custom instructions, and export everything in a well-formatted manner that preserves context.
 
+<div align="center">
+  <img width="700" alt="PasteMax application screenshot" src="https://github.com/user-attachments/assets/7d69f136-5dae-456a-8a69-fa8b12af2aad" />
+  <p>Current state of PasteMax</p>
+</div>
+
+
+
 ## Features
 
 - 🗂️ **Project Navigation**: Browse and select files from your project directory
