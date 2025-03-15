@@ -398,10 +398,29 @@ function readFilesRecursively(dir, rootDir, ignoreFilter) {
     return results;
   }
 
-  // Check if this directory is the app's directory or contains .app
-  if (dirName.endsWith('.app') || dir === normalizePath(path.resolve(__dirname))) {
-    console.log(`Skipping app directory: ${dir}`);
-    return results;
+  // Get actual app paths for comparison
+  const appDirectoryPath = normalizePath(app.getAppPath());
+  const resourcesPath = path.dirname(appDirectoryPath);
+  
+  // Skip ONLY if it's the exact running app directory or its Resources parent
+  const isRunningAppDirectory = 
+      dir === appDirectoryPath || 
+      dir === resourcesPath || 
+      dir === normalizePath(path.resolve(__dirname));
+  
+  if (isRunningAppDirectory) {
+    console.log(`Skipping running application directory: ${dir}`);
+    return [{
+      name: "_APP_DIRECTORY_",
+      path: dir,
+      content: "Please select a project directory instead of the PasteMax application directory.",
+      tokenCount: 0,
+      size: 0,
+      isBinary: false,
+      isSkipped: true,
+      error: "This is the running PasteMax application directory. Please select a different project directory.",
+      isAppDirectory: true
+    }];
   }
 
   try {
@@ -449,8 +468,12 @@ function readFilesRecursively(dir, rootDir, ignoreFilter) {
         }
 
         // Skip the application's own directory if we're somehow inside it
-        const appPath = normalizePath(path.resolve(__dirname));
-        if (normalizedPath.startsWith(appPath)) {
+        const appDirectoryPath = normalizePath(app.getAppPath());
+        const resourcesPath = path.dirname(appDirectoryPath);
+        
+        // Compare with exact app path instead of just checking if it starts with app path
+        if (normalizedPath === appDirectoryPath || normalizedPath === resourcesPath) {
+          console.log(`Skipping running app directory: ${normalizedPath}`);
           continue;
         }
         
@@ -575,16 +598,61 @@ function readFilesRecursively(dir, rootDir, ignoreFilter) {
   return results;
 }
 
-// Handle file list request
-ipcMain.on("request-file-list", (event, data) => {
+// Extract file list processing into a reusable function
+function handleRequestFileList(event, data) {
   try {
     // Allow either simple string or object with options
     const folderPath = typeof data === 'string' ? data : data.path;
+    
+    if (!folderPath) {
+      console.log("No folder path provided");
+      event.sender.send("file-processing-status", {
+        status: "error",
+        message: "No folder selected. Please select a project directory.",
+      });
+      return;
+    }
+    
     const forceRefresh = typeof data === 'object' && data.forceRefresh === true;
     
     console.log("Processing file list for folder:", folderPath);
     console.log("OS platform:", os.platform());
     console.log("Path separator:", getPathSeparator());
+    
+    // Get actual app paths for comparison
+    const normalizedFolderPath = normalizePath(folderPath);
+    const appDirectoryPath = normalizePath(app.getAppPath());
+    const resourcesPath = path.dirname(appDirectoryPath);
+    
+    // Check ONLY if it's the exact running app directory or its Resources parent
+    const isRunningAppDirectory = 
+        normalizedFolderPath === appDirectoryPath || 
+        normalizedFolderPath === resourcesPath || 
+        normalizedFolderPath === normalizePath(path.resolve(__dirname));
+    
+    if (isRunningAppDirectory) {
+      console.log(`Preventing recursive scan of running app instance at: ${appDirectoryPath}`);
+      console.log(`Selected path: ${normalizedFolderPath}`);
+      
+      event.sender.send("file-list-data", [{
+        name: "_APP_DIRECTORY_",
+        path: normalizedFolderPath,
+        content: "Please select a project directory instead of the PasteMax application directory.",
+        tokenCount: 0,
+        size: 0,
+        isBinary: false,
+        isSkipped: true,
+        error: "This is the running PasteMax application directory. Please select a different project directory.",
+        isAppDirectory: true
+      }]);
+      
+      event.sender.send("file-processing-status", {
+        status: "error",
+        message: "Please select a project directory instead of the PasteMax application.",
+      });
+      
+      return;
+    }
     
     // Check cache first (unless forced refresh)
     if (!forceRefresh) {
@@ -611,8 +679,25 @@ ipcMain.on("request-file-list", (event, data) => {
       status: "processing",
       message: "Scanning directory structure...",
     });
-
-    // Process files in chunks to avoid blocking the UI
+    
+    // Set loading flag
+    isLoadingDirectory = true;
+    
+    // Set timeout to abort if it takes too long
+    if (loadingTimeoutId) {
+      clearTimeout(loadingTimeoutId);
+    }
+    loadingTimeoutId = setTimeout(() => {
+      if (isLoadingDirectory) {
+        console.log("Loading directory timed out");
+        cancelDirectoryLoading(mainWindow);
+      }
+    }, 120000); // 2 minutes timeout
+    
+    // Rest of your original file processing logic
+    // ...
+    
+    // Start processing files logic goes here (unchanged from the original function)
     const processFiles = () => {
       // First, get all files in the directory
       const files = readFilesRecursively(folderPath, folderPath);
@@ -735,25 +820,29 @@ ipcMain.on("request-file-list", (event, data) => {
       // Start processing the first chunk
       processNextChunk();
     };
-
+    
     // Start processing files
     processFiles();
-  } catch (error) {
-    console.error("Error processing file list:", error);
     
-    // Send error status to the renderer
+  } catch (error) {
+    console.error("Error processing files:", error);
     event.sender.send("file-processing-status", {
       status: "error",
-      message: `Error loading directory: ${error.message}`,
+      message: `Error processing files: ${error.message}`,
     });
     
-    // Clear loading state on error
+    // Clear loading state
     isLoadingDirectory = false;
     if (loadingTimeoutId) {
       clearTimeout(loadingTimeoutId);
       loadingTimeoutId = null;
     }
   }
+}
+
+// Handle file list request - now delegates to handleRequestFileList
+ipcMain.on("request-file-list", (event, data) => {
+  handleRequestFileList(event, data);
 });
 
 // Check if a file should be excluded by default, using glob matching
@@ -800,13 +889,16 @@ ipcMain.on("reload-file-list", (event, folderPath) => {
     message: "Reloading directory...",
   });
   
-  // Process the request
+  // Process the request directly using the same handler for request-file-list
   try {
+    // Create data object with force refresh flag
     const data = {
       path: folderPath,
       forceRefresh: true
     };
-    ipcMain.emit("request-file-list", event, data);
+    
+    // Handle the request-file-list directly
+    handleRequestFileList(event, data);
   } catch (err) {
     console.error("Error reloading file list:", err);
     event.sender.send("file-processing-status", {
