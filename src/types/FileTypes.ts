@@ -10,6 +10,7 @@ export interface FileData {
   fileType?: string;
   excludedByDefault?: boolean;
   lastModified?: number;
+  isAppDirectory?: boolean;
 }
 
 export interface TreeNode {

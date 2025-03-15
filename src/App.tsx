@@ -170,6 +170,20 @@ const App = () => {
 
     const handleFileListData = (files: FileData[]) => {
       console.log("Received file list data:", files.length, "files");
+      
+      // Check if this is the app directory - special case
+      if (files.length === 1 && files[0].isAppDirectory) {
+        console.log("Detected app directory selection");
+        setAllFiles([]);
+        setSelectedFiles([]);
+        setDisplayedFiles([]);
+        setProcessingStatus({
+          status: "error",
+          message: "Please select a project directory instead of the PasteMax application directory",
+        });
+        return;
+      }
+      
       setAllFiles(files);
       setProcessingStatus({
         status: "complete",
@@ -504,7 +518,7 @@ const App = () => {
         status: "processing",
         message: "Reloading files...",
       });
-      window.electron.ipcRenderer.send("request-file-list", selectedFolder);
+      window.electron.ipcRenderer.send("reload-file-list", selectedFolder);
     }
   };
 

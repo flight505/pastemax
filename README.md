@@ -20,6 +20,8 @@ PasteMax is a desktop application designed to help developers easily format and 
   - Selected: Only show selected files
   - Selected with Roots: Show selected files with parent directories
   - Complete: Show the entire project structure
+- 🔁 **Reload File Tree**: Instantly refresh file list to catch external changes
+- 🚫 **Ignore Patterns**: Configure glob patterns for files to exclude
 - 🌗 **Light/Dark/System Theme**: Choose your preferred appearance mode
 - 📊 **Token Counting**: Track token usage to stay within AI model limits
 - 📋 **One-Click Copy**: Easily copy formatted output to clipboard
@@ -170,6 +172,15 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Recent Improvements
+
+### March 2025 Updates
+- **Fixed Reload Functionality**: The reload button now properly refreshes the file tree to reflect external changes made in other editors or applications
+- **Improved Directory Caching**: Enhanced caching system with proper invalidation when reloading
+- **Code Refactoring**: Extracted file processing logic for better maintainability and error handling
+- **Fixed Application Loading**: Resolved issue with the app getting stuck in loading state when trying to scan its own directory
+- **Improved Error Handling**: Added clear error messages when attempting to scan the application directory
 
 ---
 
