@@ -235,6 +235,22 @@ const App = () => {
     };
   }, [isElectron, sortOrder, searchTerm]);
 
+  // Add ESC key handler for directory loading
+  useEffect(() => {
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && processingStatus.status === "processing") {
+        console.log("ESC pressed - cancelling directory loading");
+        window.electron.ipcRenderer.send("cancel-directory-loading");
+      }
+    };
+
+    // Only add the event listener when processing
+    if (processingStatus.status === "processing") {
+      window.addEventListener("keydown", handleEscKey);
+      return () => window.removeEventListener("keydown", handleEscKey);
+    }
+  }, [processingStatus.status]);
+
   const openFolder = () => {
     if (isElectron) {
       console.log("Opening folder dialog");

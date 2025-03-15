@@ -261,14 +261,6 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  // Register ESC key shortcut to cancel directory loading
-  globalShortcut.register('Escape', () => {
-    if (isLoadingDirectory && mainWindow) {
-      console.log('ESC key pressed - cancelling directory loading');
-      cancelDirectoryLoading(mainWindow);
-    }
-  });
-
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
