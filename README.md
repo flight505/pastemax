@@ -179,6 +179,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
 
+For detailed guidance on our feature branch workflow, see [Branch Workflow Guide](docs/branch_workflow.md).
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -191,6 +193,27 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Code Refactoring**: Extracted file processing logic for better maintainability and error handling
 - **Fixed Application Loading**: Resolved issue with the app getting stuck in loading state when trying to scan its own directory
 - **Improved Error Handling**: Added clear error messages when attempting to scan the application directory
+
+## Development
+
+### Continuous Integration
+
+PasteMax uses GitHub Actions for continuous integration and deployment:
+
+- **PR Checks**: Runs automatically on all pull requests to validate code quality and ensure the application builds correctly on all supported platforms.
+- **Build Workflow**: Builds the application when a new tag is pushed and creates platform-specific artifacts.
+- **Release Workflow**: Creates official releases with proper code signing when release tags are pushed.
+
+To create a proper PR:
+1. Fork the repository and create a feature branch
+2. Make your changes and ensure all PR checks pass
+3. Submit your PR with a clear description of the changes
+
+For maintainers releasing new versions:
+1. Update version in `package.json`
+2. Create a git tag: `git tag v1.x.x`
+3. Push the tag: `git push origin v1.x.x`
+4. The release workflow will automatically build and create a draft release
 
 ---
 
