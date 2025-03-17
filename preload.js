@@ -68,6 +68,7 @@ contextBridge.exposeInMainWorld("electron", {
         "request-file-list", 
         "load-ignore-patterns", 
         "save-ignore-patterns",
+        "reset-ignore-patterns",
         "debug-file-selection", 
         "cancel-directory-loading",
         "reload-file-list"

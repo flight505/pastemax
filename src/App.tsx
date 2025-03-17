@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
 import FileList from "./components/FileList";
 import CopyButton from "./components/CopyButton";
@@ -510,14 +510,48 @@ const App = () => {
     });
   };
 
-  // Add new methods for handling ignore patterns
-  const loadIgnorePatterns = (folderPath: string) => {
+  // Setup listener for ignore patterns loaded event
+  useEffect(() => {
     if (isElectron) {
-      window.electron.ipcRenderer.send("load-ignore-patterns", folderPath);
+      const handleIgnorePatternsLoaded = (patterns: string) => {
+        setIgnorePatterns(patterns);
+      };
+      
+      window.electron.ipcRenderer.on("ignore-patterns-loaded", handleIgnorePatternsLoaded);
+      
+      return () => {
+        window.electron.ipcRenderer.removeListener("ignore-patterns-loaded", handleIgnorePatternsLoaded);
+      };
     }
-  };
+  }, [isElectron]);
 
-  const saveIgnorePatterns = (patterns: string, isGlobal: boolean, folderPath: string) => {
+  // Setup listener for ignore patterns saved event
+  useEffect(() => {
+    if (isElectron) {
+      const handleIgnorePatternsSaved = (success: boolean) => {
+        if (success) {
+          console.log("Ignore patterns saved successfully");
+        } else {
+          console.error("Failed to save ignore patterns");
+        }
+      };
+      
+      window.electron.ipcRenderer.on("ignore-patterns-saved", handleIgnorePatternsSaved);
+      
+      return () => {
+        window.electron.ipcRenderer.removeListener("ignore-patterns-saved", handleIgnorePatternsSaved);
+      };
+    }
+  }, [isElectron]);
+
+  // Add new methods for handling ignore patterns
+  const loadIgnorePatterns = useCallback((folderPath: string, isGlobal: boolean = false) => {
+    if (isElectron) {
+      window.electron.ipcRenderer.send("load-ignore-patterns", { folderPath, isGlobal });
+    }
+  }, [isElectron]);
+
+  const saveIgnorePatterns = useCallback((patterns: string, isGlobal: boolean, folderPath: string) => {
     if (isElectron) {
       window.electron.ipcRenderer.send("save-ignore-patterns", { 
         patterns, 
@@ -525,7 +559,16 @@ const App = () => {
         folderPath 
       });
     }
-  };
+  }, [isElectron]);
+
+  const resetIgnorePatterns = useCallback((isGlobal: boolean, folderPath: string) => {
+    if (isElectron) {
+      window.electron.ipcRenderer.send("reset-ignore-patterns", {
+        isGlobal,
+        folderPath
+      });
+    }
+  }, [isElectron]);
 
   // Add handler for folder reload
   const reloadFolder = () => {
@@ -607,6 +650,7 @@ const App = () => {
             setIgnorePatterns={setIgnorePatterns}
             loadIgnorePatterns={loadIgnorePatterns}
             saveIgnorePatterns={saveIgnorePatterns}
+            resetIgnorePatterns={resetIgnorePatterns}
           />
           
           {selectedFolder ? (
@@ -677,6 +721,7 @@ const App = () => {
                 setIgnorePatterns={setIgnorePatterns}
                 loadIgnorePatterns={loadIgnorePatterns}
                 saveIgnorePatterns={saveIgnorePatterns}
+                resetIgnorePatterns={resetIgnorePatterns}
                 reloadFolder={reloadFolder}
                 clearSelection={clearSelection}
                 removeAllFolders={removeAllFolders}

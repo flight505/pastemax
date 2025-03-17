@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SidebarProps, TreeNode, SortOrder } from "../types/FileTypes";
 import SearchBar from "./SearchBar";
 import TreeItem from "./TreeItem";
@@ -27,14 +27,16 @@ const Sidebar = ({
   setIgnorePatterns,
   loadIgnorePatterns,
   saveIgnorePatterns,
+  resetIgnorePatterns,
 }: SidebarProps & {
   reloadFolder: () => void;
   clearSelection: () => void;
   removeAllFolders: () => void;
   ignorePatterns: string;
   setIgnorePatterns: (patterns: string) => void;
-  loadIgnorePatterns: (folderPath: string) => void;
+  loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
+  resetIgnorePatterns: (isGlobal: boolean, folderPath: string) => void;
 }) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [isTreeBuildingComplete, setIsTreeBuildingComplete] = useState(false);
@@ -46,10 +48,14 @@ const Sidebar = ({
   
   // State for ignore patterns modal
   const [ignoreModalOpen, setIgnoreModalOpen] = useState(false);
-
+  const [isLoadingPatterns, setIsLoadingPatterns] = useState(false);
+  
   // Min and max width constraints
   const MIN_SIDEBAR_WIDTH = 200;
   const MAX_SIDEBAR_WIDTH = 500;
+
+  const loadedFoldersRef = useRef<Set<string>>(new Set());
+  const lastProcessedFolderRef = useRef<string | null>(null);
 
   // Handle mouse down for resizing
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -81,12 +87,29 @@ const Sidebar = ({
     };
   }, [isResizing]);
 
-  // Load ignore patterns when folder changes
+  // Load ignore patterns when folder changes - with optimization to prevent infinite loops
   useEffect(() => {
-    if (selectedFolder) {
-      loadIgnorePatterns(selectedFolder);
+    if (selectedFolder && 
+        !isLoadingPatterns && 
+        lastProcessedFolderRef.current !== selectedFolder) {
+      
+      lastProcessedFolderRef.current = selectedFolder;
+      setIsLoadingPatterns(true);
+      
+      // Add to the set of folders we've processed
+      loadedFoldersRef.current.add(selectedFolder);
+      
+      // Load patterns
+      loadIgnorePatterns(selectedFolder, false);
+      
+      // Reset loading state after a delay
+      const timeout = setTimeout(() => {
+        setIsLoadingPatterns(false);
+      }, 500);
+      
+      return () => clearTimeout(timeout);
     }
-  }, [selectedFolder, loadIgnorePatterns]);
+  }, [selectedFolder, loadIgnorePatterns, isLoadingPatterns]);
 
   // Sort file tree nodes based on current sort order
   const sortFileTreeNodes = (nodes: TreeNode[]): TreeNode[] => {
@@ -269,6 +292,20 @@ const Sidebar = ({
   // Handler for opening ignore patterns modal
   const handleOpenIgnorePatterns = () => {
     setIgnoreModalOpen(true);
+    
+    // Force reload patterns when opening the modal
+    if (selectedFolder) {
+      lastProcessedFolderRef.current = null; // Reset to force reload
+      loadedFoldersRef.current.delete(selectedFolder);
+      setIsLoadingPatterns(true);
+      
+      loadIgnorePatterns(selectedFolder, false);
+      
+      // Reset loading state after a delay
+      setTimeout(() => {
+        setIsLoadingPatterns(false);
+      }, 500);
+    }
   };
   
   // Handler for saving ignore patterns
@@ -276,7 +313,12 @@ const Sidebar = ({
     if (selectedFolder) {
       saveIgnorePatterns(patterns, isGlobal, selectedFolder);
       setIgnorePatterns(patterns);
-      setIgnoreModalOpen(false);
+    }
+  };
+
+  const handleResetIgnorePatterns = (isGlobal: boolean) => {
+    if (selectedFolder) {
+      resetIgnorePatterns(isGlobal, selectedFolder);
     }
   };
 
@@ -418,6 +460,7 @@ const Sidebar = ({
         isOpen={ignoreModalOpen}
         onClose={() => setIgnoreModalOpen(false)}
         onSave={handleSaveIgnorePatterns}
+        onReset={handleResetIgnorePatterns}
         currentFolder={selectedFolder || ""}
         existingPatterns={ignorePatterns}
       />

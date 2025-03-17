@@ -14,8 +14,9 @@ interface ControlContainerProps {
   setFileTreeSortOrder?: (value: SortOrder) => void;
   ignorePatterns?: string;
   setIgnorePatterns?: (value: string) => void;
-  loadIgnorePatterns?: (folderPath: string) => void;
+  loadIgnorePatterns?: (folderPath: string, isGlobal?: boolean) => void;
   saveIgnorePatterns?: (patterns: string, isGlobal: boolean, folderPath: string) => void;
+  resetIgnorePatterns?: (isGlobal: boolean, folderPath: string) => void;
   reloadFolder?: () => void;
   clearSelection?: () => void;
   removeAllFolders?: () => void;
@@ -34,6 +35,7 @@ const ControlContainer = ({
   setIgnorePatterns,
   loadIgnorePatterns,
   saveIgnorePatterns,
+  resetIgnorePatterns,
   reloadFolder,
   clearSelection,
   removeAllFolders,
