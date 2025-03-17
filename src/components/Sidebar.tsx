@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { SidebarProps, TreeNode, SortOrder } from "../types/FileTypes";
 import SearchBar from "./SearchBar";
 import TreeItem from "./TreeItem";
@@ -54,8 +54,11 @@ const Sidebar = ({
   const MIN_SIDEBAR_WIDTH = 200;
   const MAX_SIDEBAR_WIDTH = 500;
 
+  // All component level refs need to be defined here
   const loadedFoldersRef = useRef<Set<string>>(new Set());
   const lastProcessedFolderRef = useRef<string | null>(null);
+  const isBuildingTreeRef = useRef(false);
+  const isUpdatingExpandedNodesRef = useRef(false);
 
   // Handle mouse down for resizing
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -89,30 +92,39 @@ const Sidebar = ({
 
   // Load ignore patterns when folder changes - with optimization to prevent infinite loops
   useEffect(() => {
-    if (selectedFolder && 
-        !isLoadingPatterns && 
-        lastProcessedFolderRef.current !== selectedFolder) {
-      
-      lastProcessedFolderRef.current = selectedFolder;
+    // Skip if no folder is selected or if we're already loading
+    if (!selectedFolder) return;
+    
+    // Create a compare function that checks if we've already loaded this exact folder
+    const isSameFolder = lastProcessedFolderRef.current === selectedFolder;
+    
+    // Skip if we already processed this exact folder and we're not forcing a reload
+    if (isSameFolder && loadedFoldersRef.current.has(selectedFolder)) return;
+    
+    // Set the last processed folder reference
+    lastProcessedFolderRef.current = selectedFolder;
+    
+    // Track that we're processing this folder
+    loadedFoldersRef.current.add(selectedFolder);
+    
+    // Only set loading state if we weren't already loading
+    if (!isLoadingPatterns) {
       setIsLoadingPatterns(true);
       
-      // Add to the set of folders we've processed
-      loadedFoldersRef.current.add(selectedFolder);
-      
-      // Load patterns
+      // Load the patterns
       loadIgnorePatterns(selectedFolder, false);
       
       // Reset loading state after a delay
-      const timeout = setTimeout(() => {
+      const timer = setTimeout(() => {
         setIsLoadingPatterns(false);
       }, 500);
       
-      return () => clearTimeout(timeout);
+      return () => clearTimeout(timer);
     }
-  }, [selectedFolder, loadIgnorePatterns, isLoadingPatterns]);
+  }, [selectedFolder, loadIgnorePatterns]); // Deliberately omitting isLoadingPatterns
 
-  // Sort file tree nodes based on current sort order
-  const sortFileTreeNodes = (nodes: TreeNode[]): TreeNode[] => {
+  // Sort file tree nodes - memoized with useCallback to prevent recreation on every render
+  const sortFileTreeNodes = useCallback((nodes: TreeNode[]): TreeNode[] => {
     return [...nodes].sort((a, b) => {
       // Always sort directories first
       if (a.type === "directory" && b.type === "file") return -1;
@@ -145,20 +157,25 @@ const Sidebar = ({
           return a.name.localeCompare(b.name);
       }
     });
-  };
+  }, [fileTreeSortOrder]); // Only depends on the sort order
 
   // Build file tree structure from flat list of files
   useEffect(() => {
+    // Skip if no files or if we already updated the tree for this set of files
     if (allFiles.length === 0) {
       setFileTree([]);
       setIsTreeBuildingComplete(false);
       return;
     }
-
+    
+    // Skip if we're already in the process of building
+    if (isBuildingTreeRef.current) return;
+    
     const buildTree = () => {
+      // Mark that we're starting to build
+      isBuildingTreeRef.current = true;
       console.log("Building file tree from", allFiles.length, "files");
-      setIsTreeBuildingComplete(false);
-
+      
       try {
         // Create a structured representation using nested objects first
         const fileMap: Record<string, any> = {};
@@ -248,78 +265,137 @@ const Sidebar = ({
         // Convert to proper tree structure
         const treeRoots = convertToTreeNodes(fileMap);
 
-        // Sort the tree roots
-        setFileTree(sortFileTreeNodes(treeRoots));
+        // Sort the tree roots and update state in a single batch
+        const sortedRoots = sortFileTreeNodes(treeRoots);
+        
+        // Update state only if component is still mounted and data has changed
+        setFileTree(sortedRoots);
         setIsTreeBuildingComplete(true);
       } catch (err) {
         console.error("Error building file tree:", err);
         setFileTree([]);
         setIsTreeBuildingComplete(true);
+      } finally {
+        // Always clean up our building flag
+        isBuildingTreeRef.current = false;
       }
     };
 
     // Use a timeout to not block UI
     const buildTreeTimeoutId = setTimeout(buildTree, 0);
-    return () => clearTimeout(buildTreeTimeoutId);
+    return () => {
+      clearTimeout(buildTreeTimeoutId);
+      // Make sure we clean up the flag if component unmounts during build
+      isBuildingTreeRef.current = false;
+    };
   }, [allFiles, selectedFolder, expandedNodes, fileTreeSortOrder, sortFileTreeNodes]);
+
+  // Memoize the applyExpandedState function to prevent recreating it on every render
+  const applyExpandedState = useCallback((nodes: TreeNode[]): TreeNode[] => {
+    return nodes.map((node: TreeNode): TreeNode => {
+      if (node.type === "directory") {
+        const isExpanded =
+          expandedNodes[node.id] !== undefined
+            ? expandedNodes[node.id]
+            : true; // Default to expanded if not in state
+
+        return {
+          ...node,
+          isExpanded,
+          children: node.children ? applyExpandedState(node.children) : [],
+        };
+      }
+      return node;
+    });
+  }, [expandedNodes]);
 
   // Apply expanded state as a separate operation when expandedNodes change
   useEffect(() => {
     if (fileTree.length === 0) return;
-
-    // Function to apply expanded state to nodes
-    const applyExpandedState = (nodes: TreeNode[]): TreeNode[] => {
-      return nodes.map((node: TreeNode): TreeNode => {
-        if (node.type === "directory") {
-          const isExpanded =
-            expandedNodes[node.id] !== undefined
-              ? expandedNodes[node.id]
-              : true; // Default to expanded if not in state
-
-          return {
-            ...node,
-            isExpanded,
-            children: node.children ? applyExpandedState(node.children) : [],
-          };
-        }
-        return node;
-      });
+    
+    // Skip if we're already updating
+    if (isUpdatingExpandedNodesRef.current) return;
+    
+    const updateTreeWithExpandedState = () => {
+      isUpdatingExpandedNodesRef.current = true;
+      
+      try {
+        setFileTree((prevTree: TreeNode[]) => applyExpandedState(prevTree));
+      } finally {
+        isUpdatingExpandedNodesRef.current = false;
+      }
     };
-
-    setFileTree((prevTree: TreeNode[]) => applyExpandedState(prevTree));
-  }, [expandedNodes, fileTree.length]);
+    
+    // Schedule the update for next tick to avoid blocking UI
+    const updateTimeout = setTimeout(updateTreeWithExpandedState, 0);
+    
+    return () => {
+      clearTimeout(updateTimeout);
+      isUpdatingExpandedNodesRef.current = false;
+    };
+  }, [expandedNodes, fileTree.length, applyExpandedState]);
 
   // Handler for opening ignore patterns modal
   const handleOpenIgnorePatterns = () => {
+    // First, open the modal
     setIgnoreModalOpen(true);
     
-    // Force reload patterns when opening the modal
+    // Then check if we need to load patterns
     if (selectedFolder) {
-      lastProcessedFolderRef.current = null; // Reset to force reload
+      // Force a reload by clearing tracking flags
+      lastProcessedFolderRef.current = null;
       loadedFoldersRef.current.delete(selectedFolder);
+      
+      // Make sure we're not in a loading state
+      if (isLoadingPatterns) {
+        // If already loading, just wait for it to complete
+        return;
+      }
+      
+      // Set loading state
       setIsLoadingPatterns(true);
       
+      // Load patterns
       loadIgnorePatterns(selectedFolder, false);
       
-      // Reset loading state after a delay
-      setTimeout(() => {
+      // Clear loading state after a delay
+      const timer = setTimeout(() => {
         setIsLoadingPatterns(false);
       }, 500);
+      
+      // No need to return cleanup function here as this isn't a useEffect
     }
   };
   
   // Handler for saving ignore patterns
   const handleSaveIgnorePatterns = (patterns: string, isGlobal: boolean) => {
-    if (selectedFolder) {
-      saveIgnorePatterns(patterns, isGlobal, selectedFolder);
-      setIgnorePatterns(patterns);
+    if (!selectedFolder) return;
+    
+    // Save the patterns
+    saveIgnorePatterns(patterns, isGlobal, selectedFolder);
+    
+    // Update local state immediately for responsiveness
+    setIgnorePatterns(patterns);
+    
+    // Close the modal
+    setIgnoreModalOpen(false);
+    
+    // Reset folder tracking to ensure patterns are reloaded next time
+    if (!isGlobal) {
+      lastProcessedFolderRef.current = null;
+      loadedFoldersRef.current.delete(selectedFolder);
     }
   };
 
   const handleResetIgnorePatterns = (isGlobal: boolean) => {
-    if (selectedFolder) {
-      resetIgnorePatterns(isGlobal, selectedFolder);
-    }
+    if (!selectedFolder) return;
+    
+    // Reset the patterns
+    resetIgnorePatterns(isGlobal, selectedFolder);
+    
+    // Reset folder tracking to ensure patterns are reloaded
+    lastProcessedFolderRef.current = null;
+    loadedFoldersRef.current.delete(selectedFolder);
   };
 
   // Flatten the tree for rendering with proper indentation
