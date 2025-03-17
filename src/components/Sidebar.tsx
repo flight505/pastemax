@@ -92,14 +92,12 @@ const Sidebar = ({
 
   // Load ignore patterns when folder changes - with optimization to prevent infinite loops
   useEffect(() => {
-    // Skip if no folder is selected or if we're already loading
+    // Skip if no folder is selected
     if (!selectedFolder) return;
     
-    // Create a compare function that checks if we've already loaded this exact folder
-    const isSameFolder = lastProcessedFolderRef.current === selectedFolder;
-    
-    // Skip if we already processed this exact folder and we're not forcing a reload
-    if (isSameFolder && loadedFoldersRef.current.has(selectedFolder)) return;
+    // Skip if we already processed this exact folder
+    if (lastProcessedFolderRef.current === selectedFolder && 
+        loadedFoldersRef.current.has(selectedFolder)) return;
     
     // Set the last processed folder reference
     lastProcessedFolderRef.current = selectedFolder;
@@ -107,20 +105,18 @@ const Sidebar = ({
     // Track that we're processing this folder
     loadedFoldersRef.current.add(selectedFolder);
     
-    // Only set loading state if we weren't already loading
-    if (!isLoadingPatterns) {
-      setIsLoadingPatterns(true);
-      
-      // Load the patterns
-      loadIgnorePatterns(selectedFolder, false);
-      
-      // Reset loading state after a delay
-      const timer = setTimeout(() => {
-        setIsLoadingPatterns(false);
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
+    // Set loading state
+    setIsLoadingPatterns(true);
+    
+    // Load the patterns
+    loadIgnorePatterns(selectedFolder, false);
+    
+    // Reset loading state after a delay
+    const timer = setTimeout(() => {
+      setIsLoadingPatterns(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
   }, [selectedFolder, loadIgnorePatterns]); // Deliberately omitting isLoadingPatterns
 
   // Sort file tree nodes - memoized with useCallback to prevent recreation on every render
@@ -292,21 +288,32 @@ const Sidebar = ({
 
   // Memoize the applyExpandedState function to prevent recreating it on every render
   const applyExpandedState = useCallback((nodes: TreeNode[]): TreeNode[] => {
-    return nodes.map((node: TreeNode): TreeNode => {
-      if (node.type === "directory") {
-        const isExpanded =
-          expandedNodes[node.id] !== undefined
-            ? expandedNodes[node.id]
-            : true; // Default to expanded if not in state
+    // Skip if we're already updating expanded nodes to prevent loops
+    if (isUpdatingExpandedNodesRef.current) return nodes;
+    
+    isUpdatingExpandedNodesRef.current = true;
+    
+    try {
+      return nodes.map((node: TreeNode): TreeNode => {
+        if (node.type === "directory") {
+          const isExpanded =
+            expandedNodes[node.id] !== undefined
+              ? expandedNodes[node.id]
+              : true; // Default to expanded if not in state
 
-        return {
-          ...node,
-          isExpanded,
-          children: node.children ? applyExpandedState(node.children) : [],
-        };
-      }
-      return node;
-    });
+          return {
+            ...node,
+            isExpanded,
+            children: node.children
+              ? applyExpandedState(node.children)
+              : undefined,
+          };
+        }
+        return node;
+      });
+    } finally {
+      isUpdatingExpandedNodesRef.current = false;
+    }
   }, [expandedNodes]);
 
   // Apply expanded state as a separate operation when expandedNodes change
@@ -393,9 +400,14 @@ const Sidebar = ({
     // Reset the patterns
     resetIgnorePatterns(isGlobal, selectedFolder);
     
-    // Reset folder tracking to ensure patterns are reloaded
-    lastProcessedFolderRef.current = null;
-    loadedFoldersRef.current.delete(selectedFolder);
+    // Update local state immediately for responsiveness
+    setIgnorePatterns("");
+    
+    // Reset folder tracking to ensure patterns are reloaded next time
+    if (!isGlobal) {
+      lastProcessedFolderRef.current = null;
+      loadedFoldersRef.current.delete(selectedFolder);
+    }
   };
 
   // Flatten the tree for rendering with proper indentation
