@@ -78,6 +78,18 @@ contextBridge.exposeInMainWorld("electron", {
         ipcRenderer.send(channel, serializedData);
       }
     },
+    invoke: (channel, data) => {
+      // Whitelist channels for invoke
+      const validChannels = [
+        'save-ignore-patterns',
+        'load-ignore-patterns',
+        'reset-ignore-patterns',
+      ];
+      if (validChannels.includes(channel)) {
+        return ipcRenderer.invoke(channel, data);
+      }
+      return Promise.reject(new Error(`Invalid channel: ${channel}`));
+    },
     on: (channel, func) => {
       // Only allow these channels to be received
       const validReceiveChannels = [

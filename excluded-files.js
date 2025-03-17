@@ -2,8 +2,12 @@
 // Users can still manually select these files if needed
 // Paths can include glob patterns (*, **, etc.)
 
+// These are exclusions that users can manually override
+// (Universal hardcoded exclusions are now defined directly in electron.js and main.js)
+
 module.exports = {
   // Files to always exclude by default when a folder is first loaded
+  // Users can override these by selecting them manually
   excludedFiles: [
     // NPM/Yarn/Node related
     "package-lock.json",
@@ -141,5 +145,5 @@ module.exports = {
     ".xlsx",
     ".ppt",
     ".pptx",
-  ],
+  ]
 };

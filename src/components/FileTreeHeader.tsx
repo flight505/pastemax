@@ -8,7 +8,7 @@ interface FileTreeHeaderProps {
   onClearSelection: () => void;
   onRemoveAllFolders: () => void;
   onReloadFileTree: () => void;
-  onOpenIgnorePatterns: () => void;
+  onOpenIgnorePatterns: (isGlobal: boolean) => void;
 }
 
 // Define types for dropdown menus
@@ -132,7 +132,7 @@ const FileTreeHeader = ({
         className="file-tree-btn" 
         onClick={() => {
           setActiveDropdown(null); // Close any open dropdown
-          onOpenIgnorePatterns();
+          onOpenIgnorePatterns(false); // Open ignore patterns modal with local patterns by default
         }}
         title="Ignore Patterns"
       >

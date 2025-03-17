@@ -49,6 +49,9 @@ const Sidebar = ({
   // State for ignore patterns modal
   const [ignoreModalOpen, setIgnoreModalOpen] = useState(false);
   const [isLoadingPatterns, setIsLoadingPatterns] = useState(false);
+  const [ignoreGlobal, setIgnoreGlobal] = useState(false);
+  const [globalIgnorePatterns, setGlobalIgnorePatterns] = useState("");
+  const [localIgnorePatterns, setLocalIgnorePatterns] = useState("");
   
   // Min and max width constraints
   const MIN_SIDEBAR_WIDTH = 200;
@@ -343,7 +346,10 @@ const Sidebar = ({
   }, [expandedNodes, fileTree.length, applyExpandedState]);
 
   // Handler for opening ignore patterns modal
-  const handleOpenIgnorePatterns = () => {
+  const handleOpenIgnorePatterns = (isGlobal = false) => {
+    // Set the global flag first
+    setIgnoreGlobal(isGlobal);
+    
     // First, open the modal
     setIgnoreModalOpen(true);
     
@@ -362,35 +368,66 @@ const Sidebar = ({
       // Set loading state
       setIsLoadingPatterns(true);
       
-      // Load patterns
-      loadIgnorePatterns(selectedFolder, false);
+      // Load patterns based on global flag
+      console.log(`Loading ${isGlobal ? 'global' : 'local'} patterns`);
+      loadIgnorePatterns(selectedFolder, isGlobal);
+      
+      // Set the ignorePatterns state based on which one is selected
+      if (isGlobal) {
+        setIgnorePatterns(globalIgnorePatterns);
+      } else {
+        setIgnorePatterns(localIgnorePatterns);
+      }
       
       // Clear loading state after a delay
       const timer = setTimeout(() => {
         setIsLoadingPatterns(false);
       }, 500);
-      
-      // No need to return cleanup function here as this isn't a useEffect
     }
   };
   
   // Handler for saving ignore patterns
-  const handleSaveIgnorePatterns = (patterns: string, isGlobal: boolean) => {
-    if (!selectedFolder) return;
+  const handleSaveIgnorePatterns = () => {
+    if (!ignorePatterns.trim()) {
+      setIgnoreModalOpen(false);
+      return;
+    }
+
+    // Format patterns to ensure proper gitignore format
+    const formattedPatterns = ignorePatterns
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('#'))
+      .join('\n');
+
+    console.log(`Saving ${ignoreGlobal ? 'global' : 'local'} patterns:\n${formattedPatterns}`);
     
-    // Save the patterns
-    saveIgnorePatterns(patterns, isGlobal, selectedFolder);
-    
-    // Update local state immediately for responsiveness
-    setIgnorePatterns(patterns);
-    
-    // Close the modal
-    setIgnoreModalOpen(false);
-    
-    // Reset folder tracking to ensure patterns are reloaded next time
-    if (!isGlobal) {
-      lastProcessedFolderRef.current = null;
-      loadedFoldersRef.current.delete(selectedFolder);
+    try {
+      // Immediately update state to show changes (optimistic update)
+      if (ignoreGlobal) {
+        setGlobalIgnorePatterns(formattedPatterns);
+      } else {
+        if (selectedFolder) {
+          setLocalIgnorePatterns(formattedPatterns);
+        }
+      }
+
+      // Save the patterns
+      saveIgnorePatterns(
+        formattedPatterns,
+        ignoreGlobal,
+        selectedFolder || ''
+      );
+
+      // Close the modal
+      setIgnoreModalOpen(false);
+
+      // If patterns are for the current folder, reload the folder
+      if (!ignoreGlobal && selectedFolder) {
+        reloadFolder();
+      }
+    } catch (error) {
+      console.error('Error saving ignore patterns:', error);
     }
   };
 
@@ -408,6 +445,9 @@ const Sidebar = ({
       lastProcessedFolderRef.current = null;
       loadedFoldersRef.current.delete(selectedFolder);
     }
+    
+    // Reload folder to apply the updated ignore patterns immediately
+    reloadFolder();
   };
 
   // Flatten the tree for rendering with proper indentation
@@ -468,6 +508,50 @@ const Sidebar = ({
   // Flatten for rendering
   const flattenedFilteredTree = flattenTree(filteredTree);
 
+  useEffect(() => {
+    if (selectedFolder) {
+      // Load local patterns specific to the selected folder
+      loadPatterns(false);
+    }
+  }, [selectedFolder]);
+
+  // Load global patterns only once when component mounts
+  useEffect(() => {
+    // Load global patterns on component mount
+    loadPatterns(true);
+  }, []);
+
+  const loadPatterns = async (isGlobal) => {
+    try {
+      if (!isGlobal && !selectedFolder) {
+        console.log("Cannot load local patterns: No folder selected");
+        return;
+      }
+
+      console.log(`Loading ${isGlobal ? 'global' : 'local'} patterns...`);
+      
+      const patterns = await loadIgnorePatterns(selectedFolder || '', isGlobal);
+      
+      if (patterns) {
+        if (isGlobal) {
+          setGlobalIgnorePatterns(patterns);
+          // Only update ignorePatterns if we're currently viewing global patterns
+          if (ignoreGlobal) {
+            setIgnorePatterns(patterns);
+          }
+        } else {
+          setLocalIgnorePatterns(patterns);
+          // Only update ignorePatterns if we're currently viewing local patterns
+          if (!ignoreGlobal) {
+            setIgnorePatterns(patterns);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error loading ${isGlobal ? 'global' : 'local'} ignore patterns:`, error);
+    }
+  };
+
   return (
     <div className="sidebar" style={{ width: `${sidebarWidth}px` }}>
       <FileTreeHeader 
@@ -476,7 +560,7 @@ const Sidebar = ({
         onClearSelection={clearSelection}
         onRemoveAllFolders={removeAllFolders}
         onReloadFileTree={reloadFolder}
-        onOpenIgnorePatterns={handleOpenIgnorePatterns}
+        onOpenIgnorePatterns={() => handleOpenIgnorePatterns(false)}
       />
       
       {selectedFolder ? (
@@ -547,10 +631,42 @@ const Sidebar = ({
       <IgnorePatterns 
         isOpen={ignoreModalOpen}
         onClose={() => setIgnoreModalOpen(false)}
-        onSave={handleSaveIgnorePatterns}
+        onSave={(patterns, isGlobal) => {
+          // Update the appropriate state
+          if (isGlobal) {
+            setGlobalIgnorePatterns(patterns);
+          } else {
+            if (selectedFolder) {
+              setLocalIgnorePatterns(patterns);
+            }
+          }
+          
+          // Call the saveIgnorePatterns which will save to disk
+          saveIgnorePatterns(patterns, isGlobal, selectedFolder || '');
+          
+          // Close the modal
+          setIgnoreModalOpen(false);
+          
+          // If patterns are for the current folder, reload the folder
+          if (!isGlobal && selectedFolder) {
+            reloadFolder();
+          }
+        }}
         onReset={handleResetIgnorePatterns}
         currentFolder={selectedFolder || ""}
         existingPatterns={ignorePatterns}
+        isGlobal={ignoreGlobal}
+        globalPatterns={globalIgnorePatterns}
+        localPatterns={localIgnorePatterns}
+        onTabChange={(isGlobal) => {
+          setIgnoreGlobal(isGlobal);
+          // Load the appropriate patterns if needed
+          if (isGlobal) {
+            setIgnorePatterns(globalIgnorePatterns);
+          } else {
+            setIgnorePatterns(localIgnorePatterns);
+          }
+        }}
       />
     </div>
   );

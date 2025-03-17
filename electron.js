@@ -12,7 +12,6 @@ const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
 const { execSync } = require('child_process');
 const { excludedFiles, binaryExtensions } = require('./excluded-files');
-const { universalExclusions } = require('./universalExclusions');
 
 // Disable security warnings in development mode
 // These warnings don't appear in production builds anyway
@@ -22,6 +21,9 @@ process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
 const MAX_BINARY_CHECK_SIZE = 512;
 const BINARY_CHECK_CHARS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB size limit
+
+// These are universal exclusions that should never be removed
+// Moving them inline instead of a separate file to reduce clutter in the root directory
 const DEFAULT_EXCLUSIONS = [
   "**/node_modules/**",
   "**/dist/**",
@@ -31,6 +33,7 @@ const DEFAULT_EXCLUSIONS = [
   "**/yarn.lock",
   "**/*.min.js",
   "**/*.map",
+  // Binary and image files
   "**/*.png",
   "**/*.jpg",
   "**/*.jpeg",
@@ -155,16 +158,7 @@ async function getGlobalIgnorePatterns() {
 
 // Default ignore patterns to use when no global_patterns.ignore exists
 function getDefaultIgnorePatterns() {
-  return [
-    "node_modules/**",
-    "**/*.log",
-    "dist/**",
-    "build/**",
-    ".git/**",
-    ".DS_Store",
-    "**/*.min.js",
-    "**/*.min.css",
-  ];
+  return DEFAULT_EXCLUSIONS;
 }
 
 // Function to read ignore patterns from a .repo_ignore file
@@ -184,20 +178,56 @@ async function readIgnorePatterns(folderPath) {
   }
 }
 
-// Get all combined ignore patterns (universal + global + local)
+// Function to get all ignore patterns from universal, global, and local sources
 async function getAllIgnorePatterns(folderPath) {
   try {
-    // Get global ignore patterns
-    const globalPatterns = await getGlobalIgnorePatterns();
+    // Storage for all patterns
+    const allPatterns = [...DEFAULT_EXCLUSIONS];
+    
+    // Get global patterns
+    const appDataPath = app.getPath('userData');
+    const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
+    
+    // Read global patterns
+    if (fs.existsSync(globalIgnorePath)) {
+      try {
+        const content = await readFile(globalIgnorePath, 'utf8');
+        const globalPatterns = content.split('\n')
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('#'));
+          
+        if (globalPatterns.length > 0) {
+          console.log(`getAllIgnorePatterns: Loaded ${globalPatterns.length} global patterns`);
+          allPatterns.push(...globalPatterns);
+        }
+      } catch (err) {
+        console.error('Error reading global ignore patterns:', err);
+      }
+    }
     
     // Get local ignore patterns for this folder
-    const localPatterns = await readIgnorePatterns(folderPath);
+    const localIgnorePath = path.join(folderPath, '.repo_ignore');
+    if (fs.existsSync(localIgnorePath)) {
+      try {
+        const content = await readFile(localIgnorePath, 'utf8');
+        const localPatterns = content.split('\n')
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('#'));
+          
+        if (localPatterns.length > 0) {
+          console.log(`getAllIgnorePatterns: Loaded ${localPatterns.length} local patterns`);
+          allPatterns.push(...localPatterns);
+        }
+      } catch (err) {
+        console.error('Error reading local ignore patterns:', err);
+      }
+    }
     
-    // Combine all patterns, with universal patterns first, then global, then local
-    return [...universalExclusions, ...globalPatterns, ...localPatterns];
+    console.log(`getAllIgnorePatterns: Total ${allPatterns.length} patterns`);
+    return allPatterns;
   } catch (error) {
     console.error('Error getting all ignore patterns:', error);
-    return [...universalExclusions];
+    return [...DEFAULT_EXCLUSIONS];
   }
 }
 
@@ -375,92 +405,93 @@ ipcMain.on("request-file-list", async (event, folderPath) => {
   }
 });
 
-// Load ignore patterns from a .repo_ignore file
-ipcMain.on("load-ignore-patterns", async (event, { folderPath, isGlobal }) => {
+// Note: The 'load-ignore-patterns' handler is now defined in main.js
+// Commenting out the duplicate handler to avoid conflicts
+
+// Save ignore patterns to file and clear cache
+ipcMain.handle('save-ignore-patterns', async (event, { patterns, isGlobal, folderPath }) => {
   try {
-    if (!folderPath) {
-      event.reply("ignore-patterns-loaded", "");
-      return;
+    const appDataPath = app.getPath('userData');
+    
+    // Determine which file to save to
+    const targetPath = isGlobal 
+      ? path.join(appDataPath, 'global_patterns.ignore')
+      : path.join(folderPath, '.repo_ignore');
+      
+    console.log(`Saving ignore patterns to ${targetPath}, isGlobal: ${isGlobal}`);
+    console.log(`Patterns to save: ${patterns}`);
+    
+    // Ensure directory exists for global patterns
+    if (isGlobal && !fs.existsSync(appDataPath)) {
+      fs.mkdirSync(appDataPath, { recursive: true });
     }
     
-    if (isGlobal) {
-      // Load global patterns
-      const appDataPath = app.getPath('userData');
-      const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
-      
-      if (fs.existsSync(globalIgnorePath)) {
-        const patterns = await readFile(globalIgnorePath, 'utf8');
-        event.reply("ignore-patterns-loaded", patterns);
+    // Write the patterns to the file
+    fs.writeFileSync(targetPath, patterns);
+    
+    // Clear cache to ensure files are reloaded with new patterns
+    if (directoryCache) {
+      if (isGlobal) {
+        // Clear all caches for global pattern changes
+        directoryCache.clearAll();
+        console.log('Cleared all directory caches due to global pattern change');
       } else {
-        // If global patterns file doesn't exist, return default patterns as a string
-        const defaultPatterns = getDefaultIgnorePatterns().join('\n');
-        event.reply("ignore-patterns-loaded", defaultPatterns);
-      }
-    } else {
-      // Load local patterns
-      const ignoreFilePath = path.join(folderPath, '.repo_ignore');
-      
-      if (fs.existsSync(ignoreFilePath)) {
-        const patterns = await readFile(ignoreFilePath, 'utf8');
-        event.reply("ignore-patterns-loaded", patterns);
-      } else {
-        event.reply("ignore-patterns-loaded", "");
+        // Clear just this folder's cache
+        directoryCache.clear(folderPath);
+        console.log(`Cleared directory cache for ${folderPath}`);
       }
     }
+    
+    return { success: true };
   } catch (error) {
-    console.error("Error loading ignore patterns:", error);
-    event.reply("ignore-patterns-loaded", "");
+    console.error('Error saving ignore patterns:', error);
+    return { success: false, error: error.message };
   }
 });
 
-// Save ignore patterns to a file
-ipcMain.on("save-ignore-patterns", async (event, { patterns, isGlobal, folderPath }) => {
+// Reset ignore patterns
+ipcMain.handle('reset-ignore-patterns', async (event, { isGlobal, folderPath }) => {
   try {
     if (!folderPath) {
-      event.reply("ignore-patterns-saved", false);
-      return;
+      return { success: false, error: 'No folder path provided' };
     }
     
     if (isGlobal) {
-      // Save global patterns
-      const appDataPath = app.getPath('userData');
-      const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
-      await writeFile(globalIgnorePath, patterns, 'utf8');
-      event.reply("ignore-patterns-saved", true);
-    } else {
-      // Save local patterns
-      const ignoreFilePath = path.join(folderPath, '.repo_ignore');
-      await writeFile(ignoreFilePath, patterns, 'utf8');
-      event.reply("ignore-patterns-saved", true);
-    }
-  } catch (error) {
-    console.error("Error saving ignore patterns:", error);
-    event.reply("ignore-patterns-saved", false);
-  }
-});
-
-// Reset ignore patterns to defaults
-ipcMain.on("reset-ignore-patterns", async (event, { isGlobal, folderPath }) => {
-  try {
-    if (isGlobal) {
-      // Reset global patterns to defaults
+      // Reset global patterns
       const appDataPath = app.getPath('userData');
       const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
       
-      // Delete existing file if it exists
+      // If the file exists, delete it
       if (fs.existsSync(globalIgnorePath)) {
         fs.unlinkSync(globalIgnorePath);
+        console.log(`Reset global ignore patterns by removing ${globalIgnorePath}`);
       }
       
-      // Create new file with default patterns
-      const defaultPatterns = getDefaultIgnorePatterns().join('\n');
-      await writeFile(globalIgnorePath, defaultPatterns, 'utf8');
+      // Clear all caches for global pattern changes
+      if (directoryCache) {
+        directoryCache.clearAll();
+        console.log('Cleared all directory caches due to global pattern reset');
+      }
+    } else {
+      // Reset local patterns
+      const ignoreFilePath = path.join(folderPath, '.repo_ignore');
       
-      // Send the new patterns back to the renderer
-      event.reply("ignore-patterns-loaded", defaultPatterns);
+      // If the file exists, delete it
+      if (fs.existsSync(ignoreFilePath)) {
+        fs.unlinkSync(ignoreFilePath);
+        console.log(`Reset local ignore patterns by removing ${ignoreFilePath}`);
+      }
+      
+      // Clear just this folder's cache
+      if (directoryCache) {
+        directoryCache.clear(folderPath);
+        console.log(`Cleared directory cache for ${folderPath}`);
+      }
     }
+    
+    return { success: true };
   } catch (error) {
-    console.error("Error resetting ignore patterns:", error);
-    event.reply("ignore-patterns-loaded", "");
+    console.error('Error resetting ignore patterns:', error);
+    return { success: false, error: error.message };
   }
 }); 

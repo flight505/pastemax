@@ -8,6 +8,10 @@ interface IgnorePatternsProps {
   onReset?: (isGlobal: boolean) => void;
   currentFolder: string;
   existingPatterns: string;
+  isGlobal?: boolean;
+  globalPatterns: string;
+  localPatterns: string;
+  onTabChange?: (isGlobal: boolean) => void;
 }
 
 const IgnorePatterns = ({
@@ -17,18 +21,26 @@ const IgnorePatterns = ({
   onReset,
   currentFolder,
   existingPatterns,
+  isGlobal = false,
+  globalPatterns = "",
+  localPatterns = "",
+  onTabChange,
 }: IgnorePatternsProps): JSX.Element | null => {
   const [patterns, setPatterns] = useState(existingPatterns);
-  const [isGlobal, setIsGlobal] = useState(false);
+  const [activeGlobal, setActiveGlobal] = useState(isGlobal);
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
-    setPatterns(existingPatterns);
-    setHasChanges(false);
-  }, [existingPatterns, isOpen]);
+    setActiveGlobal(isGlobal);
+  }, [isGlobal]);
 
   useEffect(() => {
-    // Handle Escape key press
+    const newPatterns = activeGlobal ? globalPatterns : localPatterns;
+    setPatterns(newPatterns);
+    setHasChanges(false);
+  }, [activeGlobal, globalPatterns, localPatterns, isOpen]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
         onClose();
@@ -39,10 +51,34 @@ const IgnorePatterns = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  const handleTabChange = (newIsGlobal: boolean) => {
+    if (newIsGlobal !== activeGlobal) {
+      if (hasChanges) {
+        if (window.confirm("You have unsaved changes. Do you want to discard them?")) {
+          setActiveGlobal(newIsGlobal);
+          if (onTabChange) {
+            onTabChange(newIsGlobal);
+          }
+        }
+      } else {
+        setActiveGlobal(newIsGlobal);
+        if (onTabChange) {
+          onTabChange(newIsGlobal);
+        }
+      }
+    }
+  };
+
   const handleReset = () => {
     if (onReset) {
-      onReset(isGlobal);
+      onReset(activeGlobal);
+      setHasChanges(false);
     }
+  };
+
+  const handleSave = () => {
+    onSave(patterns, activeGlobal);
+    setHasChanges(false);
   };
 
   if (!isOpen) return null;
@@ -65,21 +101,21 @@ const IgnorePatterns = ({
         
         <div className="scope-selector">
           <button 
-            className={`scope-btn ${!isGlobal ? "active" : ""}`}
-            onClick={() => setIsGlobal(false)}
+            className={`scope-btn ${!activeGlobal ? "active" : ""}`}
+            onClick={() => handleTabChange(false)}
           >
             Local Folder
           </button>
           <button 
-            className={`scope-btn ${isGlobal ? "active" : ""}`}
-            onClick={() => setIsGlobal(true)}
+            className={`scope-btn ${activeGlobal ? "active" : ""}`}
+            onClick={() => handleTabChange(true)}
           >
             Global Defaults
           </button>
         </div>
         
         <p className="scope-description">
-          {isGlobal 
+          {activeGlobal 
             ? "Global patterns apply to all folders. They can be overridden by local patterns."
             : "Local scope will create a .repo_ignore file upon save and will be combined with global defaults."}
         </p>
@@ -92,7 +128,7 @@ const IgnorePatterns = ({
         </div>
         
         <div className="path-display">
-          {!isGlobal ? `${currentFolder}/.repo_ignore` : "Global defaults"}
+          {!activeGlobal ? `${currentFolder}/.repo_ignore` : "Global defaults"}
         </div>
         
         <textarea 
@@ -102,13 +138,28 @@ const IgnorePatterns = ({
             setPatterns(e.target.value);
             setHasChanges(true);
           }}
-          placeholder="# Add patterns like .gitignore format
+          placeholder={`# Add patterns like .gitignore format
+# Common patterns to exclude:
 node_modules/
-*.log
-.DS_Store"
+.git/
+**/*.log
+dist/
+build/
+.DS_Store
+*.tmp
+.idea/
+.vscode/
+*.class
+__pycache__/
+*.pyc
+*.pyo
+*.md
+venv/
+.env
+`}
         />
         
-        {!isGlobal && (
+        {!activeGlobal && (
           <div className="highlight-text">
             A new repo_ignore file will be created upon save.
           </div>
@@ -123,7 +174,7 @@ node_modules/
             Cancel
           </button>
           
-          {isGlobal && onReset && (
+          {activeGlobal && onReset && (
             <button 
               className="reset-btn"
               onClick={handleReset}
@@ -136,10 +187,7 @@ node_modules/
           
           <button 
             className="save-btn"
-            onClick={() => {
-              onSave(patterns, isGlobal);
-              setHasChanges(false);
-            }}
+            onClick={handleSave}
             disabled={!hasChanges}
           >
             Save

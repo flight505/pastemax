@@ -60,3 +60,21 @@ Thumbs.db
 release-builds/
 dist/
 PasteMax Bugfix.md
+
+# Workspace and temporary files
+workspacesIndex.json
+Workspace-*/
+test-ignore.js
+universalExclusions.js
+*~
+
+# Experimental or temporary scripts
+*-temp.js
+*-test.js
+
+# Maintenance scripts 
+cleanup.js
+reset-patterns.js
+
+# Local ignore files
+.repo_ignore
