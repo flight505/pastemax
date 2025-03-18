@@ -38,7 +38,7 @@ const Sidebar = ({
   loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
   resetIgnorePatterns: (isGlobal: boolean, folderPath: string) => void;
-  systemIgnorePatterns: string;
+  systemIgnorePatterns: string[];
 }) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [isTreeBuildingComplete, setIsTreeBuildingComplete] = useState(false);
@@ -388,68 +388,54 @@ const Sidebar = ({
     }
   };
   
-  // Handler for saving ignore patterns
-  const handleSaveIgnorePatterns = () => {
-    if (!ignorePatterns.trim()) {
-      setIgnoreModalOpen(false);
-      return;
-    }
-
-    // Format patterns to ensure proper gitignore format
-    const formattedPatterns = ignorePatterns
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith('#'))
-      .join('\n');
-
-    console.log(`Saving ${ignoreGlobal ? 'global' : 'local'} patterns:\n${formattedPatterns}`);
+  // Modified to handle folder path in reset and save
+  const handleResetIgnorePatterns = (isGlobal: boolean, folderPath?: string) => {
+    // Use either the provided folderPath or the selected folder
+    const targetFolder = folderPath || selectedFolder || '';
     
-    try {
-      // Immediately update state to show changes (optimistic update)
+    // Call resetIgnorePatterns with isGlobal and folder path
+    resetIgnorePatterns(isGlobal, targetFolder);
+    
+    // Update state based on which patterns were reset
+    if (isGlobal) {
+      // When resetting global patterns, set global patterns to empty
+      // The actual patterns will be loaded with the API call result
+      setGlobalIgnorePatterns('');
       if (ignoreGlobal) {
-        setGlobalIgnorePatterns(formattedPatterns);
-      } else {
-        if (selectedFolder) {
-          setLocalIgnorePatterns(formattedPatterns);
-        }
+        setIgnorePatterns('');
       }
-
-      // Save the patterns
-      saveIgnorePatterns(
-        formattedPatterns,
-        ignoreGlobal,
-        selectedFolder || ''
-      );
-
-      // Close the modal
-      setIgnoreModalOpen(false);
-
-      // If patterns are for the current folder, reload the folder
-      if (!ignoreGlobal && selectedFolder) {
-        reloadFolder();
+    } else {
+      // When resetting local patterns, set local patterns to empty
+      // The actual patterns will be loaded with the API call result
+      setLocalIgnorePatterns('');
+      if (!ignoreGlobal) {
+        setIgnorePatterns('');
       }
-    } catch (error) {
-      console.error('Error saving ignore patterns:', error);
     }
   };
 
-  const handleResetIgnorePatterns = (isGlobal: boolean) => {
-    if (!selectedFolder) return;
+  // Get the list of top-level folders from the file tree for folder selection
+  const getAvailableFolders = () => {
+    // Extract unique top-level directories from the file tree
+    const folders = new Set<string>();
     
-    // Reset the patterns
-    resetIgnorePatterns(isGlobal, selectedFolder);
-    
-    // Update local state immediately for responsiveness
-    setIgnorePatterns("");
-    
-    // Reset folder tracking to ensure patterns are reloaded next time
-    if (!isGlobal) {
-      lastProcessedFolderRef.current = null;
-      loadedFoldersRef.current.delete(selectedFolder);
+    // Handle the case where the current folder is not in the tree
+    if (selectedFolder) {
+      folders.add(selectedFolder);
     }
     
-    // Reload folder to apply the updated ignore patterns immediately
-    reloadFolder();
+    // Add folders from the file tree
+    if (fileTree && fileTree.length > 0) {
+      fileTree.forEach(node => {
+        if (node.type === 'directory') {
+          folders.add(node.path);
+        }
+      });
+    }
+    
+    const folderList = Array.from(folders);
+    console.log('Available folders for selection:', folderList);
+    return folderList;
   };
 
   // Flatten the tree for rendering with proper indentation
@@ -521,6 +507,9 @@ const Sidebar = ({
   useEffect(() => {
     // Load global patterns on component mount
     loadPatterns(true);
+    
+    // Debug log for system patterns
+    console.log(`Sidebar received ${systemIgnorePatterns?.length || 0} system patterns`);
   }, []);
 
   const loadPatterns = async (isGlobal) => {
@@ -633,24 +622,28 @@ const Sidebar = ({
       <IgnorePatterns 
         isOpen={ignoreModalOpen}
         onClose={() => setIgnoreModalOpen(false)}
-        onSave={(patterns, isGlobal) => {
+        onSave={(patterns, isGlobal, folderPath) => {
           // Update the appropriate state
           if (isGlobal) {
             setGlobalIgnorePatterns(patterns);
           } else {
-            if (selectedFolder) {
+            // Get the target folder - either the provided one or the currently selected one
+            const targetFolder = folderPath || selectedFolder || '';
+            
+            if (targetFolder) {
               setLocalIgnorePatterns(patterns);
             }
           }
           
           // Call the saveIgnorePatterns which will save to disk
-          saveIgnorePatterns(patterns, isGlobal, selectedFolder || '');
+          // Use the provided folderPath if available, otherwise use selectedFolder
+          saveIgnorePatterns(patterns, isGlobal, folderPath || selectedFolder || '');
           
           // Close the modal
           setIgnoreModalOpen(false);
           
           // If patterns are for the current folder, reload the folder
-          if (!isGlobal && selectedFolder) {
+          if (!isGlobal && (folderPath === selectedFolder || !folderPath)) {
             reloadFolder();
           }
         }}
@@ -661,6 +654,7 @@ const Sidebar = ({
         globalPatterns={globalIgnorePatterns}
         localPatterns={localIgnorePatterns}
         systemPatterns={systemIgnorePatterns}
+        availableFolders={getAvailableFolders()}
         onTabChange={(isGlobal) => {
           setIgnoreGlobal(isGlobal);
           // Load the appropriate patterns if needed

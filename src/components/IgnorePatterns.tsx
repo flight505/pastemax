@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { X, RefreshCw, Info } from "lucide-react";
+import { X, RefreshCw, Info, ChevronDown } from "lucide-react";
 import "../styles/IgnorePatterns.css";
 
 interface IgnorePatternsProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (patterns: string, isGlobal: boolean) => void;
-  onReset?: (isGlobal: boolean) => void;
+  onSave: (patterns: string, isGlobal: boolean, folderPath?: string) => void;
+  onReset?: (isGlobal: boolean, folderPath?: string) => void;
   currentFolder: string;
   existingPatterns: string;
   isGlobal?: boolean;
   globalPatterns: string;
   localPatterns: string;
   onTabChange?: (isGlobal: boolean) => void;
-  systemPatterns?: string[];
+  systemPatterns?: string[]; // Keep prop for compatibility, but we won't display them
+  availableFolders?: string[]; // List of available folders for selection
 }
 
 const IgnorePatterns = ({
@@ -28,11 +29,13 @@ const IgnorePatterns = ({
   localPatterns = "",
   onTabChange,
   systemPatterns = [],
+  availableFolders = [],
 }: IgnorePatternsProps): JSX.Element | null => {
   const [patterns, setPatterns] = useState(existingPatterns);
   const [activeGlobal, setActiveGlobal] = useState(isGlobal);
   const [hasChanges, setHasChanges] = useState(false);
-  const [showSystemPatterns, setShowSystemPatterns] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState(currentFolder);
+  const [folderSelectOpen, setFolderSelectOpen] = useState(false);
 
   useEffect(() => {
     setActiveGlobal(isGlobal);
@@ -43,6 +46,10 @@ const IgnorePatterns = ({
     setPatterns(newPatterns);
     setHasChanges(false);
   }, [activeGlobal, globalPatterns, localPatterns, isOpen]);
+
+  useEffect(() => {
+    setSelectedFolder(currentFolder);
+  }, [currentFolder]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -59,12 +66,14 @@ const IgnorePatterns = ({
     if (newIsGlobal !== activeGlobal) {
       if (hasChanges) {
         if (window.confirm("You have unsaved changes. Do you want to discard them?")) {
+          console.log(`Tab changed from ${activeGlobal ? 'global' : 'local'} to ${newIsGlobal ? 'global' : 'local'}`);
           setActiveGlobal(newIsGlobal);
           if (onTabChange) {
             onTabChange(newIsGlobal);
           }
         }
       } else {
+        console.log(`Tab changed from ${activeGlobal ? 'global' : 'local'} to ${newIsGlobal ? 'global' : 'local'}`);
         setActiveGlobal(newIsGlobal);
         if (onTabChange) {
           onTabChange(newIsGlobal);
@@ -73,16 +82,40 @@ const IgnorePatterns = ({
     }
   };
 
+  const handleFolderChange = (folder: string) => {
+    if (folder !== selectedFolder) {
+      if (hasChanges) {
+        if (window.confirm("You have unsaved changes. Do you want to discard them?")) {
+          console.log(`Folder changed from "${selectedFolder}" to "${folder}"`);
+          setSelectedFolder(folder);
+        }
+      } else {
+        console.log(`Folder changed from "${selectedFolder}" to "${folder}"`);
+        setSelectedFolder(folder);
+      }
+    }
+    setFolderSelectOpen(false);
+  };
+
   const handleReset = () => {
     if (onReset) {
-      onReset(activeGlobal);
+      onReset(activeGlobal, !activeGlobal ? selectedFolder : undefined);
       setHasChanges(false);
     }
   };
 
   const handleSave = () => {
-    onSave(patterns, activeGlobal);
+    onSave(patterns, activeGlobal, !activeGlobal ? selectedFolder : undefined);
     setHasChanges(false);
+  };
+
+  const renderHighlightedPatterns = (text: string) => {
+    return text.split('\n').map((line, i) => {
+      if (line.trimStart().startsWith('#')) {
+        return <div key={i} className="pattern-comment">{line}</div>;
+      }
+      return <div key={i}>{line}</div>;
+    }).join('\n');
   };
 
   if (!isOpen) return null;
@@ -97,11 +130,9 @@ const IgnorePatterns = ({
           </button>
         </div>
         
-        <p className="ignore-patterns-description">
-          {activeGlobal 
-            ? "Global patterns apply to all folders and can be overridden by local patterns." 
-            : "Local patterns apply only to this folder and override global patterns."}
-        </p>
+        <div className="ignore-description">
+          Edit ignore patterns. Global defaults from your settings are always combined with any .repo_ignore file found in a folder. Local patterns (from .repo_ignore) will override global defaults.
+        </div>
         
         <div className="scope-selector">
           <button 
@@ -118,15 +149,45 @@ const IgnorePatterns = ({
           </button>
         </div>
         
-        <div className="path-display">
-          {!activeGlobal ? `${currentFolder}/.repo_ignore` : "Global defaults"}
+        <div className="scope-description">
+          {activeGlobal 
+            ? "Global patterns apply to all folders and can be overridden by local patterns." 
+            : "Local scope will create a .repo_ignore file upon save and will be combined with global defaults."}
         </div>
         
-        <div className="patterns-section">
-          <div className="patterns-section-header">
-            <h3>User-Editable Patterns</h3>
+        {!activeGlobal && (
+          <div className="folder-selector">
+            <label>Select Folder</label>
+            <div className="custom-select" onClick={() => setFolderSelectOpen(!folderSelectOpen)}>
+              <div className="selected-value">
+                {selectedFolder || 'Select a folder'}
+                <ChevronDown size={16} className={`chevron ${folderSelectOpen ? 'open' : ''}`} />
+              </div>
+              {folderSelectOpen && (
+                <div className="options-container">
+                  {availableFolders.length > 0 ? (
+                    availableFolders.map((folder, index) => (
+                      <div 
+                        key={index} 
+                        className="option" 
+                        onClick={() => handleFolderChange(folder)}
+                      >
+                        {folder}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="option">{selectedFolder || 'No folders available'}</div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="path-display">
+              {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'No folder selected'}
+            </div>
           </div>
-          
+        )}
+        
+        <div className="patterns-section">
           <textarea 
             className="patterns-input"
             value={patterns}
@@ -143,33 +204,11 @@ node_modules/
 .DS_Store
 venv/`}
           />
-        </div>
-        
-        <div className="system-patterns-section">
-          <button 
-            className="system-patterns-toggle"
-            onClick={() => setShowSystemPatterns(!showSystemPatterns)}
-          >
-            {showSystemPatterns ? "Hide System Patterns" : "Show System Patterns"} 
-            ({systemPatterns.length})
-          </button>
           
-          {showSystemPatterns && (
-            <div className="system-patterns-list">
-              <div className="system-patterns-header">
-                <h4>System Patterns (Always Applied, Not Editable)</h4>
-                <p>These patterns exclude binary and media files automatically.</p>
-              </div>
-              
-              <div className="system-patterns-content">
-                {systemPatterns.map((pattern, index) => (
-                  <div key={index} className="system-pattern-item">
-                    {pattern}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="patterns-help">
+            <p>Use gitignore-style syntax. Lines starting with # are comments.</p>
+            <p>Excluded files are visible in the sidebar with a dimmed appearance.</p>
+          </div>
         </div>
         
         <div className="modal-status">

@@ -36,6 +36,27 @@ const STORAGE_KEYS = {
   EXPANDED_NODES: "pastemax-expanded-nodes",
 };
 
+// Default system patterns as fallback if not provided by main process
+const DEFAULT_SYSTEM_PATTERNS = [
+  // Binary and image files
+  "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.ico", 
+  "**/*.webp", "**/*.svg", "**/*.pdf", "**/*.zip", "**/*.tar.gz",
+  "**/*.tgz", "**/*.rar", "**/*.7z", "**/*.mp4", "**/*.mov",
+  "**/*.avi", "**/*.mkv", "**/*.mp3", "**/*.wav", "**/*.flac",
+  
+  // Database files
+  "**/*.sqlite", "**/*.db", "**/*.sql",
+  
+  // Document files
+  "**/*.doc", "**/*.docx", "**/*.xls", "**/*.xlsx", "**/*.ppt", "**/*.pptx",
+  
+  // Large binary files
+  "**/*.iso", "**/*.bin", "**/*.exe", "**/*.dll", "**/*.so", "**/*.dylib",
+  
+  // Minified files
+  "**/*.min.js", "**/*.min.css",
+];
+
 const App = () => {
   // Load initial state from localStorage if available
   const savedFolder = localStorage.getItem(STORAGE_KEYS.SELECTED_FOLDER);
@@ -79,7 +100,7 @@ const App = () => {
   const [ignorePatterns, setIgnorePatterns] = useState("");
   const [globalIgnorePatterns, setGlobalIgnorePatterns] = useState("");
   const [localIgnorePatterns, setLocalIgnorePatterns] = useState("");
-  const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>([]);
+  const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>(DEFAULT_SYSTEM_PATTERNS);
 
   // Check if we're running in Electron or browser environment
   const isElectron = window.electron !== undefined;
@@ -562,7 +583,7 @@ const App = () => {
   const loadIgnorePatterns = async (folderPath: string, isGlobal: boolean = false) => {
     if (!window.electron) {
       console.log("Not in Electron environment, skipping loadIgnorePatterns");
-      return;
+      return "";
     }
     
     // Prevent duplicate loading of patterns
@@ -597,14 +618,17 @@ const App = () => {
         
         // Store system patterns if provided
         if (result.systemPatterns && Array.isArray(result.systemPatterns)) {
+          console.log(`Received ${result.systemPatterns.length} system patterns from main process`);
           setSystemIgnorePatterns(result.systemPatterns);
-          console.log(`Loaded ${result.systemPatterns.length} system patterns`);
+        } else {
+          console.warn('No system patterns received from main process or not in expected format');
         }
         
         // Update pattern state
         if (isGlobal) {
           setGlobalIgnorePatterns(patterns);
-        } else {
+        } else if (folderPath === selectedFolder) {
+          // Only update local patterns if they're for the current folder
           setLocalIgnorePatterns(patterns);
         }
         
@@ -641,13 +665,6 @@ const App = () => {
           status: "complete",
           message: `${isGlobal ? "Global" : "Local"} ignore patterns saved successfully.`,
         });
-        
-        // Update the appropriate state
-        if (isGlobal) {
-          setGlobalIgnorePatterns(patterns);
-        } else {
-          setLocalIgnorePatterns(patterns);
-        }
         
         // If the patterns are for the current folder, reload the folder
         if (!isGlobal && folderPath === selectedFolder) {
@@ -758,6 +775,12 @@ const App = () => {
     sessionStorage.removeItem("hasLoadedInitialData");
   };
 
+  // Initialize system patterns with defaults on component mount
+  useEffect(() => {
+    console.log(`App initialized with ${DEFAULT_SYSTEM_PATTERNS.length} default system patterns`);
+    console.log('System patterns sample:', DEFAULT_SYSTEM_PATTERNS.slice(0, 5));
+  }, []);
+
   return (
     <ThemeProvider>
       <div className="app-container">
@@ -808,6 +831,7 @@ const App = () => {
             loadIgnorePatterns={loadIgnorePatterns}
             saveIgnorePatterns={saveIgnorePatterns}
             resetIgnorePatterns={resetIgnorePatterns}
+            systemIgnorePatterns={systemIgnorePatterns}
           />
           
           {selectedFolder ? (
