@@ -11,7 +11,8 @@ const micromatch = require('micromatch');
 const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
 const { execSync } = require('child_process');
-const { excludedFiles, binaryExtensions } = require('./excluded-files');
+const { excludedFiles, binaryExtensions, systemExclusions } = require('./excluded-files');
+const mainModule = require('./main'); // Import main.js functions
 
 // Disable security warnings in development mode
 // These warnings don't appear in production builds anyway
@@ -22,39 +23,8 @@ const MAX_BINARY_CHECK_SIZE = 512;
 const BINARY_CHECK_CHARS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB size limit
 
-// These are universal exclusions that should never be removed
-// Moving them inline instead of a separate file to reduce clutter in the root directory
-const DEFAULT_EXCLUSIONS = [
-  "**/node_modules/**",
-  "**/dist/**",
-  "**/build/**",
-  "**/.git/**",
-  "**/package-lock.json",
-  "**/yarn.lock",
-  "**/*.min.js",
-  "**/*.map",
-  "**/*.py",
-  // Binary and image files
-  "**/*.png",
-  "**/*.jpg",
-  "**/*.jpeg",
-  "**/*.gif",
-  "**/*.ico",
-  "**/*.svg",
-  "**/*.woff",
-  "**/*.woff2",
-  "**/*.ttf",
-  "**/*.eot",
-  "**/*.mp3",
-  "**/*.mp4",
-  "**/*.webm",
-  "**/*.wav",
-  "**/*.ogg",
-  "**/*.zip",
-  "**/*.tar",
-  "**/*.gz",
-  "**/*.pdf",
-];
+// Use the systemExclusions from excluded-files.js as the single source of truth
+const DEFAULT_EXCLUSIONS = systemExclusions;
 
 // Create the main window
 function createWindow() {
@@ -110,6 +80,9 @@ app.on("window-all-closed", function () {
   if (process.platform !== "darwin") app.quit();
 });
 
+// Use pattern handling functions from main.js
+const { shouldExcludeByDefault, normalizePath } = mainModule;
+
 // Function to check if a file is likely binary
 async function isBinary(filePath) {
   try {
@@ -138,23 +111,10 @@ async function isBinary(filePath) {
   }
 }
 
-// Load global ignore patterns
+// Load global ignore patterns - using main.js pattern handling
 async function getGlobalIgnorePatterns() {
-  try {
-    const appDataPath = app.getPath('userData');
-    const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
-    
-    if (fs.existsSync(globalIgnorePath)) {
-      const content = await readFile(globalIgnorePath, 'utf8');
-      return content.split('\n')
-        .map(line => line.trim())
-        .filter(line => line && !line.startsWith('#'));
-    }
-    return getDefaultIgnorePatterns();
-  } catch (error) {
-    console.error('Error reading global ignore patterns:', error);
-    return getDefaultIgnorePatterns();
-  }
+  // Simply use the system exclusions since main.js will handle the actual global patterns
+  return DEFAULT_EXCLUSIONS;
 }
 
 // Default ignore patterns to use when no global_patterns.ignore exists
@@ -162,100 +122,15 @@ function getDefaultIgnorePatterns() {
   return DEFAULT_EXCLUSIONS;
 }
 
-// Function to read ignore patterns from a .repo_ignore file
-async function readIgnorePatterns(folderPath) {
-  try {
-    const ignoreFilePath = path.join(folderPath, '.repo_ignore');
-    if (fs.existsSync(ignoreFilePath)) {
-      const content = await readFile(ignoreFilePath, 'utf8');
-      return content.split('\n')
-        .map(line => line.trim())
-        .filter(line => line && !line.startsWith('#'));
-    }
-    return [];
-  } catch (error) {
-    console.error('Error reading ignore patterns:', error);
-    return [];
-  }
-}
-
-// Function to get all ignore patterns from universal, global, and local sources
-async function getAllIgnorePatterns(folderPath) {
-  try {
-    // Storage for all patterns
-    const allPatterns = [...DEFAULT_EXCLUSIONS];
-    
-    // Get global patterns
-    const appDataPath = app.getPath('userData');
-    const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
-    
-    // Read global patterns
-    if (fs.existsSync(globalIgnorePath)) {
-      try {
-        const content = await readFile(globalIgnorePath, 'utf8');
-        const globalPatterns = content.split('\n')
-          .map(line => line.trim())
-          .filter(line => line && !line.startsWith('#'));
-          
-        if (globalPatterns.length > 0) {
-          console.log(`getAllIgnorePatterns: Loaded ${globalPatterns.length} global patterns`);
-          allPatterns.push(...globalPatterns);
-        }
-      } catch (err) {
-        console.error('Error reading global ignore patterns:', err);
-      }
-    }
-    
-    // Get local ignore patterns for this folder
-    const localIgnorePath = path.join(folderPath, '.repo_ignore');
-    if (fs.existsSync(localIgnorePath)) {
-      try {
-        const content = await readFile(localIgnorePath, 'utf8');
-        const localPatterns = content.split('\n')
-          .map(line => line.trim())
-          .filter(line => line && !line.startsWith('#'));
-          
-        if (localPatterns.length > 0) {
-          console.log(`getAllIgnorePatterns: Loaded ${localPatterns.length} local patterns`);
-          allPatterns.push(...localPatterns);
-        }
-      } catch (err) {
-        console.error('Error reading local ignore patterns:', err);
-      }
-    }
-    
-    console.log(`getAllIgnorePatterns: Total ${allPatterns.length} patterns`);
-    return allPatterns;
-  } catch (error) {
-    console.error('Error getting all ignore patterns:', error);
-    return [...DEFAULT_EXCLUSIONS];
-  }
-}
-
-// Function to check if a file should be ignored based on patterns
+// Use shouldIgnoreFile from electron.js for backward compatibility
+// but delegate to main.js shouldExcludeByDefault
 function shouldIgnoreFile(filePath, folderPath, ignorePatterns = []) {
-  try {
-    // Get relative path for matching
-    const relativePath = path.relative(folderPath, filePath);
-    
-    // Check each pattern
-    for (const pattern of ignorePatterns) {
-      if (minimatch(relativePath, pattern, { dot: true })) {
-        return true;
-      }
-    }
-    
-    return false;
-  } catch (error) {
-    console.error('Error checking if file should be ignored:', error);
-    return false;
-  }
+  return shouldExcludeByDefault(filePath, folderPath);
 }
 
 // Process all files in a directory
 async function processFiles(folderPath) {
   const allFiles = [];
-  const ignorePatterns = await getAllIgnorePatterns(folderPath);
   
   async function scanDirectory(dir) {
     try {
@@ -267,8 +142,8 @@ async function processFiles(folderPath) {
         if (entry.isDirectory()) {
           await scanDirectory(fullPath);
         } else if (entry.isFile()) {
-          // Skip processing if file should be ignored
-          if (shouldIgnoreFile(fullPath, folderPath, ignorePatterns)) {
+          // Skip processing if file should be ignored - use main.js function
+          if (shouldExcludeByDefault(fullPath, folderPath)) {
             allFiles.push({
               name: entry.name,
               path: fullPath,
@@ -348,7 +223,7 @@ async function processFiles(folderPath) {
         }
       }
     } catch (error) {
-      console.error(`Error scanning directory ${dir}:`, error);
+      console.error('Error scanning directory:', error);
     }
   }
   
@@ -357,8 +232,9 @@ async function processFiles(folderPath) {
 }
 
 // IPC handlers
+// Now delegating to handlers in main.js
 
-// Open folder dialog
+// Handle folder selection
 ipcMain.on("open-folder", async (event) => {
   try {
     const result = await dialog.showOpenDialog({
@@ -373,7 +249,7 @@ ipcMain.on("open-folder", async (event) => {
   }
 });
 
-// Process files in a selected folder
+// Handle file list request
 ipcMain.on("request-file-list", async (event, folderPath) => {
   try {
     if (!folderPath) {
@@ -406,93 +282,11 @@ ipcMain.on("request-file-list", async (event, folderPath) => {
   }
 });
 
-// Note: The 'load-ignore-patterns' handler is now defined in main.js
-// Commenting out the duplicate handler to avoid conflicts
+// Delegate to main.js for pattern handling
+const mainHandlers = mainModule;
 
-// Save ignore patterns to file and clear cache
-ipcMain.handle('save-ignore-patterns', async (event, { patterns, isGlobal, folderPath }) => {
-  try {
-    const appDataPath = app.getPath('userData');
-    
-    // Determine which file to save to
-    const targetPath = isGlobal 
-      ? path.join(appDataPath, 'global_patterns.ignore')
-      : path.join(folderPath, '.repo_ignore');
-      
-    console.log(`Saving ignore patterns to ${targetPath}, isGlobal: ${isGlobal}`);
-    console.log(`Patterns to save: ${patterns}`);
-    
-    // Ensure directory exists for global patterns
-    if (isGlobal && !fs.existsSync(appDataPath)) {
-      fs.mkdirSync(appDataPath, { recursive: true });
-    }
-    
-    // Write the patterns to the file
-    fs.writeFileSync(targetPath, patterns);
-    
-    // Clear cache to ensure files are reloaded with new patterns
-    if (directoryCache) {
-      if (isGlobal) {
-        // Clear all caches for global pattern changes
-        directoryCache.clearAll();
-        console.log('Cleared all directory caches due to global pattern change');
-      } else {
-        // Clear just this folder's cache
-        directoryCache.clear(folderPath);
-        console.log(`Cleared directory cache for ${folderPath}`);
-      }
-    }
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error saving ignore patterns:', error);
-    return { success: false, error: error.message };
-  }
-});
+// Enable clipboard reading/writing (for security reasons, this is restricted by default)
+app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
 
-// Reset ignore patterns
-ipcMain.handle('reset-ignore-patterns', async (event, { isGlobal, folderPath }) => {
-  try {
-    if (!folderPath) {
-      return { success: false, error: 'No folder path provided' };
-    }
-    
-    if (isGlobal) {
-      // Reset global patterns
-      const appDataPath = app.getPath('userData');
-      const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
-      
-      // If the file exists, delete it
-      if (fs.existsSync(globalIgnorePath)) {
-        fs.unlinkSync(globalIgnorePath);
-        console.log(`Reset global ignore patterns by removing ${globalIgnorePath}`);
-      }
-      
-      // Clear all caches for global pattern changes
-      if (directoryCache) {
-        directoryCache.clearAll();
-        console.log('Cleared all directory caches due to global pattern reset');
-      }
-    } else {
-      // Reset local patterns
-      const ignoreFilePath = path.join(folderPath, '.repo_ignore');
-      
-      // If the file exists, delete it
-      if (fs.existsSync(ignoreFilePath)) {
-        fs.unlinkSync(ignoreFilePath);
-        console.log(`Reset local ignore patterns by removing ${ignoreFilePath}`);
-      }
-      
-      // Clear just this folder's cache
-      if (directoryCache) {
-        directoryCache.clear(folderPath);
-        console.log(`Cleared directory cache for ${folderPath}`);
-      }
-    }
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error resetting ignore patterns:', error);
-    return { success: false, error: error.message };
-  }
-}); 
+// For backward compatibility - export app and BrowserWindow
+module.exports = { app, BrowserWindow }; 

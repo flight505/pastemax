@@ -2,10 +2,51 @@
 // Users can still manually select these files if needed
 // Paths can include glob patterns (*, **, etc.)
 
-// These are exclusions that users can manually override
-// (Universal hardcoded exclusions are now defined directly in electron.js and main.js)
+// Central repository for all exclusion patterns
+// This file is the single source of truth for file exclusions
 
 module.exports = {
+  // System exclusions - should never be modified/overridden
+  // These are the absolute minimum exclusions for the application to function properly
+  systemExclusions: [
+    "**/node_modules/**",
+    "**/dist/**", 
+    "**/build/**",
+    "**/.git/**",
+    "**/*.pyc", // Python compiled files only, not source
+    // Binary files
+    "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.ico", 
+    "**/*.webp", "**/*.svg", "**/*.pdf", "**/*.zip", "**/*.tar.gz",
+    "**/*.tgz", "**/*.rar", "**/*.7z", "**/*.mp4", "**/*.mov",
+    "**/*.woff", "**/*.woff2", "**/*.ttf", "**/*.eot",
+    "**/*.avi", "**/*.mkv", "**/*.mp3", "**/*.wav", "**/*.flac"
+  ],
+
+  // Default user patterns - these are restored when user resets to defaults
+  // These can be modified by users
+  defaultUserPatterns: `# Default ignore patterns (editable)
+# These patterns can be modified in the Ignore Patterns UI
+
+# Common directories
+node_modules/
+.git/
+dist/
+build/
+__pycache__/
+venv/
+.venv/
+
+# Common files
+**/*.log
+.DS_Store
+*.tmp
+*.class
+# Not excluding Python source files
+*.pyc
+*.pyo
+.env
+`,
+
   // Files to always exclude by default when a folder is first loaded
   // Users can override these by selecting them manually
   excludedFiles: [
@@ -31,7 +72,6 @@ module.exports = {
 
     // Python related
     "__pycache__/**",
-    "*.py",
     "*.pyc",
     "*.pyo",
     "*.pyd",

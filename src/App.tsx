@@ -535,52 +535,8 @@ const App = () => {
     });
   };
 
-  // Setup listener for ignore patterns loaded event
-  useEffect(() => {
-    if (isElectron) {
-      const handleIgnorePatternsLoaded = (patterns: string) => {
-        setIgnorePatterns(patterns);
-      };
-      
-      window.electron.ipcRenderer.on("ignore-patterns-loaded", handleIgnorePatternsLoaded);
-      
-      return () => {
-        window.electron.ipcRenderer.removeListener("ignore-patterns-loaded", handleIgnorePatternsLoaded);
-      };
-    }
-  }, [isElectron]);
-
-  // Setup listener for ignore patterns saved event
-  useEffect(() => {
-    if (isElectron) {
-      const handleIgnorePatternsSaved = (success: boolean) => {
-        if (success) {
-          console.log("Ignore patterns saved successfully");
-        } else {
-          console.error("Failed to save ignore patterns");
-        }
-      };
-      
-      window.electron.ipcRenderer.on("ignore-patterns-saved", handleIgnorePatternsSaved);
-      
-      return () => {
-        window.electron.ipcRenderer.removeListener("ignore-patterns-saved", handleIgnorePatternsSaved);
-      };
-    }
-  }, [isElectron]);
-
-  // Load global patterns on startup
-  useEffect(() => {
-    if (isElectron) {
-      // Only load global patterns on startup if we haven't loaded them yet
-      if (globalIgnorePatterns === "") {
-        loadIgnorePatterns('', true);
-      }
-    }
-  }, [isElectron, globalIgnorePatterns]);
-
-  // Load ignore patterns (both global and local for current folder)
-  const loadIgnorePatterns = async (folderPath: string, isGlobal: boolean = false) => {
+  // Define loadIgnorePatterns with useCallback before it's used
+  const loadIgnorePatterns = useCallback(async (folderPath: string, isGlobal: boolean = false) => {
     if (!window.electron) {
       console.log("Not in Electron environment, skipping loadIgnorePatterns");
       return "";
@@ -641,7 +597,32 @@ const App = () => {
       console.error("Error invoking load-ignore-patterns:", error);
       return "";
     }
-  };
+  }, [globalIgnorePatterns, localIgnorePatterns, selectedFolder]);
+
+  // Setup listener for ignore patterns loaded event
+  useEffect(() => {
+    if (isElectron) {
+      const handleIgnorePatternsLoaded = (patterns: string) => {
+        setIgnorePatterns(patterns);
+      };
+      
+      window.electron.ipcRenderer.on("ignore-patterns-loaded", handleIgnorePatternsLoaded);
+      
+      return () => {
+        window.electron.ipcRenderer.removeListener("ignore-patterns-loaded", handleIgnorePatternsLoaded);
+      };
+    }
+  }, [isElectron]);
+
+  // Load global patterns on startup
+  useEffect(() => {
+    if (isElectron) {
+      // Only load global patterns on startup if we haven't loaded them yet
+      if (globalIgnorePatterns === "") {
+        loadIgnorePatterns('', true);
+      }
+    }
+  }, [isElectron, globalIgnorePatterns, loadIgnorePatterns]);
 
   // Function to save ignore patterns
   const saveIgnorePatterns = async (patterns: string, isGlobal: boolean, folderPath: string) => {
@@ -668,6 +649,10 @@ const App = () => {
         
         // If the patterns are for the current folder, reload the folder
         if (!isGlobal && folderPath === selectedFolder) {
+          reloadFolder();
+        }
+        // If global patterns were changed, also reload current folder to apply new patterns
+        else if (isGlobal && selectedFolder) {
           reloadFolder();
         }
       } else {
@@ -754,6 +739,39 @@ const App = () => {
       window.electron.ipcRenderer.send("reload-file-list", selectedFolder);
     }
   };
+
+  // Now add the ignore-patterns-saved handler after reloadFolder is defined
+  useEffect(() => {
+    if (isElectron) {
+      const handleIgnorePatternsSaved = (result: { 
+        success: boolean, 
+        isGlobal?: boolean, 
+        folderPath?: string,
+        error?: string 
+      }) => {
+        if (result.success) {
+          console.log("Ignore patterns saved successfully");
+          
+          // Auto-reload when patterns are saved
+          if (selectedFolder) {
+            // If global patterns were changed, or if local patterns for current folder were changed
+            if (result.isGlobal || (!result.isGlobal && result.folderPath === selectedFolder)) {
+              console.log("Automatically reloading file list after pattern change");
+              reloadFolder();
+            }
+          }
+        } else {
+          console.error("Failed to save ignore patterns:", result.error);
+        }
+      };
+      
+      window.electron.ipcRenderer.on("ignore-patterns-saved", handleIgnorePatternsSaved);
+      
+      return () => {
+        window.electron.ipcRenderer.removeListener("ignore-patterns-saved", handleIgnorePatternsSaved);
+      };
+    }
+  }, [isElectron, selectedFolder, reloadFolder]);
 
   // Add handlers for clear functionality
   const clearSelection = () => {

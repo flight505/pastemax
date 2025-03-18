@@ -456,38 +456,12 @@ const Sidebar = ({
     return folderList;
   };
 
-  // Count the number of files excluded by patterns
+  // Function to count excluded files
   const countExcludedFiles = () => {
     if (!allFiles || allFiles.length === 0) return 0;
     
-    const excludedFiles = allFiles.filter(file => 
-      file.excludedByDefault && 
-      // Only count visible files (in the current folder)
-      (selectedFolder ? file.path.startsWith(selectedFolder) : true)
-    );
-    
-    const count = excludedFiles.length;
-    
-    // Debug log for excluded files
-    if (count > 0) {
-      console.log(`Found ${count} excluded files in ${selectedFolder || 'all folders'}`);
-      // Log the first 5 excluded files as examples
-      const examples = excludedFiles.slice(0, 5);
-      examples.forEach(file => {
-        console.log(`  - ${file.path} (excluded by pattern)`);
-      });
-      
-      // Log Python files specifically
-      const pythonFiles = excludedFiles.filter(file => file.path.endsWith('.py'));
-      if (pythonFiles.length > 0) {
-        console.log(`Found ${pythonFiles.length} excluded Python files`);
-        pythonFiles.slice(0, 5).forEach(file => {
-          console.log(`  - ${file.path} (Python file excluded)`);
-        });
-      }
-    }
-    
-    return count;
+    // Count files that are excluded by patterns (excludedByDefault)
+    return allFiles.filter(file => file.excludedByDefault).length;
   };
 
   // Calculate excluded files count
@@ -602,6 +576,7 @@ const Sidebar = ({
         onRemoveAllFolders={removeAllFolders}
         onReloadFileTree={reloadFolder}
         onOpenIgnorePatterns={() => handleOpenIgnorePatterns(false)}
+        excludedFilesCount={countExcludedFiles()}
       />
       
       {selectedFolder ? (

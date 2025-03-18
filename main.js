@@ -8,42 +8,11 @@ const micromatch = require('micromatch');
 const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
 const { execSync } = require('child_process');
-const { excludedFiles, binaryExtensions } = require("./excluded-files");
+const { excludedFiles, binaryExtensions, systemExclusions, defaultUserPatterns } = require("./excluded-files");
 const ignore = require("ignore");
 
-// These are universal exclusions that should never be removed
-// Moving them inline instead of a separate file to reduce clutter in the root directory
-const DEFAULT_EXCLUSIONS = [
-  "**/node_modules/**",
-  "**/dist/**",
-  "**/build/**",
-  "**/.git/**",
-  "**/package-lock.json",
-  "**/yarn.lock",
-  "**/*.min.js",
-  "**/*.map",
-  "**/*.py", // Python source files
-  // Binary and image files
-  "**/*.png",
-  "**/*.jpg",
-  "**/*.jpeg",
-  "**/*.gif",
-  "**/*.ico",
-  "**/*.svg",
-  "**/*.woff",
-  "**/*.woff2",
-  "**/*.ttf",
-  "**/*.eot",
-  "**/*.mp3",
-  "**/*.mp4",
-  "**/*.webm",
-  "**/*.wav",
-  "**/*.ogg",
-  "**/*.zip",
-  "**/*.tar",
-  "**/*.gz",
-  "**/*.pdf",
-];
+// For backward compatibility - use systemExclusions as the new single source of truth
+const DEFAULT_EXCLUSIONS = systemExclusions;
 
 // Global variables for directory loading control
 let isLoadingDirectory = false;
@@ -1109,49 +1078,10 @@ const unlink = promisify(fs.unlink);
 // 3. Current user patterns: Stored in global_patterns.ignore or .repo_ignore files
 
 // Category 1: System-level exclusions (not user-editable)
-const SYSTEM_EXCLUSIONS = [
-  // Binary and media files
-  "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.ico", 
-  "**/*.webp", "**/*.svg", "**/*.pdf", "**/*.zip", "**/*.tar.gz",
-  "**/*.tgz", "**/*.rar", "**/*.7z", "**/*.mp4", "**/*.mov",
-  "**/*.avi", "**/*.mkv", "**/*.mp3", "**/*.wav", "**/*.flac",
-  
-  // Database files
-  "**/*.sqlite", "**/*.db", "**/*.sql",
-  
-  // Document files
-  "**/*.doc", "**/*.docx", "**/*.xls", "**/*.xlsx", "**/*.ppt", "**/*.pptx",
-  
-  // Large binary files
-  "**/*.iso", "**/*.bin", "**/*.exe", "**/*.dll", "**/*.so", "**/*.dylib",
-  
-  // Minified files
-  "**/*.min.js", "**/*.min.css",
-];
+const SYSTEM_EXCLUSIONS = systemExclusions;
 
 // Category 2: Default user patterns (user-editable, used when resetting to defaults)
-const DEFAULT_USER_PATTERNS = `# Default ignore patterns (editable)
-# These patterns can be modified in the Ignore Patterns UI
-
-# Common directories
-node_modules/
-.git/
-dist/
-build/
-__pycache__/
-venv/
-.venv/
-
-# Common files
-**/*.log
-.DS_Store
-*.tmp
-*.class
-*.py
-*.pyc
-*.pyo
-.env
-`;
+const DEFAULT_USER_PATTERNS = defaultUserPatterns;
 
 // Function to get all patterns (system + user)
 function getAllPatterns(userPatterns) {
@@ -1259,10 +1189,24 @@ ipcMain.handle('save-ignore-patterns', async (event, { patterns, isGlobal, folde
         console.log(`Cleared directory cache for ${folderPath}`);
       }
     }
+
+    // Notify the renderer about the pattern change
+    event.sender.send('ignore-patterns-saved', {
+      success: true,
+      isGlobal,
+      folderPath
+    });
     
     return { success: true };
   } catch (error) {
     console.error('Error saving ignore patterns:', error);
+    
+    // Also notify renderer about failure
+    event.sender.send('ignore-patterns-saved', {
+      success: false,
+      error: error.message
+    });
+    
     return { success: false, error: error.message };
   }
 });
@@ -1342,4 +1286,12 @@ ipcMain.handle('clear-ignore-patterns', async (event, { folderPath }) => {
 });
 
 // This module pattern is preserved
-module.exports = { app, BrowserWindow };
+module.exports = { 
+  app, 
+  BrowserWindow,
+  // Export pattern-related functions
+  shouldExcludeByDefault,
+  getAllPatterns,
+  loadGitignore,
+  normalizePath
+};
