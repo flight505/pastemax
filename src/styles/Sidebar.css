@@ -1,0 +1,10 @@
+.excluded-files-indicator {
+  font-size: 0.5rem;
+  color: var(--text-secondary-color, #888);
+  padding: 8px 12px;
+  margin-top: 4px;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.8;
+  border-top: 1px solid var(--border-color, #eee);
+} 

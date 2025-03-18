@@ -344,6 +344,31 @@ const App = () => {
     });
   };
 
+  // Handle select all files
+  const selectAllFiles = () => {
+    const selectablePaths = displayedFiles
+      .filter((file: FileData) => !file.isBinary && !file.isSkipped && !file.excludedByDefault)
+      .map((file: FileData) => file.path);
+
+    setSelectedFiles((prev: string[]) => {
+      const newSelection = [...prev];
+      selectablePaths.forEach((path: string) => {
+        if (!newSelection.includes(path)) {
+          newSelection.push(path);
+        }
+      });
+      return newSelection;
+    });
+  };
+
+  // Handle deselect all files
+  const deselectAllFiles = () => {
+    const displayedPaths = displayedFiles.map((file: FileData) => file.path);
+    setSelectedFiles((prev: string[]) =>
+      prev.filter((path: string) => !displayedPaths.includes(path))
+    );
+  };
+
   // Toggle folder selection (select/deselect all files in folder)
   const toggleFolderSelection = (folderPath: string, isSelected: boolean) => {
     // Normalize the folder path
@@ -355,8 +380,8 @@ const App = () => {
         const normalizedFilePath = normalizePath(file.path);
         // Check if the file is within this folder (at any depth)
         const isWithinFolder = normalizedFilePath.startsWith(normalizedFolderPath);
-        // Only include files that are not binary and not skipped
-        const isSelectable = !file.isBinary && !file.isSkipped;
+        // Only include files that are not binary, not skipped, and not excluded by patterns
+        const isSelectable = !file.isBinary && !file.isSkipped && !file.excludedByDefault;
         return isWithinFolder && isSelectable;
       }
     );
@@ -482,31 +507,6 @@ const App = () => {
       ? `\n<user_instructions>\n${userInstructions}\n</user_instructions>\n\n`
       : "";
     return concatenatedString + userInstructionsBlock;
-  };
-
-  // Handle select all files
-  const selectAllFiles = () => {
-    const selectablePaths = displayedFiles
-      .filter((file: FileData) => !file.isBinary && !file.isSkipped)
-      .map((file: FileData) => file.path);
-
-    setSelectedFiles((prev: string[]) => {
-      const newSelection = [...prev];
-      selectablePaths.forEach((path: string) => {
-        if (!newSelection.includes(path)) {
-          newSelection.push(path);
-        }
-      });
-      return newSelection;
-    });
-  };
-
-  // Handle deselect all files
-  const deselectAllFiles = () => {
-    const displayedPaths = displayedFiles.map((file: FileData) => file.path);
-    setSelectedFiles((prev: string[]) =>
-      prev.filter((path: string) => !displayedPaths.includes(path))
-    );
   };
 
   // Sort options for the dropdown

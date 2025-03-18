@@ -438,21 +438,30 @@ const Sidebar = ({
     return folderList;
   };
 
-  // Flatten the tree for rendering with proper indentation
+  // Count the number of files excluded by patterns
+  const countExcludedFiles = () => {
+    if (!allFiles || allFiles.length === 0) return 0;
+    
+    return allFiles.filter(file => 
+      file.excludedByDefault && 
+      // Only count visible files (in the current folder)
+      (selectedFolder ? file.path.startsWith(selectedFolder) : true)
+    ).length;
+  };
+
+  // Calculate excluded files count
+  const excludedFilesCount = countExcludedFiles();
+
+  // Function to flatten tree
   const flattenTree = (nodes: TreeNode[]): TreeNode[] => {
-    let result: TreeNode[] = [];
-
+    let flattened: TreeNode[] = [];
     nodes.forEach((node) => {
-      // Add the current node
-      result.push(node);
-
-      // If it's a directory and it's expanded, add its children
+      flattened.push(node);
       if (node.type === "directory" && node.isExpanded && node.children) {
-        result = [...result, ...flattenTree(node.children)];
+        flattened = flattened.concat(flattenTree(node.children));
       }
     });
-
-    return result;
+    return flattened;
   };
 
   // Filter the tree based on search term
@@ -580,16 +589,24 @@ const Sidebar = ({
           <div className="file-tree">
             {isTreeBuildingComplete ? (
               flattenedFilteredTree.length > 0 ? (
-                flattenedFilteredTree.map((node) => (
-                  <TreeItem
-                    key={node.id}
-                    node={node}
-                    selectedFiles={selectedFiles}
-                    toggleFileSelection={toggleFileSelection}
-                    toggleFolderSelection={toggleFolderSelection}
-                    toggleExpanded={toggleExpanded}
-                  />
-                ))
+                <>
+                  {flattenedFilteredTree.map((node) => (
+                    <TreeItem
+                      key={node.id}
+                      node={node}
+                      selectedFiles={selectedFiles}
+                      toggleFileSelection={toggleFileSelection}
+                      toggleFolderSelection={toggleFolderSelection}
+                      toggleExpanded={toggleExpanded}
+                    />
+                  ))}
+                  
+                  {excludedFilesCount > 0 && (
+                    <div className="excluded-files-indicator">
+                      {excludedFilesCount} {excludedFilesCount === 1 ? 'file' : 'files'} excluded by patterns
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="tree-empty">
                   {searchTerm
