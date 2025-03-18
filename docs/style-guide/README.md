@@ -7,6 +7,7 @@ Welcome to the PasteMax UI Style Guide. This series of documents outlines our ap
 - [Component System Overview](component-system.md) - Architecture, styling approach, and implementation checklist
 - [Implementation Guide](implementation-guide.md) - Detailed implementation instructions and code examples
 - [Specific Components Guide](specific-components.md) - Targeted guidance for key components that need updating
+- [Usage Examples](usage-examples.md) - Examples showing how to use the new UI components
 
 ## 🎯 Goals
 
@@ -57,10 +58,10 @@ We'll adopt an incremental approach:
 
 ## 📋 Component Checklist
 
-- [ ] Button
-- [ ] Input/Search
-- [ ] Toggle/Switch
-- [ ] Card
+- [x] Button
+- [x] Input/Search
+- [x] Toggle/Switch
+- [x] Card
 - [ ] Dropdown
 - [ ] Icons standardization
 - [ ] Dialog/Modal (if needed)

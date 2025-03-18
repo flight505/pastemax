@@ -1,0 +1,56 @@
+.switchContainer {
+  display: inline-flex;
+  align-items: center;
+}
+
+.switchLabel {
+  margin-right: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.switch {
+  --switch-width: 36px;
+  --switch-height: 20px;
+  --thumb-size: 14px;
+  --thumb-offset: 3px;
+  
+  position: relative;
+  display: inline-flex;
+  width: var(--switch-width);
+  height: var(--switch-height);
+  border-radius: 999px;
+  background-color: var(--background-secondary);
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.switchChecked {
+  background-color: var(--accent-color);
+}
+
+.switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring-color);
+}
+
+.switchDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.switchThumb {
+  position: absolute;
+  top: var(--thumb-offset);
+  left: var(--thumb-offset);
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 50%;
+  background-color: var(--background-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.switchChecked .switchThumb {
+  transform: translateX(calc(var(--switch-width) - var(--thumb-size) - (var(--thumb-offset) * 2)));
+} 
