@@ -34,6 +34,11 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   iconOnly?: boolean;
   
   /**
+   * If true, button will have fully rounded corners
+   */
+  pill?: boolean;
+  
+  /**
    * Button children
    */
   children?: React.ReactNode;
@@ -52,6 +57,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       startIcon,
       endIcon,
       iconOnly = false,
+      pill = false,
       children,
       ...props
     },
@@ -64,6 +70,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           styles[variant],
           styles[size],
           iconOnly && styles.iconOnly,
+          pill && styles.pill,
           className
         )}
         ref={ref}

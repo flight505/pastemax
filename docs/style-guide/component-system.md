@@ -57,10 +57,9 @@ We'll implement shadcn/ui's utilities:
 ```typescript
 // src/utils/cn.ts
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return clsx(inputs);
 }
 ```
 
@@ -82,41 +81,150 @@ src/
       ... other components ...
 ```
 
+## 📋 Standardized Component Variants
+
+### Button Variants
+
+We support several button variants to address different UI needs:
+
+#### 1. Primary Button
+- **Appearance**: Solid filled background (black in light mode, white in dark mode) with contrasting text
+- **State Changes**:
+  - **Default**: Filled background with sharp contrast
+  - **Hover**: Slight opacity decrease (90%)
+  - **Active/Pressed**: Slight darkening effect
+  - **Disabled**: 50% opacity, not clickable
+- **Usage**: Main actions, calls-to-action (e.g., "Select All", "Copy All")
+- **Height**: 30px (sm), 36px (md), 42px (lg)
+
+#### 2. Secondary Button
+- **Appearance**: Subtle background with border emphasis
+- **State Changes**:
+  - **Default**: Light background with border
+  - **Hover**: Slightly darker background
+  - **Active/Pressed**: Darker background
+  - **Disabled**: 50% opacity, not clickable
+- **Usage**: Supporting actions, alternative choices (e.g., "Deselect All", "Cancel")
+- **Height**: 30px (sm), 36px (md), 42px (lg)
+
+#### 3. Ghost Button
+- **Appearance**: No background or border until interaction
+- **State Changes**:
+  - **Default**: Text color only, transparent background
+  - **Hover**: Light background appears
+  - **Active/Pressed**: Slightly darker background
+  - **Disabled**: 50% opacity, not clickable
+- **Usage**: Toolbar actions, compact interfaces, icon buttons
+- **Height**: 30px (sm), 36px (md), 42px (lg)
+
+#### 4. Destructive Button
+- **Appearance**: Red background with white text
+- **State Changes**:
+  - **Default**: Red background
+  - **Hover**: Darker red
+  - **Active/Pressed**: Even darker red
+  - **Disabled**: 50% opacity, not clickable
+- **Usage**: Destructive actions (e.g., "Delete", "Clear")
+- **Height**: 30px (sm), 36px (md), 42px (lg)
+
+#### 5. Pill Button
+- **Appearance**: Fully rounded corners (border-radius: 9999px)
+- **Variants**: Can be applied to Primary, Secondary, Ghost, or Destructive
+- **Usage**: Floating actions, filters, tags
+- **Height**: 30px (sm), 36px (md), 42px (lg)
+
+#### 6. Dual Button
+- **Appearance**: Tab-like buttons that work as a toggle group
+- **State Changes**:
+  - **Selected**: Uses accent color and underline
+  - **Unselected**: Normal text color, no underline
+- **Usage**: Toggle between related views (e.g., "Local Folder" / "Global Defaults")
+- **Height**: 38px (fixed)
+
+### Switch/Toggle Variants
+
+#### 1. Standard Toggle
+- **Appearance**: Pill-shaped track with circular thumb
+- **State Changes**:
+  - **On**: Accent color background with white thumb to right
+  - **Off**: Muted background with white thumb to left
+  - **Disabled**: 50% opacity, not clickable
+- **Size**: 
+  - Width: 36px (sm), 44px (md)
+  - Height: 20px (sm), 24px (md)
+  - Thumb: 14px (sm), 18px (md)
+- **Usage**: Boolean settings (e.g., "Show User Instructions")
+
+### Input Variants
+
+#### 1. Standard Input
+- **Appearance**: Simple bordered text input
+- **State Changes**:
+  - **Default**: Border color
+  - **Focus**: Border highlight + subtle shadow ring
+  - **Error**: Red border
+  - **Disabled**: 50% opacity, not editable
+- **Size**: 30px (sm), 38px (md), 46px (lg) height
+- **Usage**: Form fields, text entry
+
+#### 2. Search Input
+- **Appearance**: Input with search icon and clear button
+- **State Changes**: Same as Standard Input
+- **Features**: Left icon for search, optional right icon for clearing
+- **Usage**: Search functionality
+
+### Card Variants
+
+#### 1. Standard Card
+- **Appearance**: Subtle border, rounded corners, white background
+- **State Changes**:
+  - **Default**: Standard border
+  - **Hover**: Slightly highlighted border
+  - **Selected**: Accent color border with subtle shadow
+- **Usage**: Content containers, file cards
+
+#### 2. Interactive Card
+- **Appearance**: Same as Standard Card but with hover effects
+- **State Changes**: 
+  - **Hover**: Border highlight, subtle shadow
+  - **Active**: Darker border, more pronounced shadow
+- **Usage**: Clickable cards, selectable items
+
 ## ✅ Implementation Checklist
 
 ### 1. Setup Core Utilities
 
-- [ ] Create `src/utils/cn.ts` utility for class composition
-- [ ] Create variant generation utility (if needed)
-- [ ] Add CSS reset and base styles
+- [x] Create `src/utils/cn.ts` utility for class composition
+- [x] Create variant generation utility
+- [x] Add CSS reset and base styles
 
 ### 2. Core Components
 
 #### Button Component
-- [ ] Create Button component with variants:
-  - [ ] Primary (filled background)
-  - [ ] Secondary (subtle background)
-  - [ ] Ghost (transparent background)
-  - [ ] Destructive (error state)
-- [ ] Support sizes: small, medium, large
-- [ ] Support disabled state
-- [ ] Support icon placement
+- [x] Create Button component with variants:
+  - [x] Primary (filled background)
+  - [x] Secondary (subtle background)
+  - [x] Ghost (transparent background)
+  - [x] Destructive (error state)
+- [x] Support sizes: small, medium, large
+- [x] Support disabled state
+- [x] Support icon placement
 
 #### Input Component
-- [ ] Base text input component
-- [ ] Support validation states
-- [ ] Support prefix/suffix icons
-- [ ] Match text sizing of file tree
+- [x] Base text input component
+- [x] Support validation states
+- [x] Support prefix/suffix icons
+- [x] Match text sizing of file tree
 
 #### Toggle/Switch Component
-- [ ] Adjust current toggle size
-- [ ] Ensure consistent animation
-- [ ] Support disabled state
+- [x] Adjust current toggle size
+- [x] Ensure consistent animation
+- [x] Support disabled state
 
 #### Card Component
-- [ ] Implement consistent card styling
-- [ ] Adjust border colors to match theme
-- [ ] Support hover states
+- [x] Implement consistent card styling
+- [x] Adjust border colors to match theme
+- [x] Support hover states
 
 #### Dialog/Modal Component
 - [ ] Create reusable dialog component
@@ -131,69 +239,29 @@ src/
 ### 3. Compound Components
 
 #### FileTreeHeader
-- [ ] Refactor to use new base components
-- [ ] Maintain current functionality
-- [ ] Ensure responsive behavior
+- [x] Refactor to use new base components
+- [x] Maintain current functionality
+- [x] Ensure responsive behavior
 
 #### SearchBar
-- [ ] Use new Input component
-- [ ] Maintain current styling but standardize
+- [x] Use new Input component
+- [x] Maintain current styling but standardize
 
 #### CopyButton
-- [ ] Convert to new Button component
-- [ ] Simplify to "Copy All" with count indicator
-- [ ] Add download/save button adjacent
+- [x] Convert to new Button component
+- [x] Simplify to "Copy All" with count indicator
+- [x] Add download/save button adjacent
 
 #### User Instructions
-- [ ] Match text input to sidebar styling
-- [ ] Standardize font sizes
-- [ ] Improve visual hierarchy
+- [x] Match text input to sidebar styling
+- [x] Standardize font sizes
+- [x] Improve visual hierarchy
 
 ### 4. Theme Integration
 
 - [ ] Ensure all components respect light/dark mode
 - [ ] Test theme transitions
 - [ ] Verify consistent component appearance
-
-### 5. Documentation
-
-- [ ] Document component API
-- [ ] Create usage examples
-- [ ] Provide customization guidelines
-
-## 🔍 Component-Specific Guidelines
-
-### Buttons
-
-1. **Primary Button**
-   - Used for main actions (e.g., "Select All", "Copy All")
-   - Filled background with high contrast
-
-2. **Secondary Button**
-   - Used for supplementary actions
-   - Subtle background, border emphasis
-
-3. **Ghost Button**
-   - Used for tertiary actions
-   - No background, only shows on hover
-
-### Inputs
-
-1. **Text Input**
-   - Match font size with sidebar file tree
-   - Consistent padding and border radius
-   - Clear focus states
-
-2. **Search Input**
-   - Maintain current sidebar search styling
-   - Apply consistently throughout app
-
-### Cards
-
-1. **File Cards**
-   - Enhance border contrast
-   - Consistent padding and spacing
-   - Clear selected state
 
 ## 🚀 Implementation Strategy
 

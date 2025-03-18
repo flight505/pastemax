@@ -1,7 +1,7 @@
 import React from 'react';
-import Switch from './Switch';
-import { CopyButton } from './ui';
 import { FileTreeMode, SortOrder } from '../types/FileTypes';
+import { Switch, CopyButton } from './ui';
+import styles from './ControlContainer.module.css';
 
 interface ControlContainerProps {
   fileTreeMode: FileTreeMode;
@@ -54,39 +54,51 @@ const ControlContainer = ({
   };
 
   return (
-    <div className="control-container">
-      <div className="control-container-header">Controls</div>
-      <div className="control-items">
-        <div className="control-item">
-          <Switch
-            checked={showUserInstructions}
-            onChange={() => setShowUserInstructions(!showUserInstructions)}
-            label="Show User Instructions"
-            id="user-instructions-toggle"
-          />
+    <div className={styles.controlContainer}>
+      <div className={styles.controlContainerHeader}>Controls</div>
+      <div className={styles.controlItems}>
+        {/* Display Options Group */}
+        <div className={styles.controlGroup}>
+          <div className={styles.controlGroupTitle}>Display Options</div>
+          
+          <div className={styles.controlItem}>
+            <Switch
+              checked={showUserInstructions}
+              onChange={() => setShowUserInstructions(!showUserInstructions)}
+              label="Show User Instructions"
+              id="user-instructions-toggle"
+            />
+          </div>
+          
+          <div className={styles.controlItem}>
+            <label className={styles.controlSelectLabel} htmlFor="file-tree-mode">File Tree:</label>
+            <select
+              id="file-tree-mode"
+              value={fileTreeMode}
+              onChange={(e) => setFileTreeMode(e.target.value as FileTreeMode)}
+              className={styles.controlSelect}
+            >
+              <option value="none">None</option>
+              <option value="selected">Selected Files Only</option>
+              <option value="selected-with-roots">Selected Files with Path</option>
+              <option value="complete">Complete Tree</option>
+            </select>
+          </div>
         </div>
         
-        <div className="control-item">
-          <label className="switch-label" htmlFor="file-tree-mode">File Tree:</label>
-          <select
-            id="file-tree-mode"
-            value={fileTreeMode}
-            onChange={(e) => setFileTreeMode(e.target.value as FileTreeMode)}
-            className="file-tree-mode-select"
-          >
-            <option value="none">None</option>
-            <option value="selected">Selected Files Only</option>
-            <option value="selected-with-roots">Selected Files with Path</option>
-            <option value="complete">Complete Tree</option>
-          </select>
-        </div>
-        
-        <div className="control-item copy-button-wrapper">
-          <CopyButton
-            text={getSelectedFilesContent()}
-            selectedCount={selectedFilesCount}
-            onDownload={handleDownload}
-          />
+        {/* Output Options Group */}
+        <div className={styles.controlGroup}>
+          <div className={styles.controlGroupTitle}>Output Options</div>
+          
+          <div className={styles.controlItem}>
+            <div className={styles.copyButtonWrapper}>
+              <CopyButton
+                text={getSelectedFilesContent()}
+                selectedCount={selectedFilesCount}
+                onDownload={handleDownload}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

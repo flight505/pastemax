@@ -5,6 +5,7 @@ import React, {
 import { TreeItemProps, TreeNode } from "../types/FileTypes";
 import { ChevronRight, File, Folder } from "lucide-react";
 import { arePathsEqual } from "../utils/pathUtils";
+import styles from "./TreeItem.module.css";
 
 const TreeItem = ({
   node,
@@ -19,6 +20,9 @@ const TreeItem = ({
   const isSelected = type === "file" && selectedFiles.some(selectedPath => 
     arePathsEqual(selectedPath, path)
   );
+
+  // Check if file is disabled (excluded by patterns)
+  const isDisabled = fileData?.excluded || false;
 
   // Recursive function to check if all files in a directory are selected
   const areAllFilesInDirectorySelected = (node: TreeNode): boolean => {
@@ -101,64 +105,60 @@ const TreeItem = ({
     }
   };
 
-  // Check if file is binary or otherwise unselectable
-  const isDisabled = fileData ? fileData.isBinary || fileData.isSkipped : false;
-
-  // Check if the file is excluded by default (but still selectable)
-  const isExcludedByDefault = fileData?.excludedByDefault || false;
+  // Generate indentation for nested levels
+  const indentation = [];
+  for (let i = 0; i < level; i++) {
+    indentation.push(
+      <span key={`indent-${i}`} className={styles.treeItemIndent} />
+    );
+  }
 
   return (
     <div
-      className={`tree-item ${isSelected ? "selected" : ""} ${
-        isExcludedByDefault ? "excluded-by-default" : ""
-      }`}
-      style={{ marginLeft: `${level * 12}px` }}
+      className={`${styles.treeItem} ${
+        (isSelected || isDirectorySelected) ? styles.treeItemSelected : ""
+      } ${isDisabled ? styles.disabledItem : ""}`}
       onClick={handleItemClick}
+      data-testid={`tree-item-${name}`}
     >
-      {type === "directory" && (
-        <div
-          className={`tree-item-toggle ${isExpanded ? "expanded" : ""}`}
-          onClick={handleToggle}
-          aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
+      <div className={styles.treeItemContent}>
+        {indentation}
+
+        {type === "directory" && (
+          <div
+            className={`${styles.treeItemExpander} ${
+              isExpanded ? styles.treeItemExpanderRotated : ""
+            }`}
+            onClick={handleToggle}
+          >
+            <ChevronRight size={14} />
+          </div>
+        )}
+
+        <input
+          type="checkbox"
+          checked={isSelected || isDirectorySelected}
+          onChange={handleCheckboxChange}
+          onClick={(e) => e.stopPropagation()}
+          ref={type === "directory" ? checkboxRef : null}
+          className={styles.treeItemCheckbox}
+          disabled={isDisabled}
+        />
+
+        <div className={styles.treeItemIcon}>
+          {type === "directory" ? (
+            <Folder size={16} className={styles.folderIcon} />
+          ) : (
+            <File size={16} className={styles.fileIcon} />
+          )}
+        </div>
+
+        <span
+          className={styles.treeItemName}
+          title={path}
         >
-          <ChevronRight size={14} />
-        </div>
-      )}
-
-      {type === "file" && <div className="tree-item-indent"></div>}
-
-      <input
-        type="checkbox"
-        className="tree-item-checkbox"
-        checked={type === "file" ? isSelected : isDirectorySelected}
-        ref={checkboxRef}
-        onChange={handleCheckboxChange}
-        disabled={isDisabled}
-        onClick={(e) => e.stopPropagation()}
-      />
-
-      <div className="tree-item-content">
-        <div className="tree-item-icon">
-          {type === "directory" ? <Folder size={14} /> : <File size={14} />}
-        </div>
-
-        <div className="tree-item-name">{name}</div>
-
-        {fileData && fileData.tokenCount > 0 && (
-          <span className="tree-item-tokens">
-            (~{fileData.tokenCount.toLocaleString()})
-          </span>
-        )}
-
-        {isDisabled && fileData && (
-          <span className="tree-item-badge">
-            {fileData.isBinary ? "Binary" : "Skipped"}
-          </span>
-        )}
-
-        {!isDisabled && isExcludedByDefault && (
-          <span className="tree-item-badge excluded">Excluded</span>
-        )}
+          {name}
+        </span>
       </div>
     </div>
   );

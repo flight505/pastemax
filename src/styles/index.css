@@ -16,7 +16,12 @@
   --warning-color: hsl(40, 92%, 40%);
   --error-color: hsl(0, 84.2%, 60.2%);
   --primary-button-background: hsl(240, 5.9%, 10%);
+  --primary-button-hover: hsla(240, 5.9%, 10%, 0.9);
+  --primary-button-active: hsla(240, 5.9%, 10%, 0.8);
   --primary-button-text: hsl(0, 0%, 98%);
+  --secondary-button-background: hsl(240, 4.8%, 95.9%);
+  --secondary-button-hover: hsl(240, 4.8%, 90%);
+  --secondary-button-active: hsl(240, 4.8%, 85%);
   --file-card-selected-border: hsl(240, 5.9%, 90%);
   
   /* User instructions area specific colors */
@@ -28,6 +33,20 @@
   
   /* Border radius */
   --radius: 0.5rem;
+  --radius-full: 9999px;
+  
+  /* Component Sizing */
+  --button-height-sm: 30px;
+  --button-height-md: 36px;
+  --button-height-lg: 42px;
+  
+  /* Toggle/Switch Variables */
+  --toggle-width: 36px;
+  --toggle-height: 20px;
+  --toggle-thumb-size: 14px;
+  --toggle-thumb-offset: 3px;
+  --toggle-active: var(--accent-color);
+  --toggle-inactive: var(--background-secondary);
 }
 
 .dark-mode {
@@ -48,7 +67,12 @@
   --warning-color: hsl(40, 92%, 40%);
   --error-color: hsl(0, 62.8%, 30.6%);
   --primary-button-background: hsl(0, 0%, 98%);
+  --primary-button-hover: hsla(0, 0%, 98%, 0.9);
+  --primary-button-active: hsla(0, 0%, 98%, 0.8);
   --primary-button-text: hsl(240, 5.9%, 10%);
+  --secondary-button-background: hsl(240, 3.7%, 15.9%);
+  --secondary-button-hover: hsl(240, 3.7%, 20%);
+  --secondary-button-active: hsl(240, 3.7%, 25%);
   --file-card-selected-border: hsl(240, 3.7%, 25%);
   
   /* User instructions area specific colors */
@@ -57,6 +81,10 @@
   
   /* Ring for focus states */
   --ring-color: hsl(240, 4.9%, 83.9%);
+  
+  /* Toggle specific */
+  --toggle-active: var(--accent-color);
+  --toggle-inactive: var(--background-secondary);
 }
 
 * {
