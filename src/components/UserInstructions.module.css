@@ -1,0 +1,19 @@
+.textarea {
+  width: 100%;
+  resize: none;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px; /* Match file tree font size */
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  min-height: 100px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
+} 

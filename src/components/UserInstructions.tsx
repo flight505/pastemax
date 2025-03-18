@@ -1,4 +1,5 @@
 import React from "react";
+import styles from "./UserInstructions.module.css";
 
 interface UserInstructionsProps {
   instructions: string;
@@ -23,11 +24,8 @@ const UserInstructions = ({
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
             placeholder="Enter your instructions here..."
+            className={styles.textarea}
             rows={4}
-            style={{
-              width: "100%",
-              resize: "none",
-            }}
           />
         </div>
       </div>

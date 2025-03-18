@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { FileCardProps } from "../types/FileTypes";
-import { Plus, X, FileText } from "lucide-react";
-import CopyButton from "./CopyButton";
+import { Plus, X, FileText, Copy } from "lucide-react";
+import { Card, CardContent, Button } from "./ui";
+import styles from "./FileCard.module.css";
 
 interface FileCardComponentProps {
   file: {
@@ -21,8 +22,9 @@ const FileCard = ({
   toggleSelection,
   maxTokenCount = 5000, // Default if not provided
 }: FileCardComponentProps) => {
-  const { name, path: filePath, tokenCount } = file;
+  const { name, path: filePath, tokenCount, content } = file;
   const [barWidth, setBarWidth] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   // Format token count for display
   const formattedTokens = tokenCount.toLocaleString();
@@ -52,38 +54,61 @@ const FileCard = ({
     return () => clearTimeout(timer);
   }, [tokenCount, maxTokenCount]);
 
-  return (
-    <div className={`file-card ${isSelected ? "selected" : ""}`}>
-      <div className="file-card-header">
-        <div className="file-card-icon">
-          <FileText size={16} />
-        </div>
-        <div className="file-card-name monospace">{name}</div>
-      </div>
-      <div className="file-card-info">
-        <div className="file-card-tokens">~{formattedTokens} tokens</div>
-        <div className="token-bar-container">
-          <div 
-            className="token-bar" 
-            style={{ width: `${barWidth}%` }}
-            title={`${tokenCount} tokens (${Math.round(barWidth)}% of largest file)`}
-          ></div>
-        </div>
-      </div>
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
 
-      <div className="file-card-actions">
-        <button
-          className="file-card-action"
-          onClick={() => toggleSelection(filePath)}
-          title={isSelected ? "Remove from selection" : "Add to selection"}
-        >
-          {isSelected ? <X size={16} /> : <Plus size={16} />}
-        </button>
-        <CopyButton text={file.content} className="file-card-action">
-          {""}
-        </CopyButton>
-      </div>
-    </div>
+  return (
+    <Card 
+      selected={isSelected} 
+      className={styles.fileCard}
+    >
+      <CardContent className={styles.fileCardContent}>
+        <div className={styles.fileCardHeader}>
+          <div className={styles.fileCardIcon}>
+            <FileText size={16} />
+          </div>
+          <div className={styles.fileCardName}>{name}</div>
+        </div>
+        <div className={styles.fileCardInfo}>
+          <div className={styles.fileCardTokens}>~{formattedTokens} tokens</div>
+          <div className={styles.tokenBarContainer}>
+            <div 
+              className={styles.tokenBar} 
+              style={{ width: `${barWidth}%` }}
+              title={`${tokenCount} tokens (${Math.round(barWidth)}% of largest file)`}
+            ></div>
+          </div>
+        </div>
+
+        <div className={styles.fileCardActions}>
+          <Button
+            variant="ghost"
+            size="sm"
+            iconOnly
+            onClick={() => toggleSelection(filePath)}
+            title={isSelected ? "Remove from selection" : "Add to selection"}
+            startIcon={isSelected ? <X size={16} /> : <Plus size={16} />}
+            className={styles.fileCardAction}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            iconOnly
+            onClick={handleCopy}
+            title={copied ? "Copied!" : "Copy to clipboard"}
+            startIcon={copied ? <Copy size={16} className={styles.copySuccess} /> : <Copy size={16} />}
+            className={styles.fileCardAction}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

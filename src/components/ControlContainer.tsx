@@ -1,6 +1,6 @@
 import React from 'react';
 import Switch from './Switch';
-import CopyButton from './CopyButton';
+import { CopyButton } from './ui';
 import { FileTreeMode, SortOrder } from '../types/FileTypes';
 
 interface ControlContainerProps {
@@ -40,6 +40,19 @@ const ControlContainer = ({
   clearSelection,
   removeAllFolders,
 }: ControlContainerProps): JSX.Element => {
+  const handleDownload = () => {
+    const content = getSelectedFilesContent();
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'selected-files.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="control-container">
       <div className="control-container-header">Controls</div>
@@ -71,12 +84,9 @@ const ControlContainer = ({
         <div className="control-item copy-button-wrapper">
           <CopyButton
             text={getSelectedFilesContent()}
-            className="primary full-width"
-          >
-            <span>
-              COPY ALL SELECTED ({selectedFilesCount} files)
-            </span>
-          </CopyButton>
+            selectedCount={selectedFilesCount}
+            onDownload={handleDownload}
+          />
         </div>
       </div>
     </div>
