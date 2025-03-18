@@ -12,6 +12,9 @@ We have successfully implemented the following UI components:
 
 ### Enhanced Components
 - ✅ **CopyButton** - Improved copy functionality with file count and download option
+- ✅ **SearchBar** - Enhanced search with clear button
+- ✅ **FileTreeHeader** - Updated with consistent button styling
+- ✅ **ThemeToggle** - Modernized theme selector
 
 ### Example Components
 - ✅ **FileSelectionControls** - Demonstrates Button and CopyButton usage
@@ -27,12 +30,21 @@ The following components are still needed:
 
 ## Integration Status
 
-We have not yet integrated the new components into the application. The next steps involve:
+We have integrated the new components into key parts of the application:
 
-1. Updating the current CopyButton implementation to use our new component
-2. Replacing the existing Switch component with our shadcn-inspired version
-3. Improving the User Instructions area with properly sized inputs
-4. Refactoring the file cards to use our Card component
+1. ✅ Updated ControlContainer to use our new CopyButton with download functionality
+2. ✅ Replaced the Switch component with our shadcn-inspired version
+3. ✅ Updated UserInstructions with properly sized inputs
+4. ✅ Refactored FileCard to use our Card component
+5. ✅ Enhanced SearchBar with the new Input component
+6. ✅ Updated FileTreeHeader with consistent button styling
+7. ✅ Modernized ThemeToggle with our Button component
+
+## Remaining Integration Tasks
+
+- ❌ Update buttons in IgnorePatterns component
+- ❌ Update any remaining buttons in Sidebar component
+- ❌ Update any buttons in App.tsx
 
 ## Documentation
 
@@ -43,19 +55,18 @@ We have created comprehensive documentation including:
 - ✅ Component-specific guidance
 - ✅ Usage examples
 
-## Next Steps
-
-1. **Create missing components** if needed
-2. **Migrate existing components** to use the new UI system
-3. **Test thoroughly** in light and dark mode
-4. **Refine styles** based on feedback
-
 ## Dependency Status
 
-No additional dependencies have been added yet. Before fully integrating the components, we'll need to add:
+We have added the following dependencies:
 
 ```bash
-npm install clsx class-variance-authority
+clsx: ^2.1.0
+class-variance-authority: ^0.7.0
 ```
 
-We chose not to include tailwind-merge as we're not using Tailwind CSS in the project. 
+## Next Steps
+
+1. **Continue migrating remaining components** to use the new UI system
+2. **Test thoroughly** in light and dark mode
+3. **Refine styles** based on feedback
+4. **Consider implementing** remaining components as needed 
