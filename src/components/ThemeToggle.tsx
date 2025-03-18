@@ -1,6 +1,8 @@
 import React, { useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { Sun, Moon, Monitor } from "lucide-react";
+import { Button } from "./ui";
+import styles from "./ThemeToggle.module.css";
 
 const themes = [
   {
@@ -26,9 +28,9 @@ const ThemeToggle = (): JSX.Element => {
   // Add animation class after initial render to enable transitions
   useEffect(() => {
     const timer = setTimeout(() => {
-      const background = document.querySelector(".theme-segments-background");
+      const background = document.querySelector(`.${styles.themeSegmentsBackground}`);
       if (background) {
-        background.classList.add("animated");
+        background.classList.add(styles.animated);
       }
     }, 50);
     
@@ -36,20 +38,22 @@ const ThemeToggle = (): JSX.Element => {
   }, []);
 
   return (
-    <div className="theme-segmented-control">
+    <div className={styles.themeSegmentedControl}>
       <div 
-        className={`theme-segments-background ${theme}`} 
+        className={`${styles.themeSegmentsBackground} ${styles[theme]}`} 
         data-state={theme}
       />
       {themes.map(({ key, icon: Icon, title }) => (
-        <button
+        <Button
           key={key}
-          className={`theme-segment ${theme === key ? "active" : ""}`}
+          variant="ghost"
+          size="sm"
+          iconOnly
+          startIcon={<Icon size={16} strokeWidth={1.5} />}
           onClick={() => setTheme(key as "light" | "dark" | "system")}
           title={title}
-        >
-          <Icon size={16} strokeWidth={1.5} />
-        </button>
+          className={`${styles.themeSegment} ${theme === key ? styles.active : ""}`}
+        />
       ))}
     </div>
   );

@@ -1,0 +1,62 @@
+.themeSegmentedControl {
+  display: flex;
+  position: relative;
+  border-radius: var(--radius);
+  background-color: var(--background-secondary);
+  padding: 2px;
+  margin-right: 16px;
+}
+
+.themeSegmentsBackground {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(33.33% - 2px);
+  height: calc(100% - 4px);
+  border-radius: calc(var(--radius) - 2px);
+  background-color: var(--background-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: transform 0.15s ease;
+  z-index: 0;
+}
+
+.themeSegmentsBackground.animated {
+  transition: transform 0.15s ease;
+}
+
+.themeSegmentsBackground.light {
+  transform: translateX(0);
+}
+
+.themeSegmentsBackground.dark {
+  transform: translateX(100%);
+}
+
+.themeSegmentsBackground.system {
+  transform: translateX(200%);
+}
+
+.themeSegment {
+  flex: 1;
+  z-index: 1;
+  width: 32px !important;
+  height: 28px !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary) !important;
+  border-radius: var(--radius) !important;
+}
+
+.themeSegment:hover {
+  color: var(--text-primary) !important;
+  background: transparent !important;
+}
+
+.themeSegment.active {
+  color: var(--text-primary) !important;
+  background: transparent !important;
+} 
