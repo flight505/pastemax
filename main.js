@@ -22,6 +22,7 @@ const DEFAULT_EXCLUSIONS = [
   "**/yarn.lock",
   "**/*.min.js",
   "**/*.map",
+  "**/*.py", // Python source files
   // Binary and image files
   "**/*.png",
   "**/*.jpg",
@@ -899,10 +900,13 @@ function shouldExcludeByDefault(filePath, rootDir) {
     // Create a new ignore instance
     const ig = ignore();
     
-    // Debug log for Python files and Markdown files
+    // Debug log for Python files 
     const isPythonFile = relativePath.endsWith('.py');
-    const isMarkdownFile = relativePath.endsWith('.md');
-    const shouldDebug = isPythonFile || isMarkdownFile || relativePath.includes('node_modules');
+    const shouldDebug = isPythonFile || relativePath.includes('node_modules');
+    
+    if (shouldDebug) {
+      console.log(`Processing potential exclusion for file: ${relativePath}`);
+    }
     
     // Track all patterns for debugging
     let allPatterns = [];
@@ -911,6 +915,13 @@ function shouldExcludeByDefault(filePath, rootDir) {
     const builtInPatterns = [...excludedFiles, ...DEFAULT_EXCLUSIONS];
     ig.add(builtInPatterns);
     allPatterns = builtInPatterns;
+    
+    if (isPythonFile) {
+      console.log('Built-in patterns that could affect Python files:');
+      builtInPatterns.filter(p => p.includes('py')).forEach(p => {
+        console.log(`  - ${p}`);
+      });
+    }
     
     // Try to load global patterns if available
     try {
@@ -928,9 +939,20 @@ function shouldExcludeByDefault(filePath, rootDir) {
           
           // Add global patterns directly as a string to preserve multiline format
           ig.add(content);
-          allPatterns = allPatterns.concat(content.split('\n')
+          
+          // Extract non-comment lines for debugging
+          const nonCommentLines = content.split('\n')
             .map(line => line.trim())
-            .filter(line => line && !line.startsWith('#')));
+            .filter(line => line && !line.startsWith('#'));
+            
+          allPatterns = allPatterns.concat(nonCommentLines);
+          
+          if (isPythonFile) {
+            console.log('Global patterns that could affect Python files:');
+            nonCommentLines.filter(p => p.includes('py') || p === '*.py' || p === '.py').forEach(p => {
+              console.log(`  - ${p}`);
+            });
+          }
         }
       }
     } catch (err) {
@@ -950,9 +972,20 @@ function shouldExcludeByDefault(filePath, rootDir) {
           
           // Add local patterns directly as a string
           ig.add(content);
-          allPatterns = allPatterns.concat(content.split('\n')
+          
+          // Extract non-comment lines for debugging
+          const nonCommentLines = content.split('\n')
             .map(line => line.trim())
-            .filter(line => line && !line.startsWith('#')));
+            .filter(line => line && !line.startsWith('#'));
+            
+          allPatterns = allPatterns.concat(nonCommentLines);
+          
+          if (isPythonFile) {
+            console.log('Local patterns that could affect Python files:');
+            nonCommentLines.filter(p => p.includes('py') || p === '*.py' || p === '.py').forEach(p => {
+              console.log(`  - ${p}`);
+            });
+          }
         }
       }
     } catch (err) {
@@ -1114,9 +1147,9 @@ venv/
 .DS_Store
 *.tmp
 *.class
+*.py
 *.pyc
 *.pyo
-*.md
 .env
 `;
 
@@ -1277,6 +1310,33 @@ ipcMain.handle('reset-ignore-patterns', async (event, { folderPath, isGlobal }) 
     }
   } catch (error) {
     console.error('Error resetting ignore patterns:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Handle clearing ignore patterns (only for local patterns)
+ipcMain.handle('clear-ignore-patterns', async (event, { folderPath }) => {
+  try {
+    if (!folderPath) {
+      return { success: false, error: 'No folder path provided' };
+    }
+    
+    const ignoreFilePath = path.join(folderPath, '.repo_ignore');
+    
+    // Delete the file if it exists
+    if (fs.existsSync(ignoreFilePath)) {
+      await unlink(ignoreFilePath);
+      console.log(`Cleared local ignore patterns by deleting ${ignoreFilePath}`);
+    } else {
+      console.log(`No local ignore file found at ${ignoreFilePath}, nothing to clear`);
+    }
+    
+    // Clear cache for this folder
+    directoryCache.clear(folderPath);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error clearing ignore patterns:', error);
     return { success: false, error: error.message };
   }
 });

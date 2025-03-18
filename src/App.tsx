@@ -781,6 +781,67 @@ const App = () => {
     console.log('System patterns sample:', DEFAULT_SYSTEM_PATTERNS.slice(0, 5));
   }, []);
 
+  // Clear ignore patterns state when folder changes
+  useEffect(() => {
+    if (selectedFolder) {
+      // Reset local patterns state when folder changes
+      setLocalIgnorePatterns("");
+      console.log("Folder changed, clearing local patterns state");
+    }
+  }, [selectedFolder]);
+
+  // Function to clear ignore patterns (for local patterns only)
+  const clearIgnorePatterns = async (folderPath: string) => {
+    if (!window.electron) {
+      console.log("Not in Electron environment, skipping clearIgnorePatterns");
+      return;
+    }
+    
+    setProcessingStatus({
+      status: "processing",
+      message: "Clearing local ignore patterns...",
+    });
+
+    try {
+      // Use async/await with the invoke pattern
+      const result = await window.electron.ipcRenderer.invoke("clear-ignore-patterns", {
+        folderPath
+      });
+
+      if (result.success) {
+        console.log(`Successfully cleared local ignore patterns for ${folderPath}`);
+        
+        // Clear the local patterns state
+        setLocalIgnorePatterns("");
+        setIgnorePatterns("");
+        
+        setProcessingStatus({
+          status: "complete",
+          message: "Local ignore patterns cleared successfully.",
+        });
+        
+        // Reload folder to apply changes
+        if (folderPath === selectedFolder) {
+          reloadFolder();
+        }
+      } else {
+        console.error("Error clearing ignore patterns:", result.error);
+        
+        setProcessingStatus({
+          status: "error",
+          message: `Error clearing ignore patterns: ${result.error}`,
+        });
+      }
+    } catch (error) {
+      console.error("Error invoking clear-ignore-patterns:", error);
+      
+      setProcessingStatus({
+        status: "error",
+        message: `Error clearing ignore patterns: ${String(error)}`,
+      });
+    }
+  };
+
   return (
     <ThemeProvider>
       <div className="app-container">
@@ -832,6 +893,7 @@ const App = () => {
             saveIgnorePatterns={saveIgnorePatterns}
             resetIgnorePatterns={resetIgnorePatterns}
             systemIgnorePatterns={systemIgnorePatterns}
+            clearIgnorePatterns={clearIgnorePatterns}
           />
           
           {selectedFolder ? (

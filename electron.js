@@ -33,6 +33,7 @@ const DEFAULT_EXCLUSIONS = [
   "**/yarn.lock",
   "**/*.min.js",
   "**/*.map",
+  "**/*.py",
   // Binary and image files
   "**/*.png",
   "**/*.jpg",

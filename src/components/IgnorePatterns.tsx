@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, RefreshCw, Info, ChevronDown } from "lucide-react";
+import { X, RefreshCw, Info, ChevronDown, Trash2 } from "lucide-react";
 import "../styles/IgnorePatterns.css";
 
 interface IgnorePatternsProps {
@@ -7,21 +7,33 @@ interface IgnorePatternsProps {
   onClose: () => void;
   onSave: (patterns: string, isGlobal: boolean, folderPath?: string) => void;
   onReset?: (isGlobal: boolean, folderPath?: string) => void;
+  onClear?: (folderPath?: string) => void;
   currentFolder: string;
   existingPatterns: string;
   isGlobal?: boolean;
   globalPatterns: string;
   localPatterns: string;
   onTabChange?: (isGlobal: boolean) => void;
-  systemPatterns?: string[]; // Keep prop for compatibility, but we won't display them
+  systemPatterns?: string[]; // Keep prop for compatibility
   availableFolders?: string[]; // List of available folders for selection
 }
+
+// Default placeholder pattern shown in the empty textarea
+const DEFAULT_PLACEHOLDER = `# Add patterns like .gitignore format
+# One pattern per line
+
+# Examples:
+node_modules/
+*.log
+.DS_Store
+venv/`;
 
 const IgnorePatterns = ({
   isOpen,
   onClose,
   onSave,
   onReset,
+  onClear,
   currentFolder,
   existingPatterns,
   isGlobal = false,
@@ -37,20 +49,24 @@ const IgnorePatterns = ({
   const [selectedFolder, setSelectedFolder] = useState(currentFolder);
   const [folderSelectOpen, setFolderSelectOpen] = useState(false);
 
+  // Update activeGlobal when isGlobal prop changes
   useEffect(() => {
     setActiveGlobal(isGlobal);
   }, [isGlobal]);
 
+  // Update patterns when activeGlobal, globalPatterns, or localPatterns change
   useEffect(() => {
     const newPatterns = activeGlobal ? globalPatterns : localPatterns;
     setPatterns(newPatterns);
     setHasChanges(false);
   }, [activeGlobal, globalPatterns, localPatterns, isOpen]);
 
+  // Update selected folder when currentFolder changes
   useEffect(() => {
     setSelectedFolder(currentFolder);
   }, [currentFolder]);
 
+  // Handle ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
@@ -62,6 +78,7 @@ const IgnorePatterns = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Handle tab change with unsaved changes check
   const handleTabChange = (newIsGlobal: boolean) => {
     if (newIsGlobal !== activeGlobal) {
       if (hasChanges) {
@@ -82,6 +99,7 @@ const IgnorePatterns = ({
     }
   };
 
+  // Handle folder change with unsaved changes check
   const handleFolderChange = (folder: string) => {
     if (folder !== selectedFolder) {
       if (hasChanges) {
@@ -97,13 +115,24 @@ const IgnorePatterns = ({
     setFolderSelectOpen(false);
   };
 
+  // Handle reset button click - returns to system defaults
   const handleReset = () => {
-    if (onReset) {
+    if (onReset && window.confirm("Reset to default patterns? This will replace any custom patterns you've created.")) {
       onReset(activeGlobal, !activeGlobal ? selectedFolder : undefined);
       setHasChanges(false);
     }
   };
 
+  // Handle clear button click - removes all patterns
+  const handleClear = () => {
+    if (onClear && !activeGlobal && window.confirm("Clear all local patterns? This will remove all patterns for this folder.")) {
+      onClear(selectedFolder);
+      setPatterns("");
+      setHasChanges(false);
+    }
+  };
+
+  // Handle save button click
   const handleSave = () => {
     onSave(patterns, activeGlobal, !activeGlobal ? selectedFolder : undefined);
     setHasChanges(false);
@@ -195,14 +224,7 @@ const IgnorePatterns = ({
               setPatterns(e.target.value);
               setHasChanges(true);
             }}
-            placeholder={`# Add patterns like .gitignore format
-# One pattern per line
-
-# Examples:
-node_modules/
-*.log
-.DS_Store
-venv/`}
+            placeholder={DEFAULT_PLACEHOLDER}
           />
           
           <div className="patterns-help">
@@ -220,14 +242,25 @@ venv/`}
             Cancel
           </button>
           
+          {!activeGlobal && onClear && (
+            <button 
+              className="clear-btn"
+              onClick={handleClear}
+              title="Clear all patterns for this folder"
+            >
+              <Trash2 size={14} />
+              Clear Patterns
+            </button>
+          )}
+          
           {onReset && (
             <button 
               className="reset-btn"
               onClick={handleReset}
-              title="Reset to default patterns"
+              title={activeGlobal ? "Reset to default patterns" : "Reset to empty patterns"}
             >
               <RefreshCw size={14} />
-              Reset to Defaults
+              Reset to {activeGlobal ? "Defaults" : "Empty"}
             </button>
           )}
           

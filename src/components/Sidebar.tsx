@@ -29,6 +29,7 @@ const Sidebar = ({
   saveIgnorePatterns,
   resetIgnorePatterns,
   systemIgnorePatterns,
+  clearIgnorePatterns,
 }: SidebarProps & {
   reloadFolder: () => void;
   clearSelection: () => void;
@@ -39,6 +40,7 @@ const Sidebar = ({
   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
   resetIgnorePatterns: (isGlobal: boolean, folderPath: string) => void;
   systemIgnorePatterns: string[];
+  clearIgnorePatterns: (folderPath: string) => void;
 }) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [isTreeBuildingComplete, setIsTreeBuildingComplete] = useState(false);
@@ -414,6 +416,22 @@ const Sidebar = ({
     }
   };
 
+  // Handler for clearing local patterns
+  const handleClearIgnorePatterns = (folderPath?: string) => {
+    const targetFolder = folderPath || selectedFolder || '';
+    
+    // Clear the local patterns through the API
+    if (targetFolder) {
+      clearIgnorePatterns(targetFolder);
+      
+      // Update local state
+      setLocalIgnorePatterns('');
+      if (!ignoreGlobal) {
+        setIgnorePatterns('');
+      }
+    }
+  };
+
   // Get the list of top-level folders from the file tree for folder selection
   const getAvailableFolders = () => {
     // Extract unique top-level directories from the file tree
@@ -442,11 +460,34 @@ const Sidebar = ({
   const countExcludedFiles = () => {
     if (!allFiles || allFiles.length === 0) return 0;
     
-    return allFiles.filter(file => 
+    const excludedFiles = allFiles.filter(file => 
       file.excludedByDefault && 
       // Only count visible files (in the current folder)
       (selectedFolder ? file.path.startsWith(selectedFolder) : true)
-    ).length;
+    );
+    
+    const count = excludedFiles.length;
+    
+    // Debug log for excluded files
+    if (count > 0) {
+      console.log(`Found ${count} excluded files in ${selectedFolder || 'all folders'}`);
+      // Log the first 5 excluded files as examples
+      const examples = excludedFiles.slice(0, 5);
+      examples.forEach(file => {
+        console.log(`  - ${file.path} (excluded by pattern)`);
+      });
+      
+      // Log Python files specifically
+      const pythonFiles = excludedFiles.filter(file => file.path.endsWith('.py'));
+      if (pythonFiles.length > 0) {
+        console.log(`Found ${pythonFiles.length} excluded Python files`);
+        pythonFiles.slice(0, 5).forEach(file => {
+          console.log(`  - ${file.path} (Python file excluded)`);
+        });
+      }
+    }
+    
+    return count;
   };
 
   // Calculate excluded files count
@@ -665,6 +706,7 @@ const Sidebar = ({
           }
         }}
         onReset={handleResetIgnorePatterns}
+        onClear={handleClearIgnorePatterns}
         currentFolder={selectedFolder || ""}
         existingPatterns={ignorePatterns}
         isGlobal={ignoreGlobal}

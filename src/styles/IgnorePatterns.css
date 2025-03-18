@@ -240,7 +240,7 @@
   margin-top: 15px;
 }
 
-.cancel-btn, .reset-btn, .save-btn {
+.cancel-btn, .reset-btn, .save-btn, .clear-btn {
   padding: 10px 20px;
   border-radius: 4px;
   font-size: 0.95rem;
@@ -260,7 +260,7 @@
   background-color: var(--hover-color, rgba(0,0,0,0.05));
 }
 
-.reset-btn {
+.reset-btn, .clear-btn {
   background-color: var(--background-secondary-color);
   border: 1px solid var(--border-color);
   color: var(--text-color);
@@ -270,8 +270,16 @@
   gap: 8px;
 }
 
-.reset-btn:hover {
+.reset-btn:hover, .clear-btn:hover {
   background-color: var(--hover-color, rgba(0,0,0,0.08));
+}
+
+.clear-btn {
+  color: var(--warning-color, #e53935);
+}
+
+.clear-btn svg {
+  color: var(--warning-color, #e53935);
 }
 
 .save-btn {

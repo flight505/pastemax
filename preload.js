@@ -84,6 +84,7 @@ contextBridge.exposeInMainWorld("electron", {
         'save-ignore-patterns',
         'load-ignore-patterns',
         'reset-ignore-patterns',
+        'clear-ignore-patterns',
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);

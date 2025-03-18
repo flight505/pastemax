@@ -31,6 +31,7 @@ module.exports = {
 
     // Python related
     "__pycache__/**",
+    "*.py",
     "*.pyc",
     "*.pyo",
     "*.pyd",

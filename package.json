@@ -5,9 +5,9 @@
   "scripts": {
     "start": "electron .",
     "dev": "vite",
-    "dev:electron": "node dev.js",
+    "dev:electron": "node scripts/dev.js",
     "build": "vite build",
-    "build-electron": "node build.js",
+    "build-electron": "node scripts/build.js",
     "verify-build": "node scripts/verify-build.js",
     "test-build": "node scripts/test-local-build.js",
     "test-build:mac": "node scripts/test-local-build.js mac",
@@ -103,9 +103,12 @@
     "vite": "^5.0.8"
   },
   "dependencies": {
+    "dompurify": "^3.2.4",
     "gpt-3-encoder": "^1.1.4",
     "ignore": "^7.0.3",
+    "jsdom": "^26.0.0",
     "lucide-react": "^0.477.0",
+    "micromatch": "^4.0.8",
     "minimatch": "^10.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

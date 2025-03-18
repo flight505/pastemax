@@ -1,9 +1,6 @@
 1. **Load and Parse the Entire Codebase**
    - Read all available files from the CODEBASE, ensuring the agent has the full context of the repository’s structure.
    - Internally note the file paths, file contents, and their hierarchical relationships.
-
-2. **Perform Comprehensive Code Review**
-   - Programmatically examine each file’s contents, particularly focusing on React components, custom hooks, or repeated utilities.
    - Identify any references to `Sidebar.tsx` to understand how this component is rendered and updated.
 
 3. **Isolate Console Errors and Warnings**
