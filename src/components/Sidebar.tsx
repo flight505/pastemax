@@ -28,6 +28,7 @@ const Sidebar = ({
   loadIgnorePatterns,
   saveIgnorePatterns,
   resetIgnorePatterns,
+  systemIgnorePatterns,
 }: SidebarProps & {
   reloadFolder: () => void;
   clearSelection: () => void;
@@ -37,6 +38,7 @@ const Sidebar = ({
   loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
   resetIgnorePatterns: (isGlobal: boolean, folderPath: string) => void;
+  systemIgnorePatterns: string;
 }) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [isTreeBuildingComplete, setIsTreeBuildingComplete] = useState(false);
@@ -658,6 +660,7 @@ const Sidebar = ({
         isGlobal={ignoreGlobal}
         globalPatterns={globalIgnorePatterns}
         localPatterns={localIgnorePatterns}
+        systemPatterns={systemIgnorePatterns}
         onTabChange={(isGlobal) => {
           setIgnoreGlobal(isGlobal);
           // Load the appropriate patterns if needed

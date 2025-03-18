@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { X, RefreshCw } from "lucide-react";
+import { X, RefreshCw, Info } from "lucide-react";
+import "../styles/IgnorePatterns.css";
 
 interface IgnorePatternsProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface IgnorePatternsProps {
   globalPatterns: string;
   localPatterns: string;
   onTabChange?: (isGlobal: boolean) => void;
+  systemPatterns?: string[];
 }
 
 const IgnorePatterns = ({
@@ -25,10 +27,12 @@ const IgnorePatterns = ({
   globalPatterns = "",
   localPatterns = "",
   onTabChange,
+  systemPatterns = [],
 }: IgnorePatternsProps): JSX.Element | null => {
   const [patterns, setPatterns] = useState(existingPatterns);
   const [activeGlobal, setActiveGlobal] = useState(isGlobal);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showSystemPatterns, setShowSystemPatterns] = useState(false);
 
   useEffect(() => {
     setActiveGlobal(isGlobal);
@@ -94,9 +98,9 @@ const IgnorePatterns = ({
         </div>
         
         <p className="ignore-patterns-description">
-          Ignore patterns. Global defaults from your settings are always combined with any .ignore file found in a folder. Local patterns from (.repo_ignore) will override global defaults.
-          <br /><br />
-          <em>Note: Some large binary files (images, archives, etc.) are always excluded by default and cannot be edited here.</em>
+          {activeGlobal 
+            ? "Global patterns apply to all folders and can be overridden by local patterns." 
+            : "Local patterns apply only to this folder and override global patterns."}
         </p>
         
         <div className="scope-selector">
@@ -114,59 +118,62 @@ const IgnorePatterns = ({
           </button>
         </div>
         
-        <p className="scope-description">
-          {activeGlobal 
-            ? "Global patterns apply to all folders. They can be overridden by local patterns."
-            : "Local scope will create a .repo_ignore file upon save and will be combined with global defaults."}
-        </p>
-        
-        <div className="folder-selector">
-          <label>Select Folder</label>
-          <select>
-            <option>{currentFolder}</option>
-          </select>
-        </div>
-        
         <div className="path-display">
           {!activeGlobal ? `${currentFolder}/.repo_ignore` : "Global defaults"}
         </div>
         
-        <textarea 
-          className="patterns-input"
-          value={patterns}
-          onChange={(e) => {
-            setPatterns(e.target.value);
-            setHasChanges(true);
-          }}
-          placeholder={`# Add patterns like .gitignore format
-# Common patterns to exclude:
-node_modules/
-.git/
-**/*.log
-dist/
-build/
-.DS_Store
-*.tmp
-.idea/
-.vscode/
-*.class
-__pycache__/
-*.pyc
-*.pyo
-*.md
-venv/
-.env
-`}
-        />
-        
-        {!activeGlobal && (
-          <div className="highlight-text">
-            A new repo_ignore file will be created upon save.
+        <div className="patterns-section">
+          <div className="patterns-section-header">
+            <h3>User-Editable Patterns</h3>
           </div>
-        )}
+          
+          <textarea 
+            className="patterns-input"
+            value={patterns}
+            onChange={(e) => {
+              setPatterns(e.target.value);
+              setHasChanges(true);
+            }}
+            placeholder={`# Add patterns like .gitignore format
+# One pattern per line
+
+# Examples:
+node_modules/
+*.log
+.DS_Store
+venv/`}
+          />
+        </div>
+        
+        <div className="system-patterns-section">
+          <button 
+            className="system-patterns-toggle"
+            onClick={() => setShowSystemPatterns(!showSystemPatterns)}
+          >
+            {showSystemPatterns ? "Hide System Patterns" : "Show System Patterns"} 
+            ({systemPatterns.length})
+          </button>
+          
+          {showSystemPatterns && (
+            <div className="system-patterns-list">
+              <div className="system-patterns-header">
+                <h4>System Patterns (Always Applied, Not Editable)</h4>
+                <p>These patterns exclude binary and media files automatically.</p>
+              </div>
+              
+              <div className="system-patterns-content">
+                {systemPatterns.map((pattern, index) => (
+                  <div key={index} className="system-pattern-item">
+                    {pattern}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         
         <div className="modal-status">
-          {hasChanges && <span className="unsaved">Unsaved</span>}
+          {hasChanges && <span className="unsaved">Unsaved Changes</span>}
         </div>
         
         <div className="modal-actions">
@@ -174,11 +181,11 @@ venv/
             Cancel
           </button>
           
-          {activeGlobal && onReset && (
+          {onReset && (
             <button 
               className="reset-btn"
               onClick={handleReset}
-              title="Reset to default ignore patterns"
+              title="Reset to default patterns"
             >
               <RefreshCw size={14} />
               Reset to Defaults

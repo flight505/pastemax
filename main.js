@@ -1070,7 +1070,64 @@ const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 
-// IPC handlers for ignore patterns
+// Create a clear pattern organization system with three distinct categories:
+// 1. SYSTEM_EXCLUSIONS: Always excluded, not user-configurable (binary files, media, etc.)
+// 2. DEFAULT_USER_PATTERNS: Initial user-editable patterns, restored on reset
+// 3. Current user patterns: Stored in global_patterns.ignore or .repo_ignore files
+
+// Category 1: System-level exclusions (not user-editable)
+const SYSTEM_EXCLUSIONS = [
+  // Binary and media files
+  "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.ico", 
+  "**/*.webp", "**/*.svg", "**/*.pdf", "**/*.zip", "**/*.tar.gz",
+  "**/*.tgz", "**/*.rar", "**/*.7z", "**/*.mp4", "**/*.mov",
+  "**/*.avi", "**/*.mkv", "**/*.mp3", "**/*.wav", "**/*.flac",
+  
+  // Database files
+  "**/*.sqlite", "**/*.db", "**/*.sql",
+  
+  // Document files
+  "**/*.doc", "**/*.docx", "**/*.xls", "**/*.xlsx", "**/*.ppt", "**/*.pptx",
+  
+  // Large binary files
+  "**/*.iso", "**/*.bin", "**/*.exe", "**/*.dll", "**/*.so", "**/*.dylib",
+  
+  // Minified files
+  "**/*.min.js", "**/*.min.css",
+];
+
+// Category 2: Default user patterns (user-editable, used when resetting to defaults)
+const DEFAULT_USER_PATTERNS = `# Default ignore patterns (editable)
+# These patterns can be modified in the Ignore Patterns UI
+
+# Common directories
+node_modules/
+.git/
+dist/
+build/
+__pycache__/
+venv/
+.venv/
+
+# Common files
+**/*.log
+.DS_Store
+*.tmp
+*.class
+*.pyc
+*.pyo
+*.md
+.env
+`;
+
+// Function to get all patterns (system + user)
+function getAllPatterns(userPatterns) {
+  // Combine system exclusions with user patterns
+  // System exclusions always apply and come first
+  return [...SYSTEM_EXCLUSIONS, ...(userPatterns || [])];
+}
+
+// When loading ignore patterns, update the logic to clearly separate system from user patterns
 // Load ignore patterns from file
 ipcMain.handle('load-ignore-patterns', async (event, { folderPath, isGlobal }) => {
   try {
@@ -1082,39 +1139,29 @@ ipcMain.handle('load-ignore-patterns', async (event, { folderPath, isGlobal }) =
       if (fs.existsSync(globalIgnorePath)) {
         const patterns = await readFile(globalIgnorePath, 'utf8');
         console.log(`Loaded global ignore patterns from ${globalIgnorePath}`);
-        return { success: true, patterns };
+        return { 
+          success: true, 
+          patterns,
+          systemPatterns: SYSTEM_EXCLUSIONS // Include system patterns for reference
+        };
       } else {
         console.log('No global ignore patterns file found, returning default patterns');
         // Return default patterns when the file doesn't exist
-        const defaultPatterns = `# Default ignore patterns
-# Common files to exclude:
-node_modules/
-.git/
-**/*.log
-dist/
-build/
-.DS_Store
-*.tmp
-.idea/
-.vscode/
-*.class
-__pycache__/
-*.pyc
-*.pyo
-*.md
-venv/
-.env`;
         // Create the global patterns file with default patterns
         try {
           if (!fs.existsSync(appDataPath)) {
             fs.mkdirSync(appDataPath, { recursive: true });
           }
-          await writeFile(globalIgnorePath, defaultPatterns);
+          await writeFile(globalIgnorePath, DEFAULT_USER_PATTERNS);
           console.log(`Created default global ignore patterns at ${globalIgnorePath}`);
         } catch (error) {
           console.error('Error creating default global patterns:', error);
         }
-        return { success: true, patterns: defaultPatterns };
+        return { 
+          success: true, 
+          patterns: DEFAULT_USER_PATTERNS,
+          systemPatterns: SYSTEM_EXCLUSIONS // Include system patterns for reference
+        };
       }
     } else {
       // Load local patterns
@@ -1126,10 +1173,18 @@ venv/
       if (fs.existsSync(ignoreFilePath)) {
         const patterns = await readFile(ignoreFilePath, 'utf8');
         console.log(`Loaded local ignore patterns from ${ignoreFilePath}`);
-        return { success: true, patterns };
+        return { 
+          success: true, 
+          patterns,
+          systemPatterns: SYSTEM_EXCLUSIONS // Include system patterns for reference
+        };
       } else {
         console.log(`No local ignore patterns file found at ${ignoreFilePath}`);
-        return { success: true, patterns: '' };
+        return { 
+          success: true, 
+          patterns: '',
+          systemPatterns: SYSTEM_EXCLUSIONS // Include system patterns for reference
+        };
       }
     }
   } catch (error) {
@@ -1179,47 +1234,47 @@ ipcMain.handle('save-ignore-patterns', async (event, { patterns, isGlobal, folde
   }
 });
 
-// Reset ignore patterns
-ipcMain.handle('reset-ignore-patterns', async (event, { isGlobal, folderPath }) => {
+// Handle resetting patterns to defaults
+ipcMain.handle('reset-ignore-patterns', async (event, { folderPath, isGlobal }) => {
   try {
-    if (!folderPath) {
-      return { success: false, error: 'No folder path provided' };
-    }
-    
     if (isGlobal) {
-      // Reset global patterns
+      // Reset global patterns to defaults
       const appDataPath = app.getPath('userData');
       const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
       
-      // If the file exists, delete it
-      if (fs.existsSync(globalIgnorePath)) {
-        await unlink(globalIgnorePath);
-        console.log(`Reset global ignore patterns by removing ${globalIgnorePath}`);
-      }
+      // Write default patterns to the file
+      await writeFile(globalIgnorePath, DEFAULT_USER_PATTERNS);
+      console.log(`Reset global ignore patterns to defaults at ${globalIgnorePath}`);
       
-      // Clear all caches for global pattern changes
-      if (directoryCache) {
-        directoryCache.clearAll();
-        console.log('Cleared all directory caches due to global pattern reset');
-      }
+      // Clear all directory caches to ensure new patterns are applied
+      directoryCache.clearAll();
+      
+      return { 
+        success: true, 
+        patterns: DEFAULT_USER_PATTERNS,
+        systemPatterns: SYSTEM_EXCLUSIONS
+      };
     } else {
-      // Reset local patterns
+      // Reset local patterns (delete the file)
+      if (!folderPath) {
+        return { success: false, error: 'No folder path provided' };
+      }
+      
       const ignoreFilePath = path.join(folderPath, '.repo_ignore');
-      
-      // If the file exists, delete it
       if (fs.existsSync(ignoreFilePath)) {
-        await unlink(ignoreFilePath);
-        console.log(`Reset local ignore patterns by removing ${ignoreFilePath}`);
+        fs.unlinkSync(ignoreFilePath);
+        console.log(`Deleted local ignore file at ${ignoreFilePath}`);
       }
       
-      // Clear just this folder's cache
-      if (directoryCache) {
-        directoryCache.clear(folderPath);
-        console.log(`Cleared directory cache for ${folderPath}`);
-      }
+      // Clear cache for this folder
+      directoryCache.clear(folderPath);
+      
+      return { 
+        success: true, 
+        patterns: '',
+        systemPatterns: SYSTEM_EXCLUSIONS
+      };
     }
-    
-    return { success: true };
   } catch (error) {
     console.error('Error resetting ignore patterns:', error);
     return { success: false, error: error.message };

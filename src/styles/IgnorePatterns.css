@@ -1,0 +1,229 @@
+.ignore-patterns-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.ignore-patterns-content {
+  background-color: var(--background-color);
+  border-radius: 8px;
+  width: 80%;
+  max-width: 800px;
+  max-height: 90vh;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  overflow-y: auto;
+}
+
+.ignore-patterns-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.ignore-patterns-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  padding: 5px;
+}
+
+.ignore-patterns-description {
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  color: var(--text-secondary-color);
+}
+
+.scope-selector {
+  display: flex;
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.scope-btn {
+  padding: 10px 15px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  position: relative;
+}
+
+.scope-btn.active {
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.scope-btn.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--primary-color);
+}
+
+.path-display {
+  font-size: 0.8rem;
+  color: var(--text-secondary-color);
+  margin-bottom: 10px;
+  padding: 5px;
+  background-color: var(--background-secondary-color);
+  border-radius: 4px;
+}
+
+.patterns-section {
+  margin-bottom: 20px;
+}
+
+.patterns-section-header {
+  margin-bottom: 10px;
+}
+
+.patterns-section-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+}
+
+.patterns-input {
+  width: 100%;
+  height: 200px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--background-secondary-color);
+  color: var(--text-color);
+  font-family: monospace;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.system-patterns-section {
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+
+.system-patterns-toggle {
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  width: auto;
+  margin-bottom: 10px;
+}
+
+.system-patterns-list {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: var(--background-secondary-color);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.system-patterns-header {
+  margin-bottom: 10px;
+}
+
+.system-patterns-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  margin-bottom: 5px;
+}
+
+.system-patterns-header p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary-color);
+}
+
+.system-patterns-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 5px;
+}
+
+.system-pattern-item {
+  font-family: monospace;
+  font-size: 0.8rem;
+  padding: 3px 6px;
+  background-color: var(--background-color);
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-status {
+  margin-top: 15px;
+  font-size: 0.9rem;
+  height: 20px;
+}
+
+.unsaved {
+  color: var(--warning-color);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.cancel-btn, .reset-btn, .save-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.reset-btn {
+  background-color: var(--background-secondary-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.save-btn {
+  background-color: var(--primary-color);
+  border: none;
+  color: white;
+}
+
+.save-btn:disabled {
+  background-color: var(--disabled-color);
+  cursor: not-allowed;
+} 
