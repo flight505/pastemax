@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Sidebar from "./components/Sidebar";
 import FileList from "./components/FileList";
 import UserInstructions from "./components/UserInstructions";
@@ -64,6 +64,37 @@ const App = () => {
   const savedFiles = localStorage.getItem(STORAGE_KEYS.SELECTED_FILES);
   const savedSortOrder = localStorage.getItem(STORAGE_KEYS.SORT_ORDER);
   const savedSearchTerm = localStorage.getItem(STORAGE_KEYS.SEARCH_TERM);
+  const savedExpandedNodes = localStorage.getItem(STORAGE_KEYS.EXPANDED_NODES);
+
+  // Initialize expanded nodes from localStorage if available
+  const initialExpandedNodes = useMemo(() => {
+    const map = new Map<string, boolean>();
+    if (savedExpandedNodes) {
+      try {
+        const parsedNodes = JSON.parse(savedExpandedNodes);
+        
+        // Handle array format [key, value][]
+        if (Array.isArray(parsedNodes)) {
+          parsedNodes.forEach(([key, value]) => {
+            if (typeof key === 'string' && typeof value === 'boolean') {
+              map.set(key, value);
+            }
+          });
+        }
+        // Handle object format {key: value}
+        else if (typeof parsedNodes === 'object' && parsedNodes !== null) {
+          Object.entries(parsedNodes).forEach(([key, value]) => {
+            if (typeof value === 'boolean') {
+              map.set(key, value);
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error parsing saved expanded nodes:", error);
+      }
+    }
+    return map;
+  }, [savedExpandedNodes]);
 
   const [selectedFolder, setSelectedFolder] = useState(
     savedFolder as string | null
@@ -74,9 +105,7 @@ const App = () => {
   );
   const [sortOrder, setSortOrder] = useState(savedSortOrder || "tokens-desc");
   const [searchTerm, setSearchTerm] = useState(savedSearchTerm || "");
-  const [expandedNodes, setExpandedNodes] = useState(
-    {} as Record<string, boolean>
-  );
+  const [expandedNodes, setExpandedNodes] = useState<Map<string, boolean>>(initialExpandedNodes);
   const [displayedFiles, setDisplayedFiles] = useState([] as FileData[]);
   const [processingStatus, setProcessingStatus] = useState({
     status: "idle",
@@ -113,9 +142,25 @@ const App = () => {
     );
     if (savedExpandedNodes) {
       try {
-        setExpandedNodes(JSON.parse(savedExpandedNodes));
+        // Parse the JSON string
+        const parsedNodes = JSON.parse(savedExpandedNodes);
+        
+        // Check if it's an object that needs to be converted to entries
+        if (parsedNodes && typeof parsedNodes === 'object' && !Array.isArray(parsedNodes)) {
+          // Convert object to array of entries
+          const entries = Object.entries(parsedNodes);
+          setExpandedNodes(new Map(entries));
+        } else if (Array.isArray(parsedNodes)) {
+          // It's already in the format of [key, value] pairs
+          setExpandedNodes(new Map(parsedNodes));
+        } else {
+          // Reset to empty Map if format is not recognized
+          setExpandedNodes(new Map());
+        }
       } catch (error) {
         console.error("Error parsing saved expanded nodes:", error);
+        // Reset to empty Map on error
+        setExpandedNodes(new Map());
       }
     }
   }, []);
@@ -370,52 +415,43 @@ const App = () => {
     );
   };
 
-  // Toggle folder selection (select/deselect all files in folder)
+  // Toggle folder selection (select/deselect all files within a folder)
   const toggleFolderSelection = (folderPath: string, isSelected: boolean) => {
-    // Normalize the folder path
-    const normalizedFolderPath = normalizePath(folderPath);
+    if (!folderPath) return;
     
-    // Get all files that are under this folder path at any depth
-    const filesInFolder = allFiles.filter(
-      (file: FileData) => {
-        const normalizedFilePath = normalizePath(file.path);
-        // Check if the file is within this folder (at any depth)
-        const isWithinFolder = normalizedFilePath.startsWith(normalizedFolderPath);
-        // Only include files that are not binary, not skipped, and not excluded by patterns
-        const isSelectable = !file.isBinary && !file.isSkipped && !file.excludedByDefault;
-        return isWithinFolder && isSelectable;
-      }
-    );
-
-    // Get paths of all selectable files in this folder
-    const selectableFilePaths = filesInFolder.map((file: FileData) => normalizePath(file.path));
-    
-    if (isSelected) {
-      // Add all files from this folder that aren't already selected
-      setSelectedFiles((prev: string[]) => {
-        // Start with current selection
-        const newSelection = [...prev];
-        
-        // Add each selectable file path if it's not already selected
-        selectableFilePaths.forEach((path: string) => {
-          if (!newSelection.some((p: string) => arePathsEqual(p, path))) {
-            newSelection.push(path);
+    setSelectedFiles((prev: string[]) => {
+      // Create a copy of the current selectedFiles array
+      const newSelectedFiles = [...prev];
+      
+      // Find all files that match this folder path prefix
+      const filesInFolder = allFiles.filter(
+        (file) => 
+          file.path.startsWith(folderPath) && 
+          !file.excluded && 
+          file.type !== 'directory'
+      );
+      
+      // Use a Set for better lookup performance
+      const selectedFilesSet = new Set(newSelectedFiles);
+      
+      // Check if we should select or deselect
+      if (isSelected) {
+        // Add all files in the folder to selection
+        filesInFolder.forEach((file) => {
+          if (!selectedFilesSet.has(file.path)) {
+            selectedFilesSet.add(file.path);
           }
         });
-        
-        return newSelection;
-      });
-    } else {
-      // Remove all files from this folder
-      setSelectedFiles((prev: string[]) => {
-        // Remove any currently selected files that are within this folder
-        return prev.filter((path: string) => 
-          !selectableFilePaths.some((folderFilePath: string) => 
-            arePathsEqual(folderFilePath, path)
-          )
-        );
-      });
-    }
+      } else {
+        // Remove all files in the folder from selection
+        filesInFolder.forEach((file) => {
+          selectedFilesSet.delete(file.path);
+        });
+      }
+      
+      // Convert Set back to array
+      return Array.from(selectedFilesSet);
+    });
   };
 
   // Handle sort change
@@ -520,18 +556,21 @@ const App = () => {
 
   // Handle expand/collapse state changes
   const toggleExpanded = (nodeId: string) => {
-    setExpandedNodes((prev: Record<string, boolean>) => {
-      const newState = {
-        ...prev,
-        [nodeId]: prev[nodeId] === undefined ? false : !prev[nodeId],
-      };
-
-      // Save to localStorage
-      localStorage.setItem(
-        STORAGE_KEYS.EXPANDED_NODES,
-        JSON.stringify(newState)
-      );
-
+    setExpandedNodes((prev: Map<string, boolean>) => {
+      const newState = new Map(prev);
+      const currentValue = prev.get(nodeId);
+      newState.set(nodeId, currentValue === undefined ? true : !currentValue);
+      
+      // Save to localStorage as an array of entries [key, value]
+      try {
+        localStorage.setItem(
+          STORAGE_KEYS.EXPANDED_NODES,
+          JSON.stringify(Array.from(newState.entries()))
+        );
+      } catch (error) {
+        console.error("Error saving expanded nodes:", error);
+      }
+      
       return newState;
     });
   };

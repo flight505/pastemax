@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { SidebarProps, TreeNode, SortOrder } from "../types/FileTypes";
 import TreeItem from "./TreeItem";
 import FileTreeHeader from "./FileTreeHeader";
@@ -67,6 +67,86 @@ const Sidebar = ({
   const lastProcessedFolderRef = useRef<string | null>(null);
   const isBuildingTreeRef = useRef(false);
   const isUpdatingExpandedNodesRef = useRef(false);
+
+  // Define all helper functions first before they're used
+  
+  // Helper function for file tree - Flatten the tree for rendering
+  const flattenTree = useCallback((nodes: TreeNode[]): TreeNode[] => {
+    let result: TreeNode[] = [];
+    
+    for (const node of nodes) {
+      result.push(node);
+      
+      if (node.type === "directory" && node.isExpanded && node.children && node.children.length > 0) {
+        result = result.concat(flattenTree(node.children));
+      }
+    }
+    
+    return result;
+  }, []);
+  
+  // Helper function for file tree - Filter the tree based on search term
+  const filterTree = useCallback((nodes: TreeNode[], term: string): TreeNode[] => {
+    if (!term) return nodes;
+    
+    const lowerTerm = term.toLowerCase();
+    
+    // Helper function to check if a node matches the search term
+    const hasMatchingChild = (node: TreeNode): boolean => {
+      if (node.type === "file") {
+        return node.name.toLowerCase().includes(lowerTerm);
+      }
+      
+      if (node.type === "directory") {
+        const dirMatch = node.name.toLowerCase().includes(lowerTerm);
+        const childMatch = node.children && node.children.some(hasMatchingChild);
+        
+        return dirMatch || Boolean(childMatch);
+      }
+      
+      return false;
+    };
+    
+    const filterWithExpanded = (node: TreeNode): TreeNode | null => {
+      if (node.type === "file") {
+        return node.name.toLowerCase().includes(lowerTerm) ? node : null;
+      }
+      
+      if (node.type === "directory") {
+        // Keep this directory if it matches or has matching children
+        const isMatching = hasMatchingChild(node);
+        
+        if (isMatching) {
+          // Filter children, but keep the structure
+          const filteredChildren = node.children && node.children
+            .map(filterWithExpanded)
+            .filter((n): n is TreeNode => n !== null);
+          
+          // Return a new node with expanded state if it's matching
+          return {
+            ...node,
+            children: filteredChildren || [],
+            isExpanded: true, // Always expand matching directories
+          };
+        }
+      }
+      
+      return null;
+    };
+    
+    return nodes
+      .map(filterWithExpanded)
+      .filter((n): n is TreeNode => n !== null);
+  }, []);
+  
+  // Now that we've defined filterTree and flattenTree, we can use them in useMemo
+  const memoizedFilteredTree = useMemo(() => {
+    return searchTerm ? filterTree(fileTree, searchTerm) : fileTree;
+  }, [fileTree, searchTerm, filterTree]);
+  
+  const memoizedFlattenedTree = useMemo(() => {
+    return flattenTree(memoizedFilteredTree);
+  }, [memoizedFilteredTree, flattenTree]);
 
   // Handle mouse down for resizing
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -234,8 +314,8 @@ const Sidebar = ({
                 type: "directory",
                 path: "", // Add empty string as default path for directory nodes
                 children: convertToTreeNodes(item.children, level + 1),
-                isExpanded: level < 2 || Boolean(expandedNodes[id]),
-                level,
+                isExpanded: level < 2 || Boolean(expandedNodes.get(id)),
+                depth: level,
               };
             } else {
               return {
@@ -246,7 +326,7 @@ const Sidebar = ({
                 children: [],
                 isExpanded: false,
                 fileData: item.fileData,
-                level,
+                depth: level,
               };
             }
           });
@@ -266,7 +346,7 @@ const Sidebar = ({
         isBuildingTreeRef.current = false;
         
         // Update expanded state if needed
-        if (Object.keys(expandedNodes).length > 0 && !isUpdatingExpandedNodesRef.current) {
+        if (expandedNodes.size > 0 && !isUpdatingExpandedNodesRef.current) {
           updateTreeWithExpandedState();
         }
       } catch (error) {
@@ -283,30 +363,55 @@ const Sidebar = ({
     };
   }, [allFiles, expandedNodes, selectedFolder, sortFileTreeNodes]);
 
-  // Recursively update the tree to reflect expanded state
+  // Update tree with expanded state
   const updateTreeWithExpandedState = useCallback(() => {
-    if (isUpdatingExpandedNodesRef.current) return;
+    if (fileTree.length === 0 || isUpdatingExpandedNodesRef.current) return;
     
     isUpdatingExpandedNodesRef.current = true;
     
+    // Add change detection to prevent unnecessary updates
+    let hasChanged = false;
+    
     const updateNodes = (nodes: TreeNode[]): TreeNode[] => {
       return nodes.map(node => {
-        const isExpanded = expandedNodes[node.id] !== undefined 
-          ? expandedNodes[node.id] 
+        const isExpanded = expandedNodes.get(node.id) !== undefined 
+          ? expandedNodes.get(node.id) 
           : node.isExpanded;
+        
+        // Check if there's a change in expanded state
+        if (isExpanded !== node.isExpanded) {
+          hasChanged = true;
+        }
+        
+        // Check if directory has children to update
+        if (node.type === "directory" && node.children && node.children.length > 0) {
+          return {
+            ...node,
+            isExpanded,
+            children: updateNodes(node.children),
+          };
+        }
         
         return {
           ...node,
           isExpanded,
-          children: node.children ? updateNodes(node.children) : [],
         };
       });
     };
     
-    setFileTree(prevTree => updateNodes(prevTree));
-    
-    isUpdatingExpandedNodesRef.current = false;
-  }, [expandedNodes]);
+    try {
+      const updatedTree = updateNodes(fileTree);
+      
+      // Only update the tree if there were changes
+      if (hasChanged) {
+        setFileTree(updatedTree);
+      }
+    } catch (error) {
+      console.error("Error updating tree with expanded state:", error);
+    } finally {
+      isUpdatingExpandedNodesRef.current = false;
+    }
+  }, [fileTree, expandedNodes]);
 
   // Handle opening the ignore patterns modal
   const handleOpenIgnorePatterns = (isGlobal = false) => {
@@ -422,79 +527,6 @@ const Sidebar = ({
     return excludedFilesCount;
   };
 
-  // Flatten the tree for rendering, preserving expanded folders and their children
-  const flattenTree = (nodes: TreeNode[]): TreeNode[] => {
-    let result: TreeNode[] = [];
-    
-    for (const node of nodes) {
-      result.push(node);
-      
-      if (node.type === "directory" && node.isExpanded && node.children && node.children.length > 0) {
-        result = result.concat(flattenTree(node.children));
-      }
-    }
-    
-    return result;
-  };
-
-  // Filter the tree based on search term - rename function to avoid linting error
-  const filterTree = (nodes: TreeNode[], term: string): TreeNode[] => {
-    if (!term) return nodes;
-    
-    const lowerTerm = term.toLowerCase();
-    
-    // Keep only the original hasMatchingChild function
-    const hasMatchingChild = (node: TreeNode): boolean => {
-      if (node.type === "file") {
-        return node.name.toLowerCase().includes(lowerTerm);
-      }
-      
-      if (node.type === "directory") {
-        const dirMatch = node.name.toLowerCase().includes(lowerTerm);
-        const childMatch = node.children && node.children.some(hasMatchingChild);
-        
-        return dirMatch || Boolean(childMatch);
-      }
-      
-      return false;
-    };
-    
-    const filterWithExpanded = (node: TreeNode): TreeNode | null => {
-      if (node.type === "file") {
-        return node.name.toLowerCase().includes(lowerTerm) ? node : null;
-      }
-      
-      if (node.type === "directory") {
-        // Keep this directory if it matches or has matching children
-        const isMatching = hasMatchingChild(node);
-        
-        if (isMatching) {
-          // Filter children, but keep the structure
-          const filteredChildren = node.children && node.children
-            .map(filterWithExpanded)
-            .filter((n): n is TreeNode => n !== null);
-          
-          // Return a new node with expanded state if it's matching
-          return {
-            ...node,
-            children: filteredChildren || [],
-            isExpanded: true, // Always expand matching directories
-          };
-        }
-      }
-      
-      return null;
-    };
-    
-    return nodes
-      .map(filterWithExpanded)
-      .filter((n): n is TreeNode => n !== null);
-  };
-
-  // Compute filtered and flattened tree for rendering
-  const filteredTree = searchTerm ? filterTree(fileTree, searchTerm) : fileTree;
-  const flattenedFilteredTree = flattenTree(filteredTree);
-
   // Add expanded node state to the tree
   useEffect(() => {
     // Skip if no tree or no need to update
@@ -502,7 +534,11 @@ const Sidebar = ({
     
     updateTreeWithExpandedState();
     
-  }, [fileTree, updateTreeWithExpandedState]); // Include updateTreeWithExpandedState in dependencies
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isUpdatingExpandedNodesRef.current = false;
+    };
+  }, [fileTree, updateTreeWithExpandedState]);
 
   return (
     <div className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>
@@ -541,9 +577,9 @@ const Sidebar = ({
 
           <div className={styles.fileTree}>
             {isTreeBuildingComplete ? (
-              flattenedFilteredTree.length > 0 ? (
+              memoizedFlattenedTree.length > 0 ? (
                 <>
-                  {flattenedFilteredTree.map((node) => (
+                  {memoizedFlattenedTree.map((node) => (
                     <TreeItem
                       key={node.id}
                       node={node}

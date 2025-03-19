@@ -14,7 +14,7 @@ const TreeItem = ({
   toggleFolderSelection,
   toggleExpanded,
 }: TreeItemProps) => {
-  const { id, name, path, type, level, isExpanded, fileData } = node;
+  const { id, name, path, type, depth, isExpanded, fileData } = node;
   const checkboxRef = useRef<HTMLInputElement>(null);
 
   const isSelected = type === "file" && selectedFiles.some(selectedPath => 
@@ -88,7 +88,8 @@ const TreeItem = ({
     toggleExpanded(id);
   };
 
-  const handleItemClick = (): void => {
+  const handleItemClick = (e: React.MouseEvent<HTMLDivElement>): void => {
+    e.stopPropagation();
     if (type === "directory") {
       toggleExpanded(id);
     } else if (type === "file" && !isDisabled) {
@@ -105,9 +106,13 @@ const TreeItem = ({
     }
   };
 
+  const handleCheckboxClick = (e: React.MouseEvent<HTMLInputElement>): void => {
+    e.stopPropagation();
+  };
+
   // Generate indentation for nested levels
   const indentation = [];
-  for (let i = 0; i < level; i++) {
+  for (let i = 0; i < depth; i++) {
     indentation.push(
       <span key={`indent-${i}`} className={styles.treeItemIndent} />
     );
@@ -139,7 +144,7 @@ const TreeItem = ({
           type="checkbox"
           checked={isSelected || isDirectorySelected}
           onChange={handleCheckboxChange}
-          onClick={(e) => e.stopPropagation()}
+          onClick={handleCheckboxClick}
           ref={type === "directory" ? checkboxRef : null}
           className={styles.treeItemCheckbox}
           disabled={isDisabled}
@@ -156,6 +161,14 @@ const TreeItem = ({
         <span
           className={styles.treeItemName}
           title={path}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (type === "file" && !isDisabled) {
+              toggleFileSelection(path);
+            } else if (type === "directory") {
+              toggleExpanded(id);
+            }
+          }}
         >
           {name}
         </span>

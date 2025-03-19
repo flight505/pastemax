@@ -21,7 +21,9 @@ export interface TreeNode {
   type: "file" | "directory";
   children?: TreeNode[];
   isExpanded?: boolean;
-  level: number;
+  isSelected?: boolean;
+  depth: number;
+  parentId?: string;
   fileData?: FileData;
 }
 
