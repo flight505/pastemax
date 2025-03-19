@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { FileCardProps } from "../types/FileTypes";
 import { Plus, X, FileText, Copy } from "lucide-react";
 import { Card, CardContent, Button } from "./ui";
 import styles from "./FileCard.module.css";

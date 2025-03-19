@@ -502,7 +502,7 @@ const Sidebar = ({
     
     updateTreeWithExpandedState();
     
-  }, [fileTree, updateTreeWithExpandedState]); // updateTreeWithExpandedState is now memoized
+  }, [fileTree, updateTreeWithExpandedState]); // Include updateTreeWithExpandedState in dependencies
 
   return (
     <div className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Copy, Check } from "lucide-react";
+import styles from "./CopyButton.module.css";
 
 interface CopyButtonProps {
   text: string;
@@ -24,18 +25,12 @@ const CopyButton = ({ text, className = "", children }: CopyButtonProps) => {
     }
   };
 
-  // Add inline styles to ensure no focus outline appears
-  const buttonStyle = {
-    outline: "none",
-  };
-
   return (
     <button
       type="button"
-      className={`${className}`}
+      className={`${styles.copyButton} ${copied ? styles.copied : ""} ${className}`}
       onClick={handleCopy}
       title={copied ? "Copied!" : "Copy to clipboard"}
-      style={buttonStyle}
     >
       {copied ? <Check size={16} /> : <Copy size={16} />}
       {children}

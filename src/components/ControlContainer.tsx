@@ -29,15 +29,25 @@ const ControlContainer = ({
   setShowUserInstructions,
   getSelectedFilesContent,
   selectedFilesCount,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   fileTreeSortOrder,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setFileTreeSortOrder,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ignorePatterns,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setIgnorePatterns,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   loadIgnorePatterns,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   saveIgnorePatterns,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   resetIgnorePatterns,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   reloadFolder,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   clearSelection,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   removeAllFolders,
 }: ControlContainerProps): JSX.Element => {
   const handleDownload = () => {

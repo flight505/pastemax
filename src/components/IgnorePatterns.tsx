@@ -41,6 +41,7 @@ const IgnorePatterns = ({
   globalPatterns = "",
   localPatterns = "",
   onTabChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   systemPatterns = [],
   availableFolders = [],
 }: IgnorePatternsProps): JSX.Element | null => {

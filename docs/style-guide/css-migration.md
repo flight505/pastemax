@@ -18,77 +18,77 @@ This document outlines a structured approach to migrate our application from glo
 
 - [x] Create a git branch for the CSS migration
 - [x] Document all components and their current CSS imports
-- [ ] Map out global CSS classes and which components use them
-- [ ] Identify app-wide styles in index.css that should remain global
+- [x] Map out global CSS classes and which components use them
+- [x] Identify app-wide styles in index.css that should remain global
 
 ### 2. Component-by-Component Migration
 
 For each component (prioritize in this order):
 
-- [ ] Check if component already has a .module.css file
+- [x] Check if component already has a .module.css file
   - If yes: Review for completeness
   - If no: Create a new module file
 
-- [ ] Find all styles for the component in global CSS files:
+- [x] Find all styles for the component in global CSS files:
   - `/src/styles/index.css`
   - `/src/styles/ComponentName.css`
 
-- [ ] Copy styles to the component's module file with these changes:
+- [x] Copy styles to the component's module file with these changes:
   - Convert kebab-case to camelCase (`.file-tree-header` → `.fileTreeHeader`) 
   - Remove any BEM-style naming (use nesting if available)
   - Update selectors to use module syntax
 
-- [ ] Update component imports:
+- [x] Update component imports:
   - Add module import if missing
   - Remove global CSS imports
 
-- [ ] Test component thoroughly after changes
+- [x] Test component thoroughly after changes
 
 ### 3. Component Migration Priority List
 
 - [x] **FileTreeHeader**: Fix sorting dropdown functionality
-- [ ] **Sidebar**: Ensure tree view works correctly
-- [ ] **TreeItem**: Verify excluded item styling
-- [ ] **IgnorePatterns**: Check modal functionality
-- [ ] **SearchBar**: Test search functionality
-- [ ] **FileCard**: Verify selection works
-- [ ] **FileList**: Test display of files
-- [ ] **ControlContainer**: Verify controls work
-- [ ] **UserInstructions**: Check display
+- [x] **Sidebar**: Ensure tree view works correctly
+- [x] **TreeItem**: Verify excluded item styling
+- [x] **IgnorePatterns**: Check modal functionality
+- [x] **SearchBar**: Test search functionality
+- [x] **FileCard**: Verify selection works
+- [x] **FileList**: Test display of files
+- [x] **ControlContainer**: Verify controls work
+- [x] **UserInstructions**: Check display
 
 ### 4. Handling Shared/Theme Styles
 
-- [ ] Review global styles in index.css
-- [ ] Categorize as:
+- [x] Review global styles in index.css
+- [x] Categorize as:
   - App-wide styles (keep in index.css)
   - Component-specific (move to modules)
   - Theme variables (keep in index.css)
 
-- [ ] Create a documented theme system:
+- [x] Create a documented theme system:
   - CSS variables for colors, spacing, etc.
   - Document in comments which variables are available
 
 ### 5. Cleanup
 
-- [ ] Remove duplicated styles from global CSS files
-- [ ] Validate no orphaned CSS remains
-- [ ] Remove unused global CSS files
-- [ ] Document remaining global styles and their purpose
+- [x] Remove duplicated styles from global CSS files
+- [x] Validate no orphaned CSS remains
+- [x] Remove unused global CSS files
+- [x] Document remaining global styles and their purpose
 
 ### 6. Testing & Verification
 
 For each migrated component:
 
-- [ ] Visual regression test
-- [ ] Functionality test
-- [ ] Check different themes (light/dark)
-- [ ] Verify mobile responsiveness if applicable
+- [x] Visual regression test
+- [x] Functionality test
+- [x] Check different themes (light/dark)
+- [x] Verify mobile responsiveness if applicable
 
 ### 7. Documentation Updates
 
-- [ ] Update component documentation to reference CSS modules
-- [ ] Document styling conventions for future development
-- [ ] Document theme variables and their usage
+- [x] Update component documentation to reference CSS modules
+- [x] Document styling conventions for future development
+- [x] Document theme variables and their usage
 
 ## Best Practices
 

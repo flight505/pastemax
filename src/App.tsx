@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
 import FileList from "./components/FileList";
-import CopyButton from "./components/CopyButton";
 import UserInstructions from "./components/UserInstructions";
 import ControlContainer from "./components/ControlContainer";
 import { FileData, FileTreeMode, SortOrder } from "./types/FileTypes";
@@ -9,6 +8,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
 import { Github } from "lucide-react";
+import styles from "./App.module.css";
 
 // Access the electron API from the window object
 declare global {
@@ -875,32 +875,37 @@ const App = () => {
 
   return (
     <ThemeProvider>
-      <div className="app-container">
-        <header className="header">
+      <div className={styles.appContainer}>
+        <header className={styles.appHeader}>
           <h1>PasteMax</h1>
-          <div className="header-actions">
-            <a href="#" className="header-link">Guide</a>
-            <div className="header-separator"></div>
+          <div className={styles.headerActions}>
+            <a href="#" className={styles.headerLink}>Guide</a>
+            <div className={styles.headerSeparator}></div>
             <ThemeToggle />
-            <div className="header-separator"></div>
-            <a href="https://github.com/user/pastemax" className="header-link" target="_blank" rel="noopener noreferrer" title="View on GitHub">
-              <Github size={18} />
+            <div className={styles.headerSeparator}></div>
+            <a
+              href="https://github.com/jsulpis/pastemax"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.githubButton}
+            >
+              <Github size={16} />
             </a>
           </div>
         </header>
 
         {processingStatus.status === "processing" && (
-          <div className="processing-indicator">
-            <div className="spinner"></div>
+          <div className={styles.processingIndicator}>
+            <div className={styles.spinner}></div>
             <span>{processingStatus.message}</span>
           </div>
         )}
 
         {processingStatus.status === "error" && (
-          <div className="error-message">Error: {processingStatus.message}</div>
+          <div className={styles.errorMessage}>Error: {processingStatus.message}</div>
         )}
 
-        <div className="main-content">
+        <div className={styles.mainContainer}>
           <Sidebar
             selectedFolder={selectedFolder}
             openFolder={openFolder}
@@ -928,16 +933,16 @@ const App = () => {
           />
           
           {selectedFolder ? (
-            <div className="content-area">
-              <div className="content-header">
-                <div className="content-title">Selected Files</div>
-                <div className="content-actions">
-                  <div className="folder-path-display" title={selectedFolder}>
+            <div className={styles.contentArea}>
+              <div className={styles.contentHeader}>
+                <div className={styles.contentTitle}>Selected Files</div>
+                <div className={styles.contentActions}>
+                  <div className={styles.folderPathDisplay} title={selectedFolder}>
                     {selectedFolder}
                   </div>
-                  <div className="sort-dropdown">
+                  <div className={styles.sortDropdown}>
                     <button
-                      className="sort-dropdown-button"
+                      className={styles.sortDropdownButton}
                       onClick={toggleSortDropdown}
                     >
                       Sort:{" "}
@@ -945,12 +950,12 @@ const App = () => {
                         ?.label || sortOrder}
                     </button>
                     {sortDropdownOpen && (
-                      <div className="sort-options">
+                      <div className={styles.sortOptions}>
                         {sortOptions.map((option) => (
                           <div
                             key={option.value}
-                            className={`sort-option ${
-                              sortOrder === option.value ? "active" : ""
+                            className={`${styles.sortOption} ${
+                              sortOrder === option.value ? styles.active : ""
                             }`}
                             onClick={() => handleSortChange(option.value)}
                           >
@@ -960,7 +965,7 @@ const App = () => {
                       </div>
                     )}
                   </div>
-                  <div className="file-stats">
+                  <div className={styles.fileStats}>
                     {selectedFiles.length} files | ~
                     {calculateTotalTokens().toLocaleString()} tokens
                   </div>
@@ -974,7 +979,7 @@ const App = () => {
               />
 
               {showUserInstructions && (
-                <div className="user-instructions-container">
+                <div className={styles.userInstructionsContainer}>
                   <UserInstructions
                     instructions={userInstructions}
                     setInstructions={setUserInstructions}
@@ -1002,8 +1007,8 @@ const App = () => {
               />
             </div>
           ) : (
-            <div className="content-area empty-state">
-              <div className="empty-state-content">
+            <div className={styles.contentArea}>
+              <div className={styles.emptyStateContent}>
                 <h2>Welcome to PasteMax</h2>
                 <p>Select a folder from the file tree panel to start working with your files.</p>
                 <p>PasteMax helps you format your code for AI models by:</p>

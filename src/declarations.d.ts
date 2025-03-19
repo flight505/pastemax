@@ -39,9 +39,9 @@ declare module '*.module.css' {
 import 'react';
 
 declare module 'react' {
-  export type FC<P = {}> = React.FunctionComponent<P>;
+  export type FC<P = Record<string, never>> = React.FunctionComponent<P>;
   
-  export interface FunctionComponent<P = {}> {
+  export interface FunctionComponent<P = Record<string, never>> {
     (props: P, context?: any): React.ReactElement<any, any> | null;
     displayName?: string;
   }
