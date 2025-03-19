@@ -10,7 +10,7 @@ declare namespace React {
 
 // Fix the type parameters that are unused
 interface ImportMeta {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   readonly hot: {
     readonly data: any;
     accept(): void;

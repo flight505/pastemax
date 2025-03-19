@@ -18,7 +18,7 @@ const defaultThemeContext: ThemeContextType = {
 const ThemeContext = createContext(defaultThemeContext);
 
 // Add eslint-disable comment to suppress the warning about fast refresh
-// eslint-disable-next-line react-refresh/only-export-components
+ 
 export const STORAGE_KEY = "pastemax-theme";
 
 export const ThemeProvider = ({
