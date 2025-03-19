@@ -57,6 +57,13 @@
   flex-grow: 1;
 }
 
+.treeItemTokens {
+  margin-left: 4px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 .treeItemExpander {
   cursor: pointer;
   display: flex;

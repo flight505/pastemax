@@ -673,6 +673,20 @@ function handleRequestFileList(event, data) {
           message: `Found ${cachedFiles.length} files (from cache)`,
         });
         
+        // Check cached files for reload functionality too
+        if (data.forceRefresh) {
+          // If forceRefresh is specified, ensure excluded property is set correctly
+          cachedFiles = cachedFiles.map(file => {
+            const normalizedPath = normalizePath(file.path);
+            const isExcluded = shouldExcludeByDefault(normalizedPath, folderPath);
+            return {
+              ...file,
+              excludedByDefault: isExcluded,
+              excluded: isExcluded
+            };
+          });
+        }
+        
         event.sender.send("file-list-data", cachedFiles);
         return;
       }
@@ -733,6 +747,9 @@ function handleRequestFileList(event, data) {
           // Normalize the path to use forward slashes consistently
           const normalizedPath = normalizePath(file.path);
           
+          // Check if file should be excluded by patterns
+          const isExcluded = shouldExcludeByDefault(normalizedPath, folderPath);
+          
           // Create a clean file object
           processedFiles.push({
             name: file.name ? String(file.name) : "",
@@ -748,7 +765,8 @@ function handleRequestFileList(event, data) {
             isSkipped: Boolean(file.isSkipped),
             error: file.error ? String(file.error) : null,
             fileType: file.fileType ? String(file.fileType) : null,
-            excludedByDefault: shouldExcludeByDefault(normalizedPath, folderPath),
+            excludedByDefault: isExcluded,
+            excluded: isExcluded, // Set the excluded property as well
           });
         });
         
@@ -853,6 +871,17 @@ ipcMain.on("request-file-list", (event, data) => {
 });
 
 // Check if a file should be excluded by default, using gitignore-style pattern matching
+// Create a pattern cache to avoid recreating ignore instances
+const patternCache = {
+  global: null,
+  local: {},  // Cache by rootDir
+  combined: {} // Cache by rootDir
+};
+
+// Counter to limit debug output
+let debugCounter = 0;
+const MAX_DEBUG_FILES = 5;
+
 function shouldExcludeByDefault(filePath, rootDir) {
   // Normalize both paths to ensure consistent handling
   filePath = normalizePath(filePath);
@@ -866,114 +895,148 @@ function shouldExcludeByDefault(filePath, rootDir) {
     }
     relativePath = normalizePath(relativePath);
     
-    // Create a new ignore instance
-    const ig = ignore();
-    
-    // Debug log for Python files 
+    // Debug log only for the first few Python files to limit console output
     const isPythonFile = relativePath.endsWith('.py');
-    const shouldDebug = isPythonFile || relativePath.includes('node_modules');
+    const shouldDebug = isPythonFile && debugCounter < MAX_DEBUG_FILES;
     
     if (shouldDebug) {
+      debugCounter++;
       console.log(`Processing potential exclusion for file: ${relativePath}`);
     }
     
-    // Track all patterns for debugging
-    let allPatterns = [];
-    
-    // Add built-in patterns - convert array to a proper string format for the ignore package
-    const builtInPatterns = [...excludedFiles, ...DEFAULT_EXCLUSIONS];
-    ig.add(builtInPatterns);
-    allPatterns = builtInPatterns;
-    
-    if (isPythonFile) {
-      console.log('Built-in patterns that could affect Python files:');
-      builtInPatterns.filter(p => p.includes('py')).forEach(p => {
-        console.log(`  - ${p}`);
-      });
-    }
-    
-    // Try to load global patterns if available
-    try {
-      const appDataPath = app.getPath('userData');
-      const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
+    // Use cached ignore instance if available
+    if (!patternCache.combined[rootDir]) {
+      // Initialize cache for this root directory
       
-      if (fs.existsSync(globalIgnorePath)) {
-        const content = fs.readFileSync(globalIgnorePath, 'utf8');
-        // Keep patterns as a single multiline string - this is crucial for correct pattern matching
-        // Do not split into an array
-        if (content.trim()) {
-          if (shouldDebug) {
-            console.log(`Global ignore patterns loaded: ${content.trim()}`);
+      // Create new ignore instance
+      const ig = ignore();
+      
+      // Track all patterns for debugging
+      let allPatterns = [];
+      
+      // Add built-in patterns - convert array to a proper string format for the ignore package
+      const builtInPatterns = [...excludedFiles, ...DEFAULT_EXCLUSIONS];
+      ig.add(builtInPatterns);
+      allPatterns = builtInPatterns;
+      
+      if (shouldDebug) {
+        console.log('Built-in patterns that could affect Python files:');
+        builtInPatterns.filter(p => p.includes('py')).forEach(p => {
+          console.log(`  - ${p}`);
+        });
+      }
+      
+      // Try to load global patterns if not already cached
+      if (!patternCache.global) {
+        try {
+          const appDataPath = app.getPath('userData');
+          const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
+          
+          if (fs.existsSync(globalIgnorePath)) {
+            const content = fs.readFileSync(globalIgnorePath, 'utf8');
+            if (content.trim()) {
+              // Cache global patterns
+              patternCache.global = content;
+              
+              if (shouldDebug) {
+                console.log(`Global ignore patterns loaded: ${content.trim()}`);
+              }
+            }
           }
-          
-          // Add global patterns directly as a string to preserve multiline format
-          ig.add(content);
-          
-          // Extract non-comment lines for debugging
-          const nonCommentLines = content.split('\n')
-            .map(line => line.trim())
-            .filter(line => line && !line.startsWith('#'));
-            
-          allPatterns = allPatterns.concat(nonCommentLines);
-          
-          if (isPythonFile) {
-            console.log('Global patterns that could affect Python files:');
-            nonCommentLines.filter(p => p.includes('py') || p === '*.py' || p === '.py').forEach(p => {
-              console.log(`  - ${p}`);
-            });
-          }
+        } catch (err) {
+          console.error('Error loading global ignore patterns:', err);
+          patternCache.global = '';
         }
       }
-    } catch (err) {
-      console.error('Error loading global ignore patterns:', err);
+      
+      // Add global patterns if available
+      if (patternCache.global) {
+        ig.add(patternCache.global);
+        
+        // Extract non-comment lines for debugging
+        const nonCommentLines = patternCache.global.split('\n')
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('#'));
+          
+        allPatterns = allPatterns.concat(nonCommentLines);
+        
+        if (shouldDebug) {
+          console.log('Global patterns that could affect Python files:');
+          nonCommentLines.filter(p => p.includes('py') || p === '*.py' || p === '.py').forEach(p => {
+            console.log(`  - ${p}`);
+          });
+        }
+      }
+      
+      // Try to load local patterns if not already cached
+      if (!patternCache.local[rootDir]) {
+        try {
+          const ignoreFilePath = path.join(rootDir, '.repo_ignore');
+          if (fs.existsSync(ignoreFilePath)) {
+            const content = fs.readFileSync(ignoreFilePath, 'utf8');
+            if (content.trim()) {
+              // Cache local patterns
+              patternCache.local[rootDir] = content;
+              
+              if (shouldDebug) {
+                console.log(`Local ignore patterns loaded: ${content.trim()}`);
+              }
+            } else {
+              patternCache.local[rootDir] = '';
+            }
+          } else {
+            patternCache.local[rootDir] = '';
+          }
+        } catch (err) {
+          console.error('Error loading local ignore patterns:', err);
+          patternCache.local[rootDir] = '';
+        }
+      }
+      
+      // Add local patterns if available
+      if (patternCache.local[rootDir]) {
+        ig.add(patternCache.local[rootDir]);
+        
+        // Extract non-comment lines for debugging
+        const nonCommentLines = patternCache.local[rootDir].split('\n')
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('#'));
+          
+        allPatterns = allPatterns.concat(nonCommentLines);
+        
+        if (shouldDebug) {
+          console.log('Local patterns that could affect Python files:');
+          nonCommentLines.filter(p => p.includes('py') || p === '*.py' || p === '.py').forEach(p => {
+            console.log(`  - ${p}`);
+          });
+        }
+      }
+      
+      // Cache the combined ignore instance
+      patternCache.combined[rootDir] = {
+        ig: ig,
+        allPatterns: allPatterns
+      };
     }
     
-    // Try to load local patterns if available
-    try {
-      const ignoreFilePath = path.join(rootDir, '.repo_ignore');
-      if (fs.existsSync(ignoreFilePath)) {
-        const content = fs.readFileSync(ignoreFilePath, 'utf8');
-        // Keep patterns as a single multiline string
-        if (content.trim()) {
-          if (shouldDebug) {
-            console.log(`Local ignore patterns loaded: ${content.trim()}`);
-          }
-          
-          // Add local patterns directly as a string
-          ig.add(content);
-          
-          // Extract non-comment lines for debugging
-          const nonCommentLines = content.split('\n')
-            .map(line => line.trim())
-            .filter(line => line && !line.startsWith('#'));
-            
-          allPatterns = allPatterns.concat(nonCommentLines);
-          
-          if (isPythonFile) {
-            console.log('Local patterns that could affect Python files:');
-            nonCommentLines.filter(p => p.includes('py') || p === '*.py' || p === '.py').forEach(p => {
-              console.log(`  - ${p}`);
-            });
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Error loading local ignore patterns:', err);
-    }
+    // Get the cached ignore instance
+    const cached = patternCache.combined[rootDir];
+    const ig = cached.ig;
+    const allPatterns = cached.allPatterns;
     
     // Check if the file should be excluded
     const isExcluded = ig.ignores(relativePath);
     
-    // Enhanced debugging
+    // Enhanced debugging, but only for a limited number of files
     if (shouldDebug) {
       console.log(`Checking file: ${relativePath}`);
       console.log(`Excluded: ${isExcluded}`);
       
-      // Log if any specific pattern matches (helps troubleshoot which pattern is causing the exclusion)
-      if (isExcluded) {
+      // Log if any specific pattern matches, but only for a few files to avoid slowing down
+      if (isExcluded && debugCounter <= 3) {
         console.log(`Applied patterns: ${allPatterns.join(', ')}`);
         
-        // Test each pattern individually to find which ones match
+        // Only test individual patterns for the first few files to avoid performance hit
         allPatterns.forEach(pattern => {
           if (pattern && pattern.trim()) {
             const testIg = ignore().add(pattern);
@@ -991,6 +1054,19 @@ function shouldExcludeByDefault(filePath, rootDir) {
     // Default to not excluding in case of an error
     return false;
   }
+}
+
+// Function to clear pattern cache when patterns change
+function clearPatternCache(rootDir) {
+  if (rootDir) {
+    delete patternCache.local[rootDir];
+    delete patternCache.combined[rootDir];
+  } else {
+    patternCache.global = null;
+    patternCache.local = {};
+    patternCache.combined = {};
+  }
+  debugCounter = 0;
 }
 
 // Add a debug handler for file selection
@@ -1177,6 +1253,17 @@ ipcMain.handle('save-ignore-patterns', async (event, { patterns, isGlobal, folde
     // Write the patterns to the file
     await writeFile(targetPath, patterns);
     
+    // Clear pattern cache to ensure new patterns are applied
+    if (isGlobal) {
+      // Clear all pattern caches for global changes
+      clearPatternCache();
+      console.log('Cleared all pattern caches due to global pattern change');
+    } else {
+      // Clear just this folder's pattern cache
+      clearPatternCache(folderPath);
+      console.log(`Cleared pattern cache for ${folderPath}`);
+    }
+    
     // Clear cache to ensure files are reloaded with new patterns
     if (directoryCache) {
       if (isGlobal) {
@@ -1223,6 +1310,9 @@ ipcMain.handle('reset-ignore-patterns', async (event, { folderPath, isGlobal }) 
       await writeFile(globalIgnorePath, DEFAULT_USER_PATTERNS);
       console.log(`Reset global ignore patterns to defaults at ${globalIgnorePath}`);
       
+      // Clear all pattern caches to ensure new patterns are applied
+      clearPatternCache();
+      
       // Clear all directory caches to ensure new patterns are applied
       directoryCache.clearAll();
       
@@ -1242,6 +1332,9 @@ ipcMain.handle('reset-ignore-patterns', async (event, { folderPath, isGlobal }) 
         fs.unlinkSync(ignoreFilePath);
         console.log(`Deleted local ignore file at ${ignoreFilePath}`);
       }
+      
+      // Clear pattern cache for this folder
+      clearPatternCache(folderPath);
       
       // Clear cache for this folder
       directoryCache.clear(folderPath);
@@ -1274,6 +1367,9 @@ ipcMain.handle('clear-ignore-patterns', async (event, { folderPath }) => {
     } else {
       console.log(`No local ignore file found at ${ignoreFilePath}, nothing to clear`);
     }
+    
+    // Clear pattern cache for this folder
+    clearPatternCache(folderPath);
     
     // Clear cache for this folder
     directoryCache.clear(folderPath);

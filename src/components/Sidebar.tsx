@@ -54,7 +54,6 @@ const Sidebar = ({
   
   // State for ignore patterns modal
   const [ignoreModalOpen, setIgnoreModalOpen] = useState(false);
-  const [isLoadingPatterns, setIsLoadingPatterns] = useState(false);
   const [ignoreGlobal, setIgnoreGlobal] = useState(false);
   const [globalIgnorePatterns, setGlobalIgnorePatterns] = useState("");
   const [localIgnorePatterns, setLocalIgnorePatterns] = useState("");
@@ -114,19 +113,10 @@ const Sidebar = ({
     // Track that we're processing this folder
     loadedFoldersRef.current.add(selectedFolder);
     
-    // Set loading state
-    setIsLoadingPatterns(true);
-    
     // Load the patterns
     loadIgnorePatterns(selectedFolder, false);
     
-    // Reset loading state after a delay
-    const timer = setTimeout(() => {
-      setIsLoadingPatterns(false);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [selectedFolder, loadIgnorePatterns]); // Deliberately omitting isLoadingPatterns
+  }, [selectedFolder, loadIgnorePatterns]); // Removed the loading state and its setter
 
   // Sort file tree nodes - memoized with useCallback to prevent recreation on every render
   const sortFileTreeNodes = useCallback((nodes: TreeNode[]): TreeNode[] => {
@@ -242,6 +232,7 @@ const Sidebar = ({
                 id,
                 name: item.name,
                 type: "directory",
+                path: "", // Add empty string as default path for directory nodes
                 children: convertToTreeNodes(item.children, level + 1),
                 isExpanded: level < 2 || Boolean(expandedNodes[id]),
                 level,
@@ -293,7 +284,7 @@ const Sidebar = ({
   }, [allFiles, expandedNodes, selectedFolder, sortFileTreeNodes]);
 
   // Recursively update the tree to reflect expanded state
-  const updateTreeWithExpandedState = () => {
+  const updateTreeWithExpandedState = useCallback(() => {
     if (isUpdatingExpandedNodesRef.current) return;
     
     isUpdatingExpandedNodesRef.current = true;
@@ -315,7 +306,7 @@ const Sidebar = ({
     setFileTree(prevTree => updateNodes(prevTree));
     
     isUpdatingExpandedNodesRef.current = false;
-  };
+  }, [expandedNodes]);
 
   // Handle opening the ignore patterns modal
   const handleOpenIgnorePatterns = (isGlobal = false) => {
@@ -438,7 +429,7 @@ const Sidebar = ({
     for (const node of nodes) {
       result.push(node);
       
-      if (node.type === "directory" && node.isExpanded && node.children.length > 0) {
+      if (node.type === "directory" && node.isExpanded && node.children && node.children.length > 0) {
         result = result.concat(flattenTree(node.children));
       }
     }
@@ -446,28 +437,13 @@ const Sidebar = ({
     return result;
   };
 
-  // Filter tree based on search term
+  // Filter the tree based on search term - rename function to avoid linting error
   const filterTree = (nodes: TreeNode[], term: string): TreeNode[] => {
-    if (!term.trim()) return nodes;
+    if (!term) return nodes;
     
     const lowerTerm = term.toLowerCase();
     
-    const nodeMatches = (node: TreeNode): boolean => {
-      // Check if the node name matches
-      if (node.name.toLowerCase().includes(lowerTerm)) {
-        return true;
-      }
-      
-      // For directories, also check children
-      if (node.type === "directory" && node.children.length > 0) {
-        return node.children.some(nodeMatches);
-      }
-      
-      return false;
-    };
-    
-    // First identify directories that have matching children
-    const matchingDirs = new Set<string>();
+    // Keep only the original hasMatchingChild function
     const hasMatchingChild = (node: TreeNode): boolean => {
       if (node.type === "file") {
         return node.name.toLowerCase().includes(lowerTerm);
@@ -475,21 +451,14 @@ const Sidebar = ({
       
       if (node.type === "directory") {
         const dirMatch = node.name.toLowerCase().includes(lowerTerm);
-        const childMatch = node.children.some(hasMatchingChild);
+        const childMatch = node.children && node.children.some(hasMatchingChild);
         
-        if (dirMatch || childMatch) {
-          matchingDirs.add(node.id);
-          return true;
-        }
+        return dirMatch || Boolean(childMatch);
       }
       
       return false;
     };
     
-    // Find all matching directories
-    nodes.forEach(hasMatchingChild);
-    
-    // Create a new tree with only matching nodes and ancestors, expanding matching directories
     const filterWithExpanded = (node: TreeNode): TreeNode | null => {
       if (node.type === "file") {
         return node.name.toLowerCase().includes(lowerTerm) ? node : null;
@@ -497,18 +466,18 @@ const Sidebar = ({
       
       if (node.type === "directory") {
         // Keep this directory if it matches or has matching children
-        const isMatching = matchingDirs.has(node.id);
+        const isMatching = hasMatchingChild(node);
         
         if (isMatching) {
           // Filter children, but keep the structure
-          const filteredChildren = node.children
+          const filteredChildren = node.children && node.children
             .map(filterWithExpanded)
             .filter((n): n is TreeNode => n !== null);
           
           // Return a new node with expanded state if it's matching
           return {
             ...node,
-            children: filteredChildren,
+            children: filteredChildren || [],
             isExpanded: true, // Always expand matching directories
           };
         }
@@ -525,6 +494,15 @@ const Sidebar = ({
   // Compute filtered and flattened tree for rendering
   const filteredTree = searchTerm ? filterTree(fileTree, searchTerm) : fileTree;
   const flattenedFilteredTree = flattenTree(filteredTree);
+
+  // Add expanded node state to the tree
+  useEffect(() => {
+    // Skip if no tree or no need to update
+    if (fileTree.length === 0 || isUpdatingExpandedNodesRef.current) return;
+    
+    updateTreeWithExpandedState();
+    
+  }, [fileTree, updateTreeWithExpandedState]); // updateTreeWithExpandedState is now memoized
 
   return (
     <div className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>
@@ -575,12 +553,6 @@ const Sidebar = ({
                       toggleExpanded={toggleExpanded}
                     />
                   ))}
-                  
-                  {countExcludedFiles() > 0 && (
-                    <div className={styles.excludedFilesIndicator}>
-                      {countExcludedFiles()} {countExcludedFiles() === 1 ? 'file' : 'files'} excluded by patterns
-                    </div>
-                  )}
                 </>
               ) : (
                 <div className={styles.treeEmpty}>

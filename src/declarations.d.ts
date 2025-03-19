@@ -29,6 +29,12 @@ declare module "*.jpg" {
   export default content;
 }
 
+// Add CSS module declarations
+declare module '*.module.css' {
+  const classes: { [key: string]: string };
+  export default classes;
+}
+
 // React / TypeScript setup fixes
 import 'react';
 

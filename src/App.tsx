@@ -22,6 +22,7 @@ declare global {
           func: (...args: any[]) => void
         ) => void;
         invoke: (channel: string, data?: any) => Promise<any>;
+        setMaxListeners?: (n: number) => void;
       };
     };
   }
@@ -729,16 +730,23 @@ const App = () => {
     }
   };
 
-  // Add handler for folder reload
-  const reloadFolder = () => {
+  // Wrap reloadFolder in useCallback to prevent recreating it on every render
+  const reloadFolder = useCallback(() => {
     if (isElectron && selectedFolder) {
+      console.log(`Reloading folder: ${selectedFolder}`);
       setProcessingStatus({
         status: "processing",
-        message: "Reloading files...",
+        message: "Loading files...",
       });
+      
+      // Clear state
+      setAllFiles([]);
+      setDisplayedFiles([]);
+      
+      // Trigger folder loading - use the correct event name
       window.electron.ipcRenderer.send("reload-file-list", selectedFolder);
     }
-  };
+  }, [isElectron, selectedFolder, setProcessingStatus, setAllFiles, setDisplayedFiles]);
 
   // Now add the ignore-patterns-saved handler after reloadFolder is defined
   useEffect(() => {
@@ -764,6 +772,11 @@ const App = () => {
           console.error("Failed to save ignore patterns:", result.error);
         }
       };
+      
+      // Increase the maximum number of listeners to prevent the warning
+      if (window.electron.ipcRenderer.setMaxListeners) {
+        window.electron.ipcRenderer.setMaxListeners(20);
+      }
       
       window.electron.ipcRenderer.on("ignore-patterns-saved", handleIgnorePatternsSaved);
       

@@ -11,6 +11,7 @@ export interface FileData {
   excludedByDefault?: boolean;
   lastModified?: number;
   isAppDirectory?: boolean;
+  excluded?: boolean;
 }
 
 export interface TreeNode {

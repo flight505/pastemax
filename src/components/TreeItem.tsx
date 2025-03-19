@@ -159,6 +159,13 @@ const TreeItem = ({
         >
           {name}
         </span>
+        
+        {/* Display token count or excluded label */}
+        {type === "file" && fileData && (
+          <span className={styles.treeItemTokens}>
+            {isDisabled ? "Excluded" : fileData.tokenCount > 0 ? `(${fileData.tokenCount.toLocaleString()})` : ""}
+          </span>
+        )}
       </div>
     </div>
   );

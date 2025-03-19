@@ -92,4 +92,4 @@ When implementing components, please:
 2. Maintain accessibility standards
 3. Test in both light and dark themes
 4. Document any component APIs
-5. Preserve existing functionality 
+5. Preserve existing functionality

@@ -1,5 +1,9 @@
 .file-tree-header {
-  /* existing styles */
+  display: flex;
+  align-items: center;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border-color, #eaeaea);
+  background-color: var(--background-primary, #ffffff);
 }
 
 /* Add new styles for excluded files count */
@@ -17,6 +21,11 @@
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
+  .file-tree-header {
+    background-color: var(--background-primary-dark, #1e1e1e);
+    border-color: var(--border-color-dark, #444);
+  }
+  
   .excluded-files-count {
     background-color: var(--background-secondary-dark, #2d2d2d);
     border-color: var(--border-color-dark, #444);
