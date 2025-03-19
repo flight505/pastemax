@@ -19,15 +19,16 @@
 
 /* Specific scrollbar styling for file list */
 .fileList::-webkit-scrollbar-track {
-  background-color: transparent;
+  background-color: var(--scrollbar-track-color);
 }
 
 .fileList::-webkit-scrollbar-thumb {
   background-color: var(--scrollbar-thumb-color);
+  border-radius: var(--radius-full);
 }
 
-.dark .fileList::-webkit-scrollbar-thumb {
-  background-color: hsl(240, 10%, 20%);
+.fileList::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover-color);
 }
 
 .fileListEmpty {

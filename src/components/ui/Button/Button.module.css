@@ -14,15 +14,18 @@
   white-space: nowrap;
   font-weight: 500;
   color: var(--text-primary);
+  height: var(--button-height-md);
 }
 
 .button:hover:not(:disabled) {
   background-color: var(--hover-color);
+  box-shadow: var(--shadow-sm);
 }
 
 .button:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--ring-color);
+  box-shadow: 0 0 0 2px var(--background-primary),
+              0 0 0 4px var(--ring-color);
 }
 
 .button:disabled {
@@ -40,6 +43,7 @@
 .primary:hover:not(:disabled) {
   background-color: var(--primary-button-hover);
   border-color: var(--primary-button-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .primary:active:not(:disabled) {

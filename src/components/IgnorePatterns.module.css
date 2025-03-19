@@ -8,7 +8,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: var(--z-index-modal);
 }
 
 .content {
@@ -18,7 +18,7 @@
   max-width: 700px;
   max-height: 90vh;
   padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
   overflow-y: auto;
 }
 
@@ -137,12 +137,11 @@
   top: 100%;
   left: 0;
   right: 0;
-  z-index: 10;
   background-color: var(--background-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  margin-top: 4px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-index-dropdown);
   max-height: 200px;
   overflow-y: auto;
 }

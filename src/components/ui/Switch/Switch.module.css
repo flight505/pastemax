@@ -12,21 +12,22 @@
 .switch {
   position: relative;
   display: inline-flex;
-  width: var(--toggle-width);
-  height: var(--toggle-height);
-  border-radius: 999px;
-  background-color: var(--toggle-inactive);
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background-color: var(--text-disabled);
   transition: background-color 0.2s ease;
   cursor: pointer;
 }
 
 .switchChecked {
-  background-color: var(--toggle-active);
+  background-color: var(--accent-color);
 }
 
 .switch:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--ring-color);
+  box-shadow: 0 0 0 2px var(--background-primary),
+              0 0 0 4px var(--ring-color);
 }
 
 .switchDisabled {
@@ -36,16 +37,16 @@
 
 .switchThumb {
   position: absolute;
-  top: var(--toggle-thumb-offset);
-  left: var(--toggle-thumb-offset);
-  width: var(--toggle-thumb-size);
-  height: var(--toggle-thumb-size);
-  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
   background-color: var(--background-primary);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.2s ease;
 }
 
 .switchChecked .switchThumb {
-  transform: translateX(calc(var(--toggle-width) - var(--toggle-thumb-size) - (var(--toggle-thumb-offset) * 2)));
+  transform: translateX(16px);
 } 

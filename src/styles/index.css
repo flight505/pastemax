@@ -24,180 +24,103 @@
   --secondary-button-active: hsl(240, 4.8%, 85%);
   --file-card-selected-border: hsl(240, 5.9%, 90%);
   
-  /* User instructions area specific colors */
-  --instructions-background: hsl(240, 5%, 96%);
-  --instructions-border: hsl(240, 5.9%, 90%);
-  
-  /* Ring for focus states */
-  --ring-color: hsl(240, 5.9%, 10%);
-  
-  /* Border radius */
-  --radius: 0.5rem;
-  --radius-full: 9999px;
-  
   /* Component Sizing */
   --button-height-sm: 30px;
   --button-height-md: 36px;
   --button-height-lg: 42px;
   
-  /* Toggle/Switch Variables */
-  --toggle-width: 36px;
-  --toggle-height: 20px;
-  --toggle-thumb-size: 14px;
-  --toggle-thumb-offset: 3px;
-  --toggle-active: var(--accent-color);
-  --toggle-inactive: var(--background-secondary);
+  /* Border radius */
+  --radius: 0.5rem;
+  --radius-full: 9999px;
+  
+  /* Focus ring */
+  --ring-color: hsl(240, 5.9%, 10%);
+  
+  /* Scrollbar */
+  --scrollbar-width: 8px;
+  --scrollbar-height: 8px;
+  --scrollbar-track-color: transparent;
+  --scrollbar-thumb-color: hsl(240, 3.8%, 80%);
+  --scrollbar-thumb-hover-color: hsl(240, 3.8%, 70%);
+  
+  /* Z-index layers */
+  --z-index-modal: 1000;
+  --z-index-dropdown: 100;
+  --z-index-tooltip: 50;
+  
+  /* Elevation (box-shadows) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
+/* Dark theme variables */
 .dark-mode {
   --background-primary: hsl(240, 10%, 3.9%);
   --background-secondary: hsl(240, 3.7%, 15.9%);
-  --background-selected: hsl(240, 5.3%, 26.6%);
-  --card-background: hsl(224, 71%, 4%);
-  --card-foreground: hsl(213, 31%, 91%);
+  --background-selected: hsl(240, 3.7%, 15.9%);
+  --card-background: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --accent-color: hsl(240, 5%, 64.9%);
   --border-color: hsl(240, 3.7%, 15.9%);
-  --hover-color: hsl(240, 5%, 22%);
+  --hover-color: hsl(240, 3.7%, 15.9%);
   --text-primary: hsl(0, 0%, 98%);
   --text-secondary: hsl(240, 5%, 64.9%);
-  --text-disabled: hsl(240, 5%, 40%);
+  --text-disabled: hsl(240, 5%, 44.9%);
   --icon-color: hsl(240, 5%, 64.9%);
-  --ring-color: hsl(212.7, 26.8%, 83.9%);
   --primary-button-background: hsl(0, 0%, 98%);
   --primary-button-hover: hsla(0, 0%, 98%, 0.9);
   --primary-button-active: hsla(0, 0%, 98%, 0.8);
   --primary-button-text: hsl(240, 10%, 3.9%);
   --secondary-button-background: hsl(240, 3.7%, 15.9%);
-  --secondary-button-hover: hsl(240, 4.8%, 20%);
-  --secondary-button-active: hsl(240, 4.8%, 25%);
-  --file-card-selected-border: hsl(240, 5%, 26%);
-  
-  /* User instructions area specific colors */
-  --instructions-background: hsl(240, 5%, 10%);
-  --instructions-border: hsl(240, 5%, 20%);
+  --secondary-button-hover: hsl(240, 3.7%, 20%);
+  --secondary-button-active: hsl(240, 3.7%, 25%);
+  --file-card-selected-border: hsl(240, 3.7%, 15.9%);
+  --scrollbar-thumb-color: hsl(240, 5%, 25%);
+  --scrollbar-thumb-hover-color: hsl(240, 5%, 35%);
 }
 
+/* Reset and base styles */
 * {
-  box-sizing: border-box;
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  background-color: var(--background-primary);
-  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
 }
 
 #root {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 100%;
 }
 
-button {
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  border: none;
-  border-radius: var(--radius);
-  background-color: var(--secondary-button-background);
-  color: var(--text-primary);
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
-  outline: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  height: var(--button-height-md);
-}
-
-button:hover {
-  background-color: var(--secondary-button-hover);
-}
-
-button:focus {
-  box-shadow: 0 0 0 2px var(--background-primary), 
-              0 0 0 4px var(--ring-color);
-}
-
-button.primary {
-  background-color: var(--primary-button-background);
-  color: var(--primary-button-text);
-}
-
-button.primary:hover {
-  background-color: var(--primary-button-hover);
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-input[type="text"],
-input[type="search"] {
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  background-color: var(--background-primary);
-  color: var(--text-primary);
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  font-size: 0.875rem;
-  width: 100%;
-}
-
-input[type="text"]:focus,
-input[type="search"]:focus {
-  border-color: var(--ring-color);
-  box-shadow: 0 0 0 2px var(--background-primary), 
-              0 0 0 4px var(--ring-color);
-}
-
-input[type="checkbox"],
-input[type="radio"] {
-  accent-color: var(--accent-color);
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-/* Scrollbar styles */
+/* Global scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-height);
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
-  margin: 4px;
+  background: var(--scrollbar-track-color);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--text-disabled);
-  border-radius: 4px;
-  transition: background 0.2s ease;
+  background: var(--scrollbar-thumb-color);
+  border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: var(--scrollbar-thumb-hover-color);
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
-}
-
-.dark-mode ::-webkit-scrollbar-thumb {
-  background: var(--text-disabled);
-}
-
-.dark-mode ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
 }

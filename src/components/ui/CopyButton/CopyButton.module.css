@@ -11,23 +11,25 @@
 
 /* Animation for copy success */
 .copySuccess {
-  animation: fadeIn 0.2s ease, fadeOut 0.5s ease 1.5s forwards;
+  color: var(--success-color);
+  animation: fadeInOut 2s ease forwards;
 }
 
-@keyframes fadeIn {
-  from {
+@keyframes fadeInOut {
+  0% {
     opacity: 0;
+    transform: translateY(4px);
   }
-  to {
+  10% {
     opacity: 1;
+    transform: translateY(0);
   }
-}
-
-@keyframes fadeOut {
-  from {
+  90% {
     opacity: 1;
+    transform: translateY(0);
   }
-  to {
+  100% {
     opacity: 0;
+    transform: translateY(-4px);
   }
 } 
