@@ -7,6 +7,7 @@
   position: relative;
   color: var(--text-primary);
   transition: background-color 0.1s ease;
+  border-radius: 4px;
 }
 
 .treeItem:hover {
@@ -31,6 +32,8 @@
   display: flex;
   align-items: center;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .treeItemIndent {
@@ -44,10 +47,13 @@
   align-items: center;
   margin-right: 4px;
   color: var(--icon-color);
+  flex-shrink: 0;
 }
 
 .treeItemCheckbox {
   margin-right: 4px;
+  cursor: pointer;
+  accent-color: var(--accent-color);
 }
 
 .treeItemName {
@@ -55,6 +61,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex-grow: 1;
+  font-size: 0.85rem;
 }
 
 .treeItemTokens {
@@ -69,10 +76,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   margin-right: 4px;
-  transition: transform 0.1s ease;
+  transition: transform 0.15s ease-in-out;
+  color: var(--icon-color);
+  z-index: 2;
 }
 
 .treeItemExpanderRotated {
@@ -90,4 +99,14 @@
 .disabledItem {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.treeItemBadge {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: var(--radius);
+  background-color: var(--hover-color);
+  color: var(--text-secondary);
+  margin-left: 6px;
+  white-space: nowrap;
 } 

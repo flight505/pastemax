@@ -1,6 +1,28 @@
 .fileCard {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 8px;
   transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  position: relative;
+  height: auto;
+  min-height: 90px;
+  background-color: var(--card-background);
+  color: var(--card-foreground);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.fileCard:hover {
+  background-color: var(--card-background);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: var(--border-color);
+  transform: translateY(-1px);
+}
+
+.fileCard.selected {
+  border-color: var(--file-card-selected-border);
+  box-shadow: 0 0 0 1px var(--file-card-selected-border);
 }
 
 .fileCardContent {
@@ -18,6 +40,8 @@
   color: var(--text-secondary);
   display: flex;
   align-items: center;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
 }
 
 .fileCardName {
@@ -26,18 +50,26 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 500;
+  color: var(--card-foreground);
 }
 
 .fileCardInfo {
   display: flex;
   flex-direction: column;
   margin-bottom: 8px;
+  flex-grow: 1;
 }
 
 .fileCardTokens {
   font-size: 12px;
   color: var(--text-secondary);
   margin-bottom: 4px;
+}
+
+.fileCardStatus {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .tokenBarContainer {
@@ -60,10 +92,36 @@
   justify-content: flex-end;
   gap: 4px;
   margin-top: 8px;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.fileCard:hover .fileCardActions {
+  opacity: 1;
 }
 
 .fileCardAction {
   color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: calc(var(--radius) - 0.2rem);
+  transition: all 0.15s ease;
+  box-shadow: none;
+}
+
+.fileCardAction:hover {
+  background-color: var(--hover-color);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
 }
 
 .copySuccess {

@@ -1,67 +1,106 @@
 .fileTreeHeader {
   display: flex;
   align-items: center;
-  background-color: var(--background-primary);
-  border-bottom: 1px solid var(--border-color);
-  padding: 4px 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border-color, #eaeaea);
+  background-color: var(--background-primary, #ffffff);
 }
 
 .fileTreeBtn {
-  color: var(--text-secondary) !important;
-  border: none !important;
-  background: transparent !important;
-  width: 28px !important;
-  height: 28px !important;
-  padding: 6px !important;
-  border-radius: var(--radius) !important;
-  margin-right: 4px;
+  margin: 0 2px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary, #333);
+  padding: 4px;
 }
 
 .fileTreeBtn:hover {
-  background-color: var(--hover-color) !important;
-  color: var(--text-primary) !important;
+  background-color: var(--background-hover, rgba(0, 0, 0, 0.05));
 }
 
 .active {
-  background-color: var(--hover-color) !important;
-  color: var(--text-primary) !important;
+  background-color: var(--background-selected, rgba(0, 0, 0, 0.1)) !important;
 }
 
 .dropdownContainer {
   position: relative;
-  display: inline-block;
 }
 
 .dropdownMenu {
   position: absolute;
   top: 100%;
   left: 0;
-  min-width: 180px;
-  background-color: var(--background-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-  overflow: hidden;
-  margin-top: 4px;
+  z-index: 999;
+  background-color: var(--background-primary, #fff);
+  border: 1px solid var(--border-color, #eaeaea);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 180px;
+  animation: dropdownFadeIn 0.15s ease-in;
 }
 
 .dropdownItem {
   padding: 8px 12px;
-  font-size: 14px;
   cursor: pointer;
-  color: var(--text-primary);
+  transition: background-color 0.1s;
+  font-size: 14px;
 }
 
 .dropdownItem:hover {
-  background-color: var(--hover-color);
+  background-color: var(--background-hover, rgba(0, 0, 0, 0.05));
+}
+
+.sortButton, .clearButton {
+  position: relative;
 }
 
 .excludedFilesCount {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-muted, #888);
   padding: 4px 8px;
-  background-color: var(--background-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background-color: var(--background-secondary, #f5f5f5);
+  border-bottom: 1px solid var(--border-color, #eaeaea);
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .fileTreeHeader {
+    background-color: var(--background-primary-dark, #1e1e1e);
+    border-color: var(--border-color-dark, #444);
+  }
+  
+  .excludedFilesCount {
+    background-color: var(--background-secondary-dark, #2d2d2d);
+    border-color: var(--border-color-dark, #444);
+  }
+  
+  .dropdownMenu {
+    background-color: var(--background-primary-dark, #2d2d2d);
+    border-color: var(--border-color-dark, #444);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .dropdownItem:hover {
+    background-color: var(--background-hover-dark, rgba(255, 255, 255, 0.05));
+  }
 } 
