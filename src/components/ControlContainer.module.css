@@ -5,27 +5,25 @@
   background-color: var(--background-primary);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
 }
 
 .controlContainerHeader {
   background-color: var(--background-secondary);
-  padding: 12px 16px;
+  padding: 8px 12px;
   font-weight: 500;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-color);
   border-top-left-radius: var(--radius);
   border-top-right-radius: var(--radius);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .controlItems {
-  padding: 16px;
+  padding: 12px;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: row;
+  gap: 24px;
+  align-items: flex-start;
 }
 
 .controlItem {
@@ -37,18 +35,19 @@
 /* For the tree mode selector */
 .controlSelect {
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background-color: var(--background-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   color: var(--text-primary);
-  font-size: 14px;
-  height: var(--button-height-sm);
+  font-size: 13px;
+  height: 28px;
+  min-width: 160px;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='feather feather-chevron-down'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 16px;
+  background-position: right 8px center;
+  background-size: 14px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -63,9 +62,10 @@
 }
 
 .controlSelectLabel {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 /* Control groups */
@@ -73,25 +73,24 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border-top: 1px solid var(--border-color);
-  padding-top: 16px;
+  min-width: 200px;
 }
 
 .controlGroupTitle {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-/* Copy button wrapper */
+/* Remove CopyButton related styles */
 .copyButtonWrapper {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
-  flex: 1;
-  min-width: 200px;
 }
 
 .tokenBarContainer {
@@ -119,10 +118,43 @@
 @media (max-width: 768px) {
   .controlItems {
     flex-direction: column;
-    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .controlGroup {
+    width: 100%;
   }
   
   .copyButtonWrapper {
     width: 100%;
   }
+}
+
+.outputButtons {
+  display: flex;
+  align-items: center;
+}
+
+.outputButtons > button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.outputButtons > button:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid var(--border-color);
+}
+
+/* Ensure hover is visible */
+.outputButtons > button:hover:not(:disabled) {
+  background-color: var(--hover-color);
+  z-index: 1;
+}
+
+/* Active state */
+.outputButtons > button:active:not(:disabled) {
+  background-color: var(--secondary-button-active);
+  z-index: 2;
 } 

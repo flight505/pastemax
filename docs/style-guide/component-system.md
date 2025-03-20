@@ -229,7 +229,7 @@ We support several button variants to address different UI needs:
   - **Hover**: Slight opacity decrease (90%)
   - **Active/Pressed**: Slight darkening effect
   - **Disabled**: 50% opacity, not clickable
-- **Usage**: Main actions, calls-to-action (e.g., "Select All", "Copy All")
+- **Usage**: Main actions, calls-to-action (e.g., "Select All", "Copy")
 - **Height**: 30px (sm), 36px (md), 42px (lg)
 
 #### 2. Secondary Button
@@ -386,7 +386,7 @@ We support several button variants to address different UI needs:
 
 #### CopyButton
 - [x] Convert to new Button component
-- [x] Simplify to "Copy All" with count indicator
+- [x] Simplify to "Copy" with count indicator
 - [x] Add download/save button adjacent
 
 #### User Instructions

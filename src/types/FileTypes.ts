@@ -72,12 +72,6 @@ export interface SearchBarProps {
   onSearchChange: (term: string) => void;
 }
 
-export interface CopyButtonProps {
-  onCopy: () => void;
-  isDisabled: boolean;
-  copyStatus: boolean;
-}
-
 export type FileTreeMode = "none" | "selected" | "selected-with-roots" | "complete";
 
 // Add SortOrder type for file tree sorting

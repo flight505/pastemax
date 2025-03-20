@@ -9,6 +9,7 @@ import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
 import { Github } from "lucide-react";
 import styles from "./App.module.css";
+import { Button } from "./components/ui/Button";
 
 // Access the electron API from the window object
 declare global {
@@ -980,14 +981,15 @@ const App = () => {
                     {selectedFolder}
                   </div>
                   <div className={styles.sortDropdown}>
-                    <button
+                    <Button
+                      variant="secondary"
                       className={styles.sortDropdownButton}
                       onClick={toggleSortDropdown}
                     >
                       Sort:{" "}
                       {sortOptions.find((opt) => opt.value === sortOrder)
                         ?.label || sortOrder}
-                    </button>
+                    </Button>
                     {sortDropdownOpen && (
                       <div className={styles.sortOptions}>
                         {sortOptions.map((option) => (

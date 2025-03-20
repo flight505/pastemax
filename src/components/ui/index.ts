@@ -1,5 +1,4 @@
-export * from './Button';
+export { Button } from './Button';
+export { Switch } from './Switch';
 export * from './Input';
-export * from './Switch';
 export * from './Card';
-export * from './CopyButton'; 

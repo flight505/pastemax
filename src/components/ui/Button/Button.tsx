@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../../utils/cn';
 import styles from './Button.module.css';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'round';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -30,23 +30,28 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   
   /**
    * If true, button will have equal width and height, and padding will be adjusted
+   * Useful for icon-only buttons
+   * @default false
    */
   iconOnly?: boolean;
   
   /**
-   * If true, button will have fully rounded corners
+   * If true, button will have fully rounded corners (pill shape)
+   * Note: Round variant will always be pill-shaped regardless of this prop
+   * @default false
    */
   pill?: boolean;
   
   /**
-   * Button children
+   * Button children (text content or other elements)
    */
   children?: React.ReactNode;
 }
 
 /**
  * Primary UI component for user interaction.
- * Supports multiple variants and sizes with optional icons.
+ * Supports multiple variants (primary, secondary, ghost, destructive, round) and sizes.
+ * Round variant is always pill-shaped and inherits primary colors with enhanced styling.
  */
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -63,14 +68,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
+    // Force pill shape for round variant
+    const isPill = variant === 'round' ? true : pill;
+    
     return (
       <button
         className={cn(
           styles.button,
-          styles[variant],
+          // Round variant inherits primary colors but adds its own enhancements
+          styles[variant === 'round' ? 'primary' : variant],
           styles[size],
           iconOnly && styles.iconOnly,
-          pill && styles.pill,
+          isPill && styles.pill,
+          variant === 'round' && styles.round,
           className
         )}
         ref={ref}

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FileTreeMode, SortOrder } from '../types/FileTypes';
-import { Switch, CopyButton } from './ui';
+import { Switch, Button } from './ui';
+import { Copy, Download, Check } from 'lucide-react';
 import styles from './ControlContainer.module.css';
 
 interface ControlContainerProps {
@@ -17,9 +18,6 @@ interface ControlContainerProps {
   loadIgnorePatterns?: (folderPath: string, isGlobal?: boolean) => void;
   saveIgnorePatterns?: (patterns: string, isGlobal: boolean, folderPath: string) => void;
   resetIgnorePatterns?: (isGlobal: boolean, folderPath: string) => void;
-  reloadFolder?: () => void;
-  clearSelection?: () => void;
-  removeAllFolders?: () => void;
 }
 
 const ControlContainer = ({
@@ -29,27 +27,27 @@ const ControlContainer = ({
   setShowUserInstructions,
   getSelectedFilesContent,
   selectedFilesCount,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   fileTreeSortOrder,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setFileTreeSortOrder,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ignorePatterns,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setIgnorePatterns,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   loadIgnorePatterns,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   saveIgnorePatterns,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   resetIgnorePatterns,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  reloadFolder,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  clearSelection,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  removeAllFolders,
 }: ControlContainerProps): JSX.Element => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const content = getSelectedFilesContent();
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   const handleDownload = () => {
     const content = getSelectedFilesContent();
     const blob = new Blob([content], { type: 'text/plain' });
@@ -101,12 +99,25 @@ const ControlContainer = ({
           <div className={styles.controlGroupTitle}>Output Options</div>
           
           <div className={styles.controlItem}>
-            <div className={styles.copyButtonWrapper}>
-              <CopyButton
-                text={getSelectedFilesContent()}
-                selectedCount={selectedFilesCount}
-                onDownload={handleDownload}
-              />
+            <div className={styles.outputButtons}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCopy}
+                startIcon={copied ? <Check size={16} /> : <Copy size={16} />}
+                disabled={selectedFilesCount === 0}
+              >
+                {copied ? 'Copied!' : `Copy (${selectedFilesCount})`}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleDownload}
+                startIcon={<Download size={16} />}
+                disabled={selectedFilesCount === 0}
+              >
+                Save
+              </Button>
             </div>
           </div>
         </div>
