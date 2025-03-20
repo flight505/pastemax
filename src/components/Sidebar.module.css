@@ -2,9 +2,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--background-primary);
   border-right: 1px solid var(--border-color);
-  overflow: hidden;
+  background: var(--background);
   position: relative;
 }
 
@@ -18,6 +17,8 @@
   padding: 8px;
   gap: 8px;
   border-bottom: 1px solid var(--border-color);
+  justify-content: center;
+  align-items: center;
 }
 
 .fileTree {
@@ -30,7 +31,6 @@
   padding: 16px;
   text-align: center;
   color: var(--text-secondary);
-  font-style: italic;
 }
 
 .treeLoading {
@@ -38,23 +38,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 32px;
+  gap: 16px;
   color: var(--text-secondary);
 }
 
 .spinner {
   border: 2px solid var(--border-color);
-  border-top: 2px solid var(--accent-color);
+  border-top: 2px solid var(--text-primary);
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   animation: spin 1s linear infinite;
-  margin-bottom: 8px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 .sidebarEmptyState {
@@ -63,36 +58,35 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  padding: 16px;
+  padding: 32px;
   text-align: center;
+  gap: 16px;
+  color: var(--text-secondary);
 }
 
 .sidebarEmptyIcon {
   color: var(--text-secondary);
-  margin-bottom: 16px;
-}
-
-.sidebarEmptyState h3 {
-  margin: 0 0 8px 0;
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.sidebarEmptyState p {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin: 0;
+  opacity: 0.5;
 }
 
 .sidebarResizeHandle {
   position: absolute;
-  top: 0;
   right: -4px;
+  top: 0;
+  bottom: 0;
   width: 8px;
-  height: 100%;
   cursor: col-resize;
-  z-index: 5;
+  background: transparent;
+  transition: background-color 0.2s;
+}
+
+.sidebarResizeHandle:hover {
+  background: var(--accent);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .excludedFilesIndicator {

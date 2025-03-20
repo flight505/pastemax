@@ -2,8 +2,9 @@
   display: flex;
   align-items: center;
   padding: 6px 4px;
-  border-bottom: 1px solid var(--border-color, #eaeaea);
-  background-color: var(--background-primary, #ffffff);
+  border-bottom: 1px solid var(--border);
+  background-color: var(--secondary);
+  z-index: 1;
 }
 
 .fileTreeBtn {
@@ -15,12 +16,21 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
   padding: 4px;
+  transition: background-color 0.1s ease, color 0.1s ease;
 }
 
 .fileTreeBtn:hover {
-  background-color: var(--background-hover, rgba(0, 0, 0, 0.05));
+  background-color: var(--background-hover);
+  color: var(--text-primary);
+}
+
+.fileTreeBtn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2px;
+  color: var(--text-primary);
 }
 
 .active {
@@ -36,10 +46,11 @@
   top: 100%;
   left: 0;
   z-index: 999;
-  background-color: var(--background-primary, #fff);
-  border: 1px solid var(--border-color, #eaeaea);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
   width: 180px;
   animation: dropdownFadeIn 0.15s ease-in;
 }
@@ -47,12 +58,14 @@
 .dropdownItem {
   padding: 8px 12px;
   cursor: pointer;
-  transition: background-color 0.1s;
+  transition: background-color 0.1s ease, color 0.1s ease;
   font-size: 14px;
+  color: var(--popover-foreground);
 }
 
 .dropdownItem:hover {
-  background-color: var(--background-hover, rgba(0, 0, 0, 0.05));
+  background-color: var(--secondary-button-background);
+  color: var(--text-primary);
 }
 
 .sortButton, .clearButton {
@@ -61,10 +74,10 @@
 
 .excludedFilesCount {
   font-size: 12px;
-  color: var(--text-muted, #888);
+  color: var(--muted-foreground);
   padding: 4px 8px;
-  background-color: var(--background-secondary, #f5f5f5);
-  border-bottom: 1px solid var(--border-color, #eaeaea);
+  background-color: var(--secondary);
+  border-bottom: 1px solid var(--border);
   text-align: center;
   display: flex;
   align-items: center;
@@ -79,28 +92,5 @@
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .fileTreeHeader {
-    background-color: var(--background-primary-dark, #1e1e1e);
-    border-color: var(--border-color-dark, #444);
-  }
-  
-  .excludedFilesCount {
-    background-color: var(--background-secondary-dark, #2d2d2d);
-    border-color: var(--border-color-dark, #444);
-  }
-  
-  .dropdownMenu {
-    background-color: var(--background-primary-dark, #2d2d2d);
-    border-color: var(--border-color-dark, #444);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-  
-  .dropdownItem:hover {
-    background-color: var(--background-hover-dark, rgba(255, 255, 255, 0.05));
   }
 } 

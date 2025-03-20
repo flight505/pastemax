@@ -21,25 +21,136 @@ Our component system follows a two-layer architecture:
 
 ### CSS Variables System
 
-We'll continue using our robust CSS variables system defined in `index.css`, which already aligns well with shadcn/ui's monochrome zinc palette:
+We follow shadcn/ui's theme variable naming convention for consistent styling across all components:
 
 ```css
 :root {
-  /* Base colors */
-  --background-primary: hsl(0, 0%, 100%);
-  --background-secondary: hsl(240, 4.8%, 95.9%);
-  /* ... other variables ... */
-}
-
-.dark-mode {
-  --background-primary: hsl(240, 10%, 3.9%);
-  /* ... dark mode variables ... */
+  /* Core theme colors - always use these semantic names in components */
+  --background: 0 0% 100%;        /* Base background */
+  --foreground: 240 10% 3.9%;     /* Primary text */
+  --popover: 0 0% 100%;           /* Floating elements */
+  --popover-foreground: 240 10% 3.9%;
+  --secondary: 240 4.8% 95.9%;    /* Secondary backgrounds */
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;        /* Subtle elements */
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;       /* Emphasis elements */
+  --accent-foreground: 240 5.9% 10%;
 }
 ```
 
+### Theme Variable Usage Rules
+
+1. **Semantic Variable Names**
+   - ✅ DO: Use semantic variable names (e.g., `var(--popover)`)
+   - ❌ DON'T: Hardcode colors or use non-semantic names
+
+2. **Component-Specific Styling**
+   - ✅ DO: Use appropriate semantic variables for each UI element:
+     - Dropdowns/Menus: `--popover`, `--popover-foreground`
+     - Secondary UI: `--secondary`, `--secondary-foreground`
+     - Subtle text: `--muted-foreground`
+     - Interactive elements: `--accent`, `--accent-foreground`
+   - ❌ DON'T: Mix semantic contexts (e.g., using `--card` for popover)
+
+3. **State Management**
+   - Default: Use base semantic variables
+   - Hover: Use appropriate hover state variables
+   - Active/Selected: Use accent or selected state variables
+   - Disabled: Apply opacity to base variables
+
+4. **Dark Mode Compatibility**
+   - All components must use theme variables that have dark mode values
+   - Never use hardcoded colors that won't adapt to dark mode
+   - Test all states in both light and dark modes
+
+### Component CSS Structure
+
+```typescript
+// ComponentName.tsx
+import styles from './ComponentName.module.css';
+
+// ComponentName.module.css
+.componentRoot {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.interactive:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+```
+
+### Common Component Patterns
+
+1. **Dropdowns/Popovers**
+```css
+.dropdown {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+}
+
+.dropdownItem:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+```
+
+2. **Buttons**
+```css
+.button {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.buttonPrimary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+```
+
+3. **Text Elements**
+```css
+.label {
+  color: var(--foreground);
+}
+
+.helperText {
+  color: var(--muted-foreground);
+}
+```
+
+### Implementation Guidelines
+
+1. **File Organization**
+   - Component files must be co-located:
+     ```
+     ComponentName/
+     ├── ComponentName.tsx
+     ├── ComponentName.module.css
+     └── index.ts
+     ```
+
+2. **Variable Usage**
+   - Import theme variables from index.css
+   - Use CSS modules for component-specific styles
+   - Follow semantic naming in both TSX and CSS files
+
+3. **Style Inheritance**
+   - Components should be self-contained
+   - Use composition over inheritance
+   - Avoid global styles except in index.css
+
+4. **Documentation**
+   - Document any custom variables in component CSS
+   - Include theme requirements in component docs
+   - Note any specific dark mode considerations
+
 ### Component-Level CSS Modules
 
-We'll transition to CSS Modules for component-specific styling:
+We use CSS Modules for component-specific styling with clear hierarchy:
 
 ```
 src/
@@ -49,6 +160,30 @@ src/
         Button.tsx
         Button.module.css
 ```
+
+#### Component Styling Hierarchy
+
+Components follow a strict styling hierarchy to maintain independence:
+
+1. **Container Components** (e.g., Sidebar):
+   - Handle layout and structure
+   - Background colors only applied to content areas
+   - Avoid background colors that might affect child components
+
+2. **Header Components** (e.g., FileTreeHeader):
+   - Manage their own background colors
+   - Use z-index when needed for proper layering
+   - Independent of parent background colors
+
+3. **Content Components** (e.g., FileTree):
+   - Use primary background colors
+   - Handle their own scrolling and overflow
+
+This hierarchy ensures:
+- Clear separation of concerns
+- Predictable styling inheritance
+- Easy maintenance and debugging
+- Component portability
 
 ### Utility Functions
 
@@ -242,6 +377,8 @@ We support several button variants to address different UI needs:
 - [x] Refactor to use new base components
 - [x] Maintain current functionality
 - [x] Ensure responsive behavior
+- [x] Independent background color management
+- [x] Proper z-index layering
 
 #### SearchBar
 - [x] Use new Input component
@@ -277,3 +414,63 @@ We support several button variants to address different UI needs:
 - Use CSS Modules for component styles
 - Maintain accessibility standards
 - Test in both light and dark modes 
+
+
+## original shadcn/ui zink theme
+light mode:
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark-mode {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}

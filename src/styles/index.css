@@ -1,6 +1,7 @@
 :root {
   /* Monochrome Zinc theme - shadcn inspired */
   --background-primary: hsl(0, 0%, 100%);
+  --background-primary-dark: hsl(240, 10%, 3.9%);
   --background-secondary: hsl(240, 4.8%, 95.9%);
   --background-selected: hsl(240, 4.8%, 95.9%);
   --card-background: hsl(0, 0%, 100%);
@@ -23,11 +24,12 @@
   --secondary-button-hover: hsl(240, 4.8%, 90%);
   --secondary-button-active: hsl(240, 4.8%, 85%);
   --file-card-selected-border: hsl(240, 5.9%, 90%);
-  
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(0, 0%, 0%);
   /* Component Sizing */
-  --button-height-sm: 30px;
-  --button-height-md: 36px;
-  --button-height-lg: 42px;
+  --button-height-sm: 28px;
+  --button-height-md: 32px;
+  --button-height-lg: 38px;
   
   /* Border radius */
   --radius: 0.5rem;
@@ -58,6 +60,7 @@
 /* Dark theme variables */
 .dark-mode {
   --background-primary: hsl(240, 10%, 3.9%);
+  --background-primary-dark: hsl(240, 3.7%, 15.9%);
   --background-secondary: hsl(240, 3.7%, 15.9%);
   --background-selected: hsl(240, 3.7%, 15.9%);
   --card-background: hsl(240, 10%, 3.9%);
@@ -79,6 +82,7 @@
   --file-card-selected-border: hsl(240, 3.7%, 15.9%);
   --scrollbar-thumb-color: hsl(240, 5%, 25%);
   --scrollbar-thumb-hover-color: hsl(240, 5%, 35%);
+  --popover-foreground: hsl(0, 0%, 98%);
 }
 
 /* Reset and base styles */

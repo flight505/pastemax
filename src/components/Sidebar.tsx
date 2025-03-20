@@ -8,6 +8,20 @@ import { Button } from "./ui";
 import SearchBar from "./SearchBar";
 import styles from "./Sidebar.module.css";
 
+// Extend the existing SidebarProps from FileTypes
+interface ExtendedSidebarProps extends SidebarProps {
+  reloadFolder: () => void;
+  clearSelection: () => void;
+  removeAllFolders: () => void;
+  ignorePatterns: string;
+  setIgnorePatterns: (patterns: string) => void;
+  loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
+  saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
+  resetIgnorePatterns: (isGlobal: boolean, folderPath: string) => void;
+  systemIgnorePatterns: string[];
+  clearIgnorePatterns: (folderPath: string) => void;
+}
+
 const Sidebar = ({
   selectedFolder,
   openFolder,
@@ -21,7 +35,7 @@ const Sidebar = ({
   deselectAllFiles,
   expandedNodes,
   toggleExpanded,
-  // New props
+  // Extended props
   reloadFolder,
   clearSelection,
   removeAllFolders,
@@ -32,18 +46,7 @@ const Sidebar = ({
   resetIgnorePatterns,
   systemIgnorePatterns,
   clearIgnorePatterns,
-}: SidebarProps & {
-  reloadFolder: () => void;
-  clearSelection: () => void;
-  removeAllFolders: () => void;
-  ignorePatterns: string;
-  setIgnorePatterns: (patterns: string) => void;
-  loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
-  saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
-  resetIgnorePatterns: (isGlobal: boolean, folderPath: string) => void;
-  systemIgnorePatterns: string[];
-  clearIgnorePatterns: (folderPath: string) => void;
-}) => {
+}: ExtendedSidebarProps) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [isTreeBuildingComplete, setIsTreeBuildingComplete] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(300);
@@ -314,7 +317,7 @@ const Sidebar = ({
                 type: "directory",
                 path: "", // Add empty string as default path for directory nodes
                 children: convertToTreeNodes(item.children, level + 1),
-                isExpanded: level < 2 || Boolean(expandedNodes.get(id)),
+                isExpanded: level < 2 || (expandedNodes.has(id) ? !!expandedNodes.get(id) : false),
                 depth: level,
               };
             } else {
@@ -346,7 +349,7 @@ const Sidebar = ({
         isBuildingTreeRef.current = false;
         
         // Update expanded state if needed
-        if (expandedNodes.size > 0 && !isUpdatingExpandedNodesRef.current) {
+        if (typeof expandedNodes.size === 'number' && expandedNodes.size > 0 && !isUpdatingExpandedNodesRef.current) {
           updateTreeWithExpandedState();
         }
       } catch (error) {
@@ -374,9 +377,8 @@ const Sidebar = ({
     
     const updateNodes = (nodes: TreeNode[]): TreeNode[] => {
       return nodes.map(node => {
-        const isExpanded = expandedNodes.get(node.id) !== undefined 
-          ? expandedNodes.get(node.id) 
-          : node.isExpanded;
+        const nodeExpanded = expandedNodes.has(node.id) ? !!expandedNodes.get(node.id) : false;
+        const isExpanded = nodeExpanded || node.isExpanded;
         
         // Check if there's a change in expanded state
         if (isExpanded !== node.isExpanded) {
@@ -567,7 +569,7 @@ const Sidebar = ({
               Select All
             </Button>
             <Button
-              variant="secondary"
+              variant="primary"
               onClick={deselectAllFiles}
               title="Deselect all files"
             >
