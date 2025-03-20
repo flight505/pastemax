@@ -1,14 +1,15 @@
 .fileTreeHeader {
   display: flex;
   align-items: center;
-  padding: 6px 4px;
-  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
   background-color: var(--secondary);
   z-index: 1;
+  height: 40px;
 }
 
 .fileTreeBtn {
-  margin: 0 2px;
+  margin: 0 3px;
   background: transparent;
   border: none;
   border-radius: 3px;
@@ -19,10 +20,12 @@
   color: var(--text-primary);
   padding: 4px;
   transition: background-color 0.1s ease, color 0.1s ease;
+  width: 24px;
+  height: 24px;
 }
 
 .fileTreeBtn:hover {
-  background-color: var(--background-hover);
+  background-color: var(--hover-color);
   color: var(--text-primary);
 }
 
@@ -51,16 +54,20 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
-  width: 180px;
+  width: 170px;
   animation: dropdownFadeIn 0.15s ease-in;
+  margin-top: 2px;
+  overflow: hidden;
 }
 
 .dropdownItem {
-  padding: 8px 12px;
+  padding: 6px 10px;
   cursor: pointer;
   transition: background-color 0.1s ease, color 0.1s ease;
-  font-size: 14px;
+  font-size: 12px;
   color: var(--popover-foreground);
+  display: flex;
+  align-items: center;
 }
 
 .dropdownItem:hover {

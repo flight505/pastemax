@@ -3,22 +3,26 @@
   flex-direction: column;
   height: 100%;
   border-right: 1px solid var(--border-color);
-  background: var(--background);
+  background: var(--background-primary);
   position: relative;
 }
 
 .sidebarSearch {
-  padding: 8px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--border-color);
+  height: 40px;
+  display: flex;
+  align-items: center;
 }
 
 .sidebarActions {
   display: flex;
-  padding: 8px;
+  padding: 6px 8px;
   gap: 8px;
   border-bottom: 1px solid var(--border-color);
   justify-content: center;
   align-items: center;
+  height: 40px;
 }
 
 .fileTree {

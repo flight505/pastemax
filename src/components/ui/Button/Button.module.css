@@ -1,3 +1,4 @@
+/* Base button styles */
 .button {
   display: inline-flex;
   align-items: center;
@@ -30,49 +31,26 @@
   cursor: not-allowed;
 }
 
-/* Variants */
-.ghost {
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-}
-
-.ghost:hover:not(:disabled) {
-  background-color: var(--hover-color);
-}
-
-.ghost:active:not(:disabled) {
-  background-color: var(--secondary-button-active);
-}
-
-.secondary {
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-}
-
-.secondary:hover:not(:disabled) {
-  background-color: var(--hover-color);
-}
-
-.secondary:active:not(:disabled) {
-  background-color: var(--secondary-button-active);
-}
-
 /* Icon styles */
 .startIcon {
-  margin-right: 4px;
   display: flex;
   align-items: center;
+  margin-right: 4px;
 }
 
 .endIcon {
-  margin-left: 4px;
   display: flex;
   align-items: center;
+  margin-left: 4px;
 }
 
-/* Variants */
+.iconOnly {
+  padding: 0;
+  aspect-ratio: 1/1;
+  justify-content: center;
+}
+
+/* Button variants */
 .primary {
   background-color: var(--primary-button-background);
   color: var(--primary-button-text);
@@ -90,6 +68,34 @@
   border-color: var(--primary-button-active);
 }
 
+.secondary {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: var(--hover-color);
+}
+
+.secondary:active:not(:disabled) {
+  background-color: var(--secondary-button-active);
+}
+
+.ghost {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.ghost:hover:not(:disabled) {
+  background-color: var(--hover-color);
+}
+
+.ghost:active:not(:disabled) {
+  background-color: var(--secondary-button-active);
+}
+
 .destructive {
   background-color: var(--error-color);
   color: white;
@@ -104,10 +110,10 @@
   opacity: 0.8;
 }
 
-/* Sizes */
+/* Size variants */
 .sm {
   font-size: 12px;
-  padding: 0 12px;
+  padding: 0 10px; /* Adjusted for consistent small button sizing */
   height: var(--button-height-sm);
 }
 
@@ -123,25 +129,7 @@
   height: var(--button-height-lg);
 }
 
-/* Icon styles */
-.startIcon {
-  margin-right: 4px;
-  display: flex;
-  align-items: center;
-}
-
-.endIcon {
-  margin-left: 4px;
-  display: flex;
-  align-items: center;
-}
-
-.iconOnly {
-  padding: 0;
-  aspect-ratio: 1/1;
-  justify-content: center;
-}
-
+/* Icon-only size adjustments */
 .iconOnly.sm {
   width: var(--button-height-sm);
 }
@@ -154,12 +142,12 @@
   width: var(--button-height-lg);
 }
 
-/* Pill variant */
+/* Shape variants */
 .pill {
   border-radius: var(--radius-full);
 }
 
-/* Round variant - inherits from primary but with enhancements */
+/* Round variant - enhanced primary button */
 .round {
   background-color: var(--primary-button-background);
   color: var(--primary-button-text);
@@ -168,6 +156,7 @@
   border-width: 1.5px;
   font-weight: 600;
   letter-spacing: 0.01em;
+  border-radius: var(--radius-full);
 }
 
 .round:hover:not(:disabled) {
@@ -179,6 +168,15 @@
 .round:active:not(:disabled) {
   background-color: var(--primary-button-active);
   border-color: var(--primary-button-active);
+}
+
+/* Round variant specific adjustments */
+.round .startIcon {
+  margin-right: 8px;
+}
+
+.round .endIcon {
+  margin-left: 8px;
 }
 
 .round.iconOnly {
@@ -195,15 +193,6 @@
 .round.lg.iconOnly {
   width: var(--button-height-lg);
   height: var(--button-height-lg);
-}
-
-/* Adjust icon spacing for round variant */
-.round .startIcon {
-  margin-right: 8px;
-}
-
-.round .endIcon {
-  margin-left: 8px;
 }
 
 .round.iconOnly .startIcon,

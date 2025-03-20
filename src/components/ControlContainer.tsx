@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileTreeMode, SortOrder } from '../types/FileTypes';
-import { Switch, Button } from './ui';
+import { Switch, Button, ButtonGroup } from './ui';
 import { Copy, Download, Check } from 'lucide-react';
 import styles from './ControlContainer.module.css';
 
@@ -99,10 +99,9 @@ const ControlContainer = ({
           <div className={styles.controlGroupTitle}>Output Options</div>
           
           <div className={styles.controlItem}>
-            <div className={styles.outputButtons}>
+            <ButtonGroup size="sm">
               <Button
                 variant="secondary"
-                size="sm"
                 onClick={handleCopy}
                 startIcon={copied ? <Check size={16} /> : <Copy size={16} />}
                 disabled={selectedFilesCount === 0}
@@ -111,14 +110,13 @@ const ControlContainer = ({
               </Button>
               <Button
                 variant="secondary"
-                size="sm"
                 onClick={handleDownload}
                 startIcon={<Download size={16} />}
                 disabled={selectedFilesCount === 0}
               >
                 Save
               </Button>
-            </div>
+            </ButtonGroup>
           </div>
         </div>
       </div>

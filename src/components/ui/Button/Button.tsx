@@ -6,52 +6,31 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  /**
-   * Button visual variant
-   * @default 'primary'
-   */
+  /** Button visual variant */
   variant?: ButtonVariant;
   
-  /**
-   * Button size
-   * @default 'md'
-   */
+  /** Button size */
   size?: ButtonSize;
   
-  /**
-   * Optional icon to display before the button text
-   */
+  /** Icon to display before button text */
   startIcon?: React.ReactNode;
   
-  /**
-   * Optional icon to display after the button text
-   */
+  /** Icon to display after button text */
   endIcon?: React.ReactNode;
   
-  /**
-   * If true, button will have equal width and height, and padding will be adjusted
-   * Useful for icon-only buttons
-   * @default false
-   */
+  /** Make button square with equal width/height (for icon buttons) */
   iconOnly?: boolean;
   
-  /**
-   * If true, button will have fully rounded corners (pill shape)
-   * Note: Round variant will always be pill-shaped regardless of this prop
-   * @default false
-   */
+  /** Make button have fully rounded corners */
   pill?: boolean;
   
-  /**
-   * Button children (text content or other elements)
-   */
+  /** Button content */
   children?: React.ReactNode;
 }
 
 /**
- * Primary UI component for user interaction.
- * Supports multiple variants (primary, secondary, ghost, destructive, round) and sizes.
- * Round variant is always pill-shaped and inherits primary colors with enhanced styling.
+ * Button component for user interaction.
+ * Supports multiple variants, sizes, and icon placements.
  */
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -68,14 +47,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    // Force pill shape for round variant
+    // Round variant is always pill-shaped
     const isPill = variant === 'round' ? true : pill;
     
     return (
       <button
         className={cn(
           styles.button,
-          // Round variant inherits primary colors but adds its own enhancements
           styles[variant === 'round' ? 'primary' : variant],
           styles[size],
           iconOnly && styles.iconOnly,

@@ -563,6 +563,7 @@ const Sidebar = ({
           <div className={styles.sidebarActions}>
             <Button
               variant="primary"
+              size="sm"
               onClick={selectAllFiles}
               title="Select all files"
             >
@@ -570,6 +571,7 @@ const Sidebar = ({
             </Button>
             <Button
               variant="primary"
+              size="sm"
               onClick={deselectAllFiles}
               title="Deselect all files"
             >

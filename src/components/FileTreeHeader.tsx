@@ -97,7 +97,7 @@ const FileTreeHeader = ({
     <>
       <div className={styles.fileTreeHeader}>
         <Button 
-          variant="ghost"
+          variant="secondary"
           size="sm"
           iconOnly
           startIcon={<Folder size={16} />}
@@ -111,7 +111,7 @@ const FileTreeHeader = ({
         
         <div className={styles.dropdownContainer}>
           <Button 
-            variant="ghost"
+            variant="secondary"
             size="sm"
             iconOnly
             startIcon={<ArrowUpDown size={16} />}
@@ -145,7 +145,7 @@ const FileTreeHeader = ({
         </div>
         
         <Button 
-          variant="ghost"
+          variant="secondary"
           size="sm"
           iconOnly
           startIcon={<Filter size={16} />}
@@ -159,7 +159,7 @@ const FileTreeHeader = ({
         
         <div className={styles.dropdownContainer}>
           <Button 
-            variant="ghost"
+            variant="secondary"
             size="sm"
             iconOnly
             startIcon={<X size={16} />}
@@ -184,7 +184,7 @@ const FileTreeHeader = ({
         </div>
         
         <Button 
-          variant="ghost"
+          variant="secondary"
           size="sm"
           iconOnly
           startIcon={<RefreshCw size={16} />}

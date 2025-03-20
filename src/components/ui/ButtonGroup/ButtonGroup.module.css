@@ -1,0 +1,74 @@
+.buttonGroup {
+  display: flex;
+  align-items: center;
+}
+
+/* Horizontal variant - default */
+.horizontal {
+  display: flex;
+  flex-direction: row;
+}
+
+/* Vertical variant */
+.vertical {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Position-based styles for horizontal variant */
+.first {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.middle {
+  border-radius: 0;
+  border-right: none;
+}
+
+.last {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid var(--border-color);
+}
+
+/* Position-based styles for vertical variant */
+.top {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: none;
+}
+
+.center {
+  border-radius: 0;
+  border-bottom: none;
+}
+
+.bottom {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Handle hover and active states - ensure proper z-index */
+.buttonGroup button:hover:not(:disabled) {
+  z-index: 1;
+}
+
+.buttonGroup button:active:not(:disabled) {
+  z-index: 2;
+}
+
+/* Sizes */
+.sm {
+  gap: 0;
+}
+
+.md {
+  gap: 0;
+}
+
+.lg {
+  gap: 0;
+} 
