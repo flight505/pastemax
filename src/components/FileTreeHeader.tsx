@@ -97,7 +97,7 @@ const FileTreeHeader = ({
     <>
       <div className={styles.fileTreeHeader}>
         <Button 
-          variant="secondary"
+          variant="ghost"
           size="sm"
           iconOnly
           startIcon={<Folder size={16} />}
@@ -111,7 +111,7 @@ const FileTreeHeader = ({
         
         <div className={styles.dropdownContainer}>
           <Button 
-            variant="secondary"
+            variant="ghost"
             size="sm"
             iconOnly
             startIcon={<ArrowUpDown size={16} />}
@@ -119,33 +119,33 @@ const FileTreeHeader = ({
               e.stopPropagation(); // Prevent immediate closure
               toggleDropdown('sort');
             }}
-            title="Sort"
+            title="SortBy"
             className={`${styles.fileTreeBtn} ${styles.sortButton} ${activeDropdown === 'sort' ? styles.active : ''}`}
           />
           
           {activeDropdown === 'sort' && (
             <div className={styles.dropdownMenu} ref={sortMenuRef}>
               <div className={styles.dropdownItem} onClick={() => handleSortSelect("name-asc")}>
-                Name (A-Z)
+                Name (⬆ A-Z)
               </div>
               <div className={styles.dropdownItem} onClick={() => handleSortSelect("name-desc")}>
-                Name (Z-A)
+                Name (⬇ Z-A)
               </div>
               <div className={styles.dropdownItem} onClick={() => handleSortSelect("ext-asc")}>
-                Extension (A-Z)
+                Extension (⬆ A-Z)
               </div>
               <div className={styles.dropdownItem} onClick={() => handleSortSelect("ext-desc")}>
-                Extension (Z-A)
+                Extension (⬇ Z-A)
               </div>
               <div className={styles.dropdownItem} onClick={() => handleSortSelect("date-newest")}>
-                Date (Newest)
+                Date (⬇ Newest)
               </div>
             </div>
           )}
         </div>
         
         <Button 
-          variant="secondary"
+          variant="ghost"
           size="sm"
           iconOnly
           startIcon={<Filter size={16} />}
@@ -159,7 +159,7 @@ const FileTreeHeader = ({
         
         <div className={styles.dropdownContainer}>
           <Button 
-            variant="secondary"
+            variant="ghost"
             size="sm"
             iconOnly
             startIcon={<X size={16} />}
@@ -184,7 +184,7 @@ const FileTreeHeader = ({
         </div>
         
         <Button 
-          variant="secondary"
+          variant="ghost"
           size="sm"
           iconOnly
           startIcon={<RefreshCw size={16} />}

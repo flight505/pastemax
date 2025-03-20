@@ -216,4 +216,8 @@
   gap: 12px;
 }
 
-/* We'll override these with our Button component */ 
+.destructiveIcon {
+  color: var(--error-color);
+}
+
+/* We'll override these with our Button component */

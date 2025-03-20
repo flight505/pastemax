@@ -549,10 +549,10 @@ const App = () => {
 
   // Sort options for the dropdown
   const sortOptions = [
-    { value: "tokens-desc", label: "Tokens: High to Low" },
-    { value: "tokens-asc", label: "Tokens: Low to High" },
-    { value: "name-asc", label: "Name: A to Z" },
-    { value: "name-desc", label: "Name: Z to A" },
+    { value: "tokens-desc", label: "Tokens (⬇ High-Low)" },
+    { value: "tokens-asc", label: "Tokens (⬆ Low-High)" },
+    { value: "name-asc", label: "Name (⬆ A-Z)" },
+    { value: "name-desc", label: "Name (⬇ Z-A)" },
   ];
 
   // Handle expand/collapse state changes
@@ -986,7 +986,7 @@ const App = () => {
                       className={styles.sortDropdownButton}
                       onClick={toggleSortDropdown}
                     >
-                      Sort:{" "}
+                      SortBy:{" "}
                       {sortOptions.find((opt) => opt.value === sortOrder)
                         ?.label || sortOrder}
                     </Button>

@@ -54,20 +54,16 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
-  width: 170px;
+  width: 180px;
   animation: dropdownFadeIn 0.15s ease-in;
-  margin-top: 2px;
-  overflow: hidden;
 }
 
 .dropdownItem {
-  padding: 6px 10px;
+  padding: 8px 12px;
   cursor: pointer;
   transition: background-color 0.1s ease, color 0.1s ease;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--popover-foreground);
-  display: flex;
-  align-items: center;
 }
 
 .dropdownItem:hover {

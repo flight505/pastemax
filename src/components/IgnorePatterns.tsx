@@ -144,7 +144,7 @@ const IgnorePatterns = ({
         <div className={styles.header}>
           <h2>Ignore Patterns</h2>
           <Button 
-            variant="ghost" 
+            variant="secondary" 
             size="sm" 
             iconOnly
             onClick={onClose}
