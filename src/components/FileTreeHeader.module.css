@@ -1,43 +1,46 @@
 .fileTreeHeader {
   display: flex;
   align-items: center;
-  padding: 6px 8px;
+  justify-content: space-between;
+  padding: 0 12px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--secondary);
+  background-color: var(--background-primary);
   z-index: 1;
-  height: 40px;
+  height: 52px;
+  gap: 8px;
 }
 
 .fileTreeBtn {
-  margin: 0 3px;
   background: transparent;
   border: none;
-  border-radius: 3px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--text-primary);
-  padding: 4px;
-  transition: background-color 0.1s ease, color 0.1s ease;
-  width: 24px;
-  height: 24px;
+  transition: background-color 0.15s ease;
+  min-width: 32px;
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
+  border-radius: 4px;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .fileTreeBtn:hover {
-  background-color: var(--hover-color);
-  color: var(--text-primary);
+  background: var(--hover-color);
 }
 
 .fileTreeBtn svg {
   width: 16px;
   height: 16px;
-  stroke-width: 2px;
   color: var(--text-primary);
 }
 
 .active {
-  background-color: var(--background-selected, rgba(0, 0, 0, 0.1)) !important;
+  background: var(--background-selected) !important;
 }
 
 .dropdownContainer {
@@ -48,9 +51,8 @@
   position: absolute;
   top: 100%;
   left: 0;
-  z-index: 999;
-  background-color: var(--popover);
-  color: var(--popover-foreground);
+  z-index: var(--z-index-dropdown);
+  background: var(--background-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
@@ -61,13 +63,13 @@
 .dropdownItem {
   padding: 8px 12px;
   cursor: pointer;
-  transition: background-color 0.1s ease, color 0.1s ease;
+  transition: background-color 0.1s ease;
   font-size: 14px;
-  color: var(--popover-foreground);
+  color: var(--text-primary);
 }
 
 .dropdownItem:hover {
-  background-color: var(--secondary-button-background);
+  background: var(--hover-color);
   color: var(--text-primary);
 }
 
@@ -77,10 +79,10 @@
 
 .excludedFilesCount {
   font-size: 12px;
-  color: var(--muted-foreground);
+  color: var(--text-secondary);
   padding: 4px 8px;
-  background-color: var(--secondary);
-  border-bottom: 1px solid var(--border);
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--border-color);
   text-align: center;
   display: flex;
   align-items: center;

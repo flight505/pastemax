@@ -26,6 +26,7 @@
   --file-card-selected-border: hsl(240, 5.9%, 90%);
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(0, 0%, 0%);
+
   /* Component Sizing */
   --button-height-sm: 28px;
   --button-height-md: 32px;
@@ -83,6 +84,8 @@
   --scrollbar-thumb-color: hsl(240, 5%, 25%);
   --scrollbar-thumb-hover-color: hsl(240, 5%, 35%);
   --popover-foreground: hsl(0, 0%, 98%);
+  --dropdown-menu-background: hsl(240, 10%, 3.9%);
+  --dropdown-item-hover: hsl(240, 3.7%, 15.9%);
 }
 
 /* Reset and base styles */

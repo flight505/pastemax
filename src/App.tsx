@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Sidebar from "./components/Sidebar";
 import FileList from "./components/FileList";
 import UserInstructions from "./components/UserInstructions";
@@ -7,7 +7,7 @@ import { FileData, FileTreeMode, SortOrder } from "./types/FileTypes";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
-import { Github } from "lucide-react";
+import { Github, ArrowUpDown } from "lucide-react";
 import styles from "./App.module.css";
 import { Button } from "./components/ui/Button";
 
@@ -119,6 +119,8 @@ const App = () => {
 
   // State for sort dropdown
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+  const sortButtonRef = useRef<HTMLButtonElement>(null);
 
   // NEW: State for user instructions
   const [userInstructions, setUserInstructions] = useState("");
@@ -913,6 +915,33 @@ const App = () => {
     }
   };
 
+  const truncatePath = (path: string) => {
+    const parts = path.split('/');
+    if (parts.length <= 3) return path;
+    
+    // Get the last two meaningful parts
+    const lastParts = parts.filter(p => p).slice(-2);
+    return `.../${lastParts.join('/')}`;
+  };
+
+  // Add click-outside handler
+  useEffect(() => {
+    const handleGlobalClick = (event: MouseEvent) => {
+      if (
+        sortDropdownOpen &&
+        sortMenuRef.current &&
+        !sortMenuRef.current.contains(event.target as Node) &&
+        sortButtonRef.current &&
+        !sortButtonRef.current.contains(event.target as Node)
+      ) {
+        setSortDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, [sortDropdownOpen]);
+
   return (
     <ThemeProvider>
       <div className={styles.appContainer}>
@@ -977,21 +1006,24 @@ const App = () => {
               <div className={styles.contentHeader}>
                 <div className={styles.contentTitle}>Selected Files</div>
                 <div className={styles.contentActions}>
-                  <div className={styles.folderPathDisplay} title={selectedFolder}>
-                    {selectedFolder}
+                  <div className={styles.folderPathDisplay}>
+                    {truncatePath(selectedFolder)}
                   </div>
                   <div className={styles.sortDropdown}>
-                    <Button
-                      variant="secondary"
+                    <button
                       className={styles.sortDropdownButton}
-                      onClick={toggleSortDropdown}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSortDropdown();
+                      }}
+                      ref={sortButtonRef}
+                      aria-expanded={sortDropdownOpen}
                     >
-                      SortBy:{" "}
-                      {sortOptions.find((opt) => opt.value === sortOrder)
-                        ?.label || sortOrder}
-                    </Button>
+                      <span>SortBy: {sortOptions.find((opt) => opt.value === sortOrder)?.label || sortOrder}</span>
+                      <ArrowUpDown size={16} />
+                    </button>
                     {sortDropdownOpen && (
-                      <div className={styles.sortOptions}>
+                      <div className={styles.sortOptions} ref={sortMenuRef}>
                         {sortOptions.map((option) => (
                           <div
                             key={option.value}
@@ -999,6 +1031,7 @@ const App = () => {
                               sortOrder === option.value ? styles.active : ""
                             }`}
                             onClick={() => handleSortChange(option.value)}
+                            role="menuitem"
                           >
                             {option.label}
                           </div>
@@ -1007,7 +1040,7 @@ const App = () => {
                     )}
                   </div>
                   <div className={styles.fileStats}>
-                    {selectedFiles.length} files | ~
+                    {selectedFiles.length} {selectedFiles.length === 1 ? 'file' : 'files'} | ~
                     {calculateTotalTokens().toLocaleString()} tokens
                   </div>
                 </div>
