@@ -46,20 +46,24 @@
   display: flex;
   margin-bottom: 12px;
   border-bottom: 1px solid var(--border-color);
+  padding: 0 4px;
+  gap: 1px;
 }
 
 .scopeBtn {
   flex: 1;
-  padding: 10px 15px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 0.95rem;
-  color: var(--text-primary);
-  position: relative;
-  text-align: center;
-  transition: background-color 0.2s, opacity 0.2s;
-  opacity: 0.8;
+  border-radius: var(--radius) var(--radius) 0 0 !important;
+  font-size: 0.95rem !important;
+  padding: 10px 15px !important;
+  transition: all 0.15s ease-out;
+}
+
+.scopeBtn:first-child {
+  border-top-right-radius: 0 !important;
+}
+
+.scopeBtn:last-child {
+  border-top-left-radius: 0 !important;
 }
 
 .scopeBtn:hover {
@@ -68,9 +72,8 @@
 }
 
 .scopeBtn.active {
-  font-weight: bold;
-  color: var(--accent-color);
-  opacity: 1;
+  font-weight: 500 !important;
+  position: relative;
 }
 
 .scopeBtn.active::after {
@@ -212,8 +215,14 @@
 
 .modalActions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 12px;
+  margin-top: 24px;
+  padding: 0 12px;
+}
+
+.modalActions button {
+  min-width: 100px;
 }
 
 .destructiveIcon {

@@ -7,7 +7,7 @@
   border-radius: var(--radius);
   position: relative;
   height: auto;
-  min-height: 90px;
+  min-height: 100px;
   background-color: var(--card-background);
   color: var(--card-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
@@ -57,7 +57,7 @@
 .fileCardInfo {
   display: flex;
   flex-direction: column;
-  margin-bottom: 8px;
+  margin-bottom: 24px;
   flex-grow: 1;
 }
 
@@ -89,12 +89,10 @@
 
 .fileCardActions {
   display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-  margin-top: 8px;
+  gap: 2px;
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  bottom: 8px;
+  right: 12px;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -104,24 +102,9 @@
 }
 
 .fileCardAction {
-  color: var(--text-secondary);
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--card-background);
-  border: 1px solid var(--border-color);
-  border-radius: calc(var(--radius) - 0.2rem);
-  transition: all 0.15s ease;
-  box-shadow: none;
-}
-
-.fileCardAction:hover {
-  background-color: var(--hover-color);
-  border-color: var(--accent-color);
-  color: var(--accent-color);
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
 }
 
 .copySuccess {

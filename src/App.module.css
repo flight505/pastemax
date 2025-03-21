@@ -1,3 +1,40 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.headerLeft,
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.headerBtn {
+  color: var(--text-primary);
+}
+
+.headerBtn:hover {
+  background: var(--bg-hover);
+}
+
+.headerDropdownMenu {
+  min-width: 180px;
+  margin-top: 0.25rem;
+}
+
 .appContainer {
   display: flex;
   flex-direction: column;
@@ -67,7 +104,6 @@
   white-space: nowrap;
 }
 
-
 .sortDropdown {
   position: relative;
   height: 32px;
@@ -119,7 +155,6 @@
   background: var(--hover-color);
   color: var(--text-primary);
 }
-
 
 .fileStats {
   font-size: 0.875rem;

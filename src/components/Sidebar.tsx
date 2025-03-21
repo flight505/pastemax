@@ -20,6 +20,9 @@ interface ExtendedSidebarProps extends SidebarProps {
   resetIgnorePatterns: (isGlobal: boolean, folderPath: string) => void;
   systemIgnorePatterns: string[];
   clearIgnorePatterns: (folderPath: string) => void;
+  onClearSelectionClick?: () => void;
+  onRemoveAllFoldersClick?: () => void;
+  onResetPatternsClick?: (isGlobal: boolean, folderPath: string) => void;
 }
 
 const Sidebar = ({
@@ -46,6 +49,9 @@ const Sidebar = ({
   resetIgnorePatterns,
   systemIgnorePatterns,
   clearIgnorePatterns,
+  onClearSelectionClick,
+  onRemoveAllFoldersClick,
+  onResetPatternsClick,
 }: ExtendedSidebarProps) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [isTreeBuildingComplete, setIsTreeBuildingComplete] = useState(false);
@@ -547,8 +553,8 @@ const Sidebar = ({
       <FileTreeHeader 
         onOpenFolder={openFolder}
         onSortChange={setFileTreeSortOrder}
-        onClearSelection={clearSelection}
-        onRemoveAllFolders={removeAllFolders}
+        onClearSelection={onClearSelectionClick || clearSelection}
+        onRemoveAllFolders={onRemoveAllFoldersClick || removeAllFolders}
         onReloadFileTree={reloadFolder}
         onOpenIgnorePatterns={() => handleOpenIgnorePatterns(false)}
         excludedFilesCount={countExcludedFiles()}
@@ -651,7 +657,13 @@ const Sidebar = ({
             reloadFolder();
           }
         }}
-        onReset={handleResetIgnorePatterns}
+        onReset={(isGlobal: boolean, folderPath: string) => {
+          if (onResetPatternsClick) {
+            onResetPatternsClick(isGlobal, folderPath);
+          } else {
+            resetIgnorePatterns(isGlobal, folderPath);
+          }
+        }}
         onClear={handleClearIgnorePatterns}
         currentFolder={selectedFolder || ""}
         existingPatterns={ignorePatterns}

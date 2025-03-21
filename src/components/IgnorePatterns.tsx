@@ -158,18 +158,20 @@ const IgnorePatterns = ({
         </div>
         
         <div className={styles.scopeSelector}>
-          <button 
+          <Button 
+            variant={!activeGlobal ? "secondary" : "ghost"}
             className={`${styles.scopeBtn} ${!activeGlobal ? styles.active : ""}`}
             onClick={() => handleTabChange(false)}
           >
             Local Folder
-          </button>
-          <button 
+          </Button>
+          <Button 
+            variant={activeGlobal ? "secondary" : "ghost"}
             className={`${styles.scopeBtn} ${activeGlobal ? styles.active : ""}`}
             onClick={() => handleTabChange(true)}
           >
             Global Defaults
-          </button>
+          </Button>
         </div>
         
         <div className={styles.scopeDescription}>
@@ -232,12 +234,16 @@ const IgnorePatterns = ({
         </div>
         
         <div className={styles.modalActions}>
-          <Button 
-            variant="secondary"
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
+          {onReset && (
+            <Button 
+              variant="ghost"
+              onClick={handleReset}
+              title="Reset to default patterns"
+              startIcon={<RefreshCw size={14} />}
+            >
+              Reset
+            </Button>
+          )}
           
           {!activeGlobal && onClear && (
             <Button 
@@ -246,20 +252,16 @@ const IgnorePatterns = ({
               title="Clear all patterns for this folder"
               startIcon={<Trash2 size={14} />}
             >
-              Clear Patterns
+              Clear
             </Button>
           )}
           
-          {onReset && (
-            <Button 
-              variant="secondary"
-              onClick={handleReset}
-              title={activeGlobal ? "Reset to default patterns" : "Reset to empty patterns"}
-              startIcon={<RefreshCw size={14} />}
-            >
-              Reset to {activeGlobal ? "Defaults" : "Empty"}
-            </Button>
-          )}
+          <Button 
+            variant="ghost"
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
           
           <Button 
             variant="primary"

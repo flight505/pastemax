@@ -1,101 +1,41 @@
 .fileTreeHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--background-primary);
-  z-index: 1;
   height: 52px;
-  gap: 8px;
 }
 
 .fileTreeBtn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   color: var(--text-primary);
-  transition: background-color 0.15s ease;
-  min-width: 32px;
-  width: 32px;
-  min-height: 32px;
-  height: 32px;
-  border-radius: 4px;
-  padding: 0;
-  margin: 0;
-  flex-shrink: 0;
 }
 
 .fileTreeBtn:hover {
-  background: var(--hover-color);
+  background: var(--bg-hover);
 }
 
-.fileTreeBtn svg {
-  width: 16px;
-  height: 16px;
-  color: var(--text-primary);
-}
-
-.active {
-  background: var(--background-selected) !important;
+.fileTreeBtn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -1px;
 }
 
 .dropdownContainer {
   position: relative;
+  display: flex;
 }
 
-.dropdownMenu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: var(--z-index-dropdown);
-  background: var(--background-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  width: 180px;
-  animation: dropdownFadeIn 0.15s ease-in;
-}
-
-.dropdownItem {
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-  font-size: 14px;
-  color: var(--text-primary);
-}
-
-.dropdownItem:hover {
-  background: var(--hover-color);
-  color: var(--text-primary);
-}
-
-.sortButton, .clearButton {
-  position: relative;
+/* Style overrides for the Dropdown component when used in the header */
+.headerDropdownMenu {
+  min-width: 180px;
+  margin-top: 0.25rem;
 }
 
 .excludedFilesCount {
-  font-size: 12px;
+  padding: 0.5rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
-  padding: 4px 8px;
-  background: var(--background-secondary);
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@keyframes dropdownFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 } 

@@ -1,0 +1,134 @@
+.dropdown {
+  position: relative;
+  width: 100%;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+}
+
+.button:hover:not(.disabled) {
+  background: var(--hover-color);
+  border-color: var(--border-color);
+}
+
+.button.active {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px var(--ring-color);
+}
+
+.buttonLabel {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  margin-left: 0.5rem;
+  color: var(--text-secondary);
+  transition: transform 0.15s ease-out;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 0.25rem;
+  background: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow-y: auto;
+  animation: slideIn 0.2s ease;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease-out;
+  background: var(--background-primary);
+}
+
+.option:hover:not(.disabled),
+.option:focus:not(.disabled) {
+  background: var(--hover-color);
+  outline: none;
+}
+
+.option.selected {
+  background: var(--background-selected);
+  color: var(--text-primary);
+}
+
+.option.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.optionIcon {
+  display: flex;
+  align-items: center;
+  margin-right: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.optionLabel {
+  flex: 1;
+}
+
+.checkmark {
+  margin-left: 0.5rem;
+  color: var(--text-primary);
+}
+
+/* Size variants */
+.sm .button {
+  padding: 0.25rem 0.5rem;
+  font-size: 12px;
+}
+
+.lg .button {
+  padding: 0.75rem 1rem;
+  font-size: 12px;
+}
+
+/* Disabled state */
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Animation keyframes */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

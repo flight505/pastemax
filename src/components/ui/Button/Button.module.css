@@ -76,18 +76,17 @@
 .primary {
   background-color: var(--primary-button-background);
   color: var(--primary-button-text);
-  border-color: var(--primary-button-background);
+  border: 1px solid var(--primary-button-border);
 }
 
 .primary:hover:not(:disabled) {
   background-color: var(--primary-button-hover);
-  border-color: var(--primary-button-hover);
-  box-shadow: var(--shadow-md);
+  border-color: var(--primary-button-border);
 }
 
 .primary:active:not(:disabled) {
   background-color: var(--primary-button-active);
-  border-color: var(--primary-button-active);
+  border-color: var(--primary-button-border);
 }
 
 .destructive {

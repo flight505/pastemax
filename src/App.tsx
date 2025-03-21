@@ -10,6 +10,8 @@ import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pat
 import { Github, ArrowUpDown } from "lucide-react";
 import styles from "./App.module.css";
 import { Button } from "./components/ui/Button";
+import { Dropdown } from "./components/ui/Dropdown";
+import { ConfirmationDialog } from "./components/ui/ConfirmationDialog";
 
 // Access the electron API from the window object
 declare global {
@@ -116,11 +118,6 @@ const App = () => {
     message: string;
   });
   const [fileTreeMode, setFileTreeMode] = useState("none" as FileTreeMode);
-
-  // State for sort dropdown
-  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  const sortMenuRef = useRef<HTMLDivElement>(null);
-  const sortButtonRef = useRef<HTMLButtonElement>(null);
 
   // NEW: State for user instructions
   const [userInstructions, setUserInstructions] = useState("");
@@ -457,22 +454,18 @@ const App = () => {
     });
   };
 
-  // Handle sort change
-  const handleSortChange = (newSort: string) => {
-    setSortOrder(newSort);
-    applyFiltersAndSort(allFiles, newSort, searchTerm);
-    setSortDropdownOpen(false); // Close dropdown after selection
+  // Update the sort change handler
+  const handleSortChange = (value: string | string[]) => {
+    if (typeof value === 'string') {
+      setSortOrder(value);
+      applyFiltersAndSort(allFiles, value, searchTerm);
+    }
   };
 
   // Handle search change
   const handleSearchChange = (newSearch: string) => {
     setSearchTerm(newSearch);
     applyFiltersAndSort(allFiles, sortOrder, newSearch);
-  };
-
-  // Toggle sort dropdown
-  const toggleSortDropdown = () => {
-    setSortDropdownOpen(!sortDropdownOpen);
   };
 
   // Calculate total tokens from selected files
@@ -551,10 +544,12 @@ const App = () => {
 
   // Sort options for the dropdown
   const sortOptions = [
-    { value: "tokens-desc", label: "Tokens (⬇ High-Low)" },
-    { value: "tokens-asc", label: "Tokens (⬆ Low-High)" },
-    { value: "name-asc", label: "Name (⬆ A-Z)" },
-    { value: "name-desc", label: "Name (⬇ Z-A)" },
+    { value: "tokens-desc", label: "Tokens (High to Low)" },
+    { value: "tokens-asc", label: "Tokens (Low to High)" },
+    { value: "name-asc", label: "Name (A to Z)" },
+    { value: "name-desc", label: "Name (Z to A)" },
+    { value: "date-newest", label: "Date Modified (Newest)" },
+    { value: "date-oldest", label: "Date Modified (Oldest)" },
   ];
 
   // Handle expand/collapse state changes
@@ -828,9 +823,24 @@ const App = () => {
     }
   }, [isElectron, selectedFolder, reloadFolder]);
 
-  // Add handlers for clear functionality
+  // Add dialog states
+  const [showClearSelectionDialog, setShowClearSelectionDialog] = useState(false);
+  const [showRemoveAllFoldersDialog, setShowRemoveAllFoldersDialog] = useState(false);
+  const [showResetPatternsDialog, setShowResetPatternsDialog] = useState(false);
+  const [resetPatternsContext, setResetPatternsContext] = useState<{isGlobal: boolean; folderPath: string} | null>(null);
+
+  // Update handlers to show dialogs
+  const handleClearSelectionClick = () => {
+    setShowClearSelectionDialog(true);
+  };
+
   const clearSelection = () => {
     setSelectedFiles([]);
+    setShowClearSelectionDialog(false);
+  };
+
+  const handleRemoveAllFoldersClick = () => {
+    setShowRemoveAllFoldersDialog(true);
   };
 
   const removeAllFolders = () => {
@@ -846,6 +856,12 @@ const App = () => {
     
     // Clear sessionStorage flag to allow loading data next time
     sessionStorage.removeItem("hasLoadedInitialData");
+    setShowRemoveAllFoldersDialog(false);
+  };
+
+  const handleResetPatternsClick = (isGlobal: boolean, folderPath: string) => {
+    setResetPatternsContext({ isGlobal, folderPath });
+    setShowResetPatternsDialog(true);
   };
 
   // Initialize system patterns with defaults on component mount
@@ -924,24 +940,6 @@ const App = () => {
     return `.../${lastParts.join('/')}`;
   };
 
-  // Add click-outside handler
-  useEffect(() => {
-    const handleGlobalClick = (event: MouseEvent) => {
-      if (
-        sortDropdownOpen &&
-        sortMenuRef.current &&
-        !sortMenuRef.current.contains(event.target as Node) &&
-        sortButtonRef.current &&
-        !sortButtonRef.current.contains(event.target as Node)
-      ) {
-        setSortDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('click', handleGlobalClick);
-    return () => document.removeEventListener('click', handleGlobalClick);
-  }, [sortDropdownOpen]);
-
   return (
     <ThemeProvider>
       <div className={styles.appContainer}>
@@ -988,7 +986,6 @@ const App = () => {
             deselectAllFiles={deselectAllFiles}
             expandedNodes={expandedNodes}
             toggleExpanded={toggleExpanded}
-            // New props
             reloadFolder={reloadFolder}
             clearSelection={clearSelection}
             removeAllFolders={removeAllFolders}
@@ -999,6 +996,9 @@ const App = () => {
             resetIgnorePatterns={resetIgnorePatterns}
             systemIgnorePatterns={systemIgnorePatterns}
             clearIgnorePatterns={clearIgnorePatterns}
+            onClearSelectionClick={handleClearSelectionClick}
+            onRemoveAllFoldersClick={handleRemoveAllFoldersClick}
+            onResetPatternsClick={handleResetPatternsClick}
           />
           
           {selectedFolder ? (
@@ -1010,34 +1010,23 @@ const App = () => {
                     {truncatePath(selectedFolder)}
                   </div>
                   <div className={styles.sortDropdown}>
-                    <button
-                      className={styles.sortDropdownButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSortDropdown();
-                      }}
-                      ref={sortButtonRef}
-                      aria-expanded={sortDropdownOpen}
-                    >
-                      <span>SortBy: {sortOptions.find((opt) => opt.value === sortOrder)?.label || sortOrder}</span>
-                      <ArrowUpDown size={16} />
-                    </button>
-                    {sortDropdownOpen && (
-                      <div className={styles.sortOptions} ref={sortMenuRef}>
-                        {sortOptions.map((option) => (
-                          <div
-                            key={option.value}
-                            className={`${styles.sortOption} ${
-                              sortOrder === option.value ? styles.active : ""
-                            }`}
-                            onClick={() => handleSortChange(option.value)}
-                            role="menuitem"
-                          >
-                            {option.label}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <Dropdown
+                      options={sortOptions}
+                      value={sortOrder}
+                      onChange={handleSortChange}
+                      placeholder="Sort by..."
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          iconOnly
+                          startIcon={<ArrowUpDown size={16} />}
+                          title="Sort By"
+                          className={styles.headerBtn}
+                        />
+                      }
+                      menuClassName={styles.headerDropdownMenu}
+                    />
                   </div>
                   <div className={styles.fileStats}>
                     {selectedFiles.length} {selectedFiles.length === 1 ? 'file' : 'files'} | ~
@@ -1096,6 +1085,46 @@ const App = () => {
             </div>
           )}
         </div>
+
+        {/* Add confirmation dialogs */}
+        <ConfirmationDialog
+          isOpen={showClearSelectionDialog}
+          onClose={() => setShowClearSelectionDialog(false)}
+          onConfirm={clearSelection}
+          title="Clear Selection"
+          description="Are you sure you want to clear all selected files?"
+          confirmLabel="Clear Selection"
+          variant="destructive"
+        />
+
+        <ConfirmationDialog
+          isOpen={showRemoveAllFoldersDialog}
+          onClose={() => setShowRemoveAllFoldersDialog(false)}
+          onConfirm={removeAllFolders}
+          title="Remove All Folders"
+          description="Are you sure you want to remove all folders? This will reset the application state."
+          confirmLabel="Remove All"
+          variant="destructive"
+        />
+
+        <ConfirmationDialog
+          isOpen={showResetPatternsDialog}
+          onClose={() => setShowResetPatternsDialog(false)}
+          onConfirm={() => {
+            if (resetPatternsContext) {
+              resetIgnorePatterns(
+                resetPatternsContext.isGlobal,
+                resetPatternsContext.folderPath
+              );
+              setShowResetPatternsDialog(false);
+              setResetPatternsContext(null);
+            }
+          }}
+          title={`Reset ${resetPatternsContext?.isGlobal ? 'Global' : 'Local'} Ignore Patterns`}
+          description="Are you sure you want to reset the ignore patterns to their default values?"
+          confirmLabel="Reset Patterns"
+          variant="destructive"
+        />
       </div>
     </ThemeProvider>
   );
