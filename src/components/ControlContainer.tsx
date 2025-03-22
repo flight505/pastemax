@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileTreeMode, SortOrder } from '../types/FileTypes';
+import { FileTreeMode } from '../types';
 import { Switch, Button, ButtonGroup } from './ui';
 import { Copy, Download, Check } from 'lucide-react';
 import styles from './ControlContainer.module.css';
@@ -7,34 +7,12 @@ import styles from './ControlContainer.module.css';
 interface ControlContainerProps {
   fileTreeMode: FileTreeMode;
   setFileTreeMode: (value: FileTreeMode) => void;
-  showUserInstructions: boolean;
-  setShowUserInstructions: (value: boolean) => void;
-  getSelectedFilesContent: () => string;
-  selectedFilesCount: number;
-  fileTreeSortOrder?: SortOrder;
-  setFileTreeSortOrder?: (value: SortOrder) => void;
-  ignorePatterns?: string;
-  setIgnorePatterns?: (value: string) => void;
-  loadIgnorePatterns?: (folderPath: string, isGlobal?: boolean) => void;
-  saveIgnorePatterns?: (patterns: string, isGlobal: boolean, folderPath: string) => void;
-  resetIgnorePatterns?: (isGlobal: boolean, folderPath: string) => void;
 }
 
-const ControlContainer = ({
+const ControlContainer: React.FC<ControlContainerProps> = ({
   fileTreeMode,
   setFileTreeMode,
-  showUserInstructions,
-  setShowUserInstructions,
-  getSelectedFilesContent,
-  selectedFilesCount,
-  fileTreeSortOrder,
-  setFileTreeSortOrder,
-  ignorePatterns,
-  setIgnorePatterns,
-  loadIgnorePatterns,
-  saveIgnorePatterns,
-  resetIgnorePatterns,
-}: ControlContainerProps): JSX.Element => {
+}) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {

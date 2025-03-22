@@ -1,38 +1,22 @@
 import React, { useState } from 'react';
-import { Button } from '../ui';
-import { Copy, Download, Check } from 'lucide-react';
+import { Copy } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 /**
  * Example component demonstrating the new UI components in action
  * for selecting files and copying content.
  */
-export interface FileSelectionControlsProps {
-  /**
-   * Array of file names
-   */
-  files: string[];
-  
-  /**
-   * Content to be copied based on selected files
-   */
-  getContentToCopy: (selectedFiles: string[]) => string;
-  
-  /**
-   * Handler for saving selected files
-   */
-  handleSaveFiles?: (selectedFiles: string[]) => void;
+interface FileSelectionControlsProps {
+  selectedFiles: string[];
 }
 
-export const FileSelectionControls: React.FC<FileSelectionControlsProps> = ({
-  files,
-  getContentToCopy,
-  handleSaveFiles
+const FileSelectionControls: React.FC<FileSelectionControlsProps> = ({
+  selectedFiles,
 }) => {
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   
   const handleCopy = async () => {
-    const contentToCopy = getContentToCopy(selectedFiles);
+    const contentToCopy = selectedFiles.join('\n');
     try {
       await navigator.clipboard.writeText(contentToCopy);
       setCopied(true);
@@ -42,39 +26,18 @@ export const FileSelectionControls: React.FC<FileSelectionControlsProps> = ({
     }
   };
   
-  const handleDownload = () => {
-    if (handleSaveFiles) {
-      handleSaveFiles(selectedFiles);
-    }
-  };
-  
   return (
-    <div className="controls-container" style={{ 
-      display: 'flex', 
-      gap: '12px',
-      alignItems: 'center',
-      padding: '8px 16px'
-    }}>
+    <div className="flex gap-2">
       <Button
         variant="round"
         onClick={handleCopy}
-        startIcon={copied ? <Check size={18} /> : <Copy size={18} />}
+        startIcon={<Copy size={18} />}
         disabled={selectedFiles.length === 0}
-        
       >
-        {copied ? 'Copied!' : `Copy (${selectedFiles.length})`}
+        {copied ? 'Copied!' : 'Copy'}
       </Button>
       
-      {handleSaveFiles && (
-        <Button
-          variant="round"
-          onClick={handleDownload}
-          startIcon={<Download size={18} />}
-          disabled={selectedFiles.length === 0}
-        >
-          Save
-        </Button>
-      )}
+      {/* Implementation of handleSaveFiles */}
     </div>
   );
 };

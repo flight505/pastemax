@@ -17,15 +17,13 @@ interface ExtendedSidebarProps extends SidebarProps {
   setIgnorePatterns: (patterns: string) => void;
   loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
-  resetIgnorePatterns: (isGlobal: boolean, folderPath: string) => void;
   systemIgnorePatterns: string[];
   clearIgnorePatterns: (folderPath: string) => void;
   onClearSelectionClick?: () => void;
   onRemoveAllFoldersClick?: () => void;
-  onResetPatternsClick?: (isGlobal: boolean, folderPath: string) => void;
 }
 
-const Sidebar = ({
+const Sidebar: React.FC<ExtendedSidebarProps> = ({
   selectedFolder,
   openFolder,
   allFiles,
@@ -38,7 +36,6 @@ const Sidebar = ({
   deselectAllFiles,
   expandedNodes,
   toggleExpanded,
-  // Extended props
   reloadFolder,
   clearSelection,
   removeAllFolders,
@@ -46,12 +43,10 @@ const Sidebar = ({
   setIgnorePatterns,
   loadIgnorePatterns,
   saveIgnorePatterns,
-  resetIgnorePatterns,
   systemIgnorePatterns,
   clearIgnorePatterns,
   onClearSelectionClick,
   onRemoveAllFoldersClick,
-  onResetPatternsClick,
 }: ExtendedSidebarProps) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [isTreeBuildingComplete, setIsTreeBuildingComplete] = useState(false);
@@ -436,15 +431,13 @@ const Sidebar = ({
   };
 
   // Load patterns based on global or local scope
-  const loadPatterns = async (isGlobal: boolean) => {
+  const loadPatterns = useCallback(async (isGlobal: boolean) => {
     try {
       // Load global patterns if needed
       if (isGlobal) {
         if (!globalIgnorePatterns) {
-          // Use an empty user folder since global patterns aren't tied to a specific folder
           await loadIgnorePatterns('', true);
         } else {
-          // We already have global patterns loaded, just update the current patterns display
           setIgnorePatterns(globalIgnorePatterns);
         }
       } 
@@ -452,41 +445,19 @@ const Sidebar = ({
       else if (selectedFolder && !localIgnorePatterns) {
         await loadIgnorePatterns(selectedFolder, false);
       } else if (selectedFolder) {
-        // We already have local patterns loaded, just update the current patterns display
         setIgnorePatterns(localIgnorePatterns);
       }
     } catch (err) {
       console.error(`Error loading ${isGlobal ? 'global' : 'local'} patterns:`, err);
     }
-  };
+  }, [selectedFolder, loadIgnorePatterns, globalIgnorePatterns, localIgnorePatterns, setIgnorePatterns]);
 
   // Handle reset button click in ignore patterns modal
-  const handleResetIgnorePatterns = (isGlobal: boolean, folderPath?: string) => {
-    // Use the provided folderPath if available, otherwise use selectedFolder
-    const targetFolder = folderPath || selectedFolder || '';
-    
-    // Call the parent's reset function
-    resetIgnorePatterns(isGlobal, targetFolder);
-    
-    // Preview empty patterns in the UI immediately
-    const defaultPatterns = ''; // Could be system defaults for global, or empty for local
-    
-    if (isGlobal) {
-      setGlobalIgnorePatterns(defaultPatterns);
-      
-      // Only update the current view if we're on the global tab
-      if (ignoreGlobal) {
-        setIgnorePatterns(defaultPatterns);
-      }
-    } else {
-      setLocalIgnorePatterns(defaultPatterns);
-      
-      // Only update the current view if we're on the local tab
-      if (!ignoreGlobal) {
-        setIgnorePatterns(defaultPatterns);
-      }
-    }
-  };
+  const handleResetIgnorePatterns = useCallback(async () => {
+    if (!isElectron) return;
+    await window.electron.resetIgnorePatterns(true, selectedFolder);
+    await loadPatterns();
+  }, [selectedFolder, loadPatterns]);
 
   // Handle clear button click in ignore patterns modal
   const handleClearIgnorePatterns = (folderPath?: string) => {
@@ -537,16 +508,12 @@ const Sidebar = ({
 
   // Add expanded node state to the tree
   useEffect(() => {
-    // Skip if no tree or no need to update
-    if (fileTree.length === 0 || isUpdatingExpandedNodesRef.current) return;
-    
+    if (!fileTree.length || isUpdatingExpandedNodesRef.current) return;
     updateTreeWithExpandedState();
-    
-    // Cleanup function to prevent memory leaks
     return () => {
       isUpdatingExpandedNodesRef.current = false;
     };
-  }, [fileTree, updateTreeWithExpandedState]);
+  }, [fileTree, expandedNodes, updateTreeWithExpandedState]);
 
   return (
     <div className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>
@@ -657,13 +624,7 @@ const Sidebar = ({
             reloadFolder();
           }
         }}
-        onReset={(isGlobal: boolean, folderPath: string) => {
-          if (onResetPatternsClick) {
-            onResetPatternsClick(isGlobal, folderPath);
-          } else {
-            resetIgnorePatterns(isGlobal, folderPath);
-          }
-        }}
+        onReset={handleResetIgnorePatterns}
         onClear={handleClearIgnorePatterns}
         currentFolder={selectedFolder || ""}
         existingPatterns={ignorePatterns}

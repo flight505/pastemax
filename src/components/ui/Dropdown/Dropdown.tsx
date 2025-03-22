@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import styles from './Dropdown.module.css';
@@ -105,71 +105,54 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   }, [isOpen]);
   
-  // Handle keyboard navigation
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'Escape':
-          setIsOpen(false);
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          focusNextOption();
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          focusPreviousOption();
-          break;
-        case 'Enter':
-          e.preventDefault();
-          const focusedOption = document.activeElement as HTMLDivElement;
-          if (focusedOption?.dataset?.value) {
-            handleSelect(focusedOption.dataset.value);
-          }
-          break;
+  const handleSelect = useCallback((option: Element) => {
+    if (option instanceof HTMLElement) {
+      const value = option.dataset.value;
+      if (value) {
+        onChange(value);
+        setIsOpen(false);
       }
-    };
-    
+    }
+  }, [onChange, setIsOpen]);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    const options = Array.from(dropdownRef.current?.querySelectorAll('[role="option"]') || []);
+    const currentIndex = options.findIndex(opt => opt === document.activeElement);
+
+    switch (event.key) {
+      case 'ArrowDown': {
+        event.preventDefault();
+        const nextIndex = currentIndex + 1 < options.length ? currentIndex + 1 : 0;
+        (options[nextIndex] as HTMLElement).focus();
+        break;
+      }
+      case 'ArrowUp': {
+        event.preventDefault();
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
+        (options[prevIndex] as HTMLElement).focus();
+        break;
+      }
+      case 'Enter':
+      case 'Space': {
+        event.preventDefault();
+        const focusedOption = document.activeElement as HTMLDivElement;
+        if (focusedOption?.dataset?.value) {
+          handleSelect(focusedOption);
+        }
+        break;
+      }
+      case 'Escape': {
+        event.preventDefault();
+        setIsOpen(false);
+        break;
+      }
+    }
+  }, [handleSelect, setIsOpen]);
+
+  useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-  
-  const focusNextOption = () => {
-    const options = menuRef.current?.querySelectorAll('[role="option"]');
-    if (!options?.length) return;
-    
-    const currentIndex = Array.from(options).findIndex(
-      opt => opt === document.activeElement
-    );
-    const nextIndex = currentIndex + 1 < options.length ? currentIndex + 1 : 0;
-    (options[nextIndex] as HTMLElement).focus();
-  };
-  
-  const focusPreviousOption = () => {
-    const options = menuRef.current?.querySelectorAll('[role="option"]');
-    if (!options?.length) return;
-    
-    const currentIndex = Array.from(options).findIndex(
-      opt => opt === document.activeElement
-    );
-    const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
-    (options[prevIndex] as HTMLElement).focus();
-  };
-  
-  const handleSelect = (optionValue: string) => {
-    if (multiple) {
-      const currentValues = Array.isArray(value) ? value : [];
-      const newValues = currentValues.includes(optionValue)
-        ? currentValues.filter(v => v !== optionValue)
-        : [...currentValues, optionValue];
-      onChange(newValues);
-    } else {
-      onChange(optionValue);
-      setIsOpen(false);
-    }
-  };
+  }, [handleKeyDown]);
   
   const getSelectedLabel = () => {
     if (multiple) {
@@ -240,7 +223,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 isSelected(option.value) && styles.selected,
                 option.disabled && styles.disabled
               )}
-              onClick={() => !option.disabled && handleSelect(option.value)}
+              onClick={() => !option.disabled && handleSelect(option)}
               role="option"
               aria-selected={isSelected(option.value)}
               tabIndex={0}
