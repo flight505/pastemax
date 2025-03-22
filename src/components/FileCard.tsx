@@ -1,26 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { FileCardProps } from "../types/FileTypes";
 import { Plus, X, FileText } from "lucide-react";
 import CopyButton from "./CopyButton";
-
-interface FileCardComponentProps {
-  file: {
-    name: string;
-    path: string;
-    tokenCount: number;
-    content: string;
-  };
-  isSelected: boolean;
-  toggleSelection: (path: string) => void;
-  maxTokenCount?: number; // Maximum token count among all displayed files
-}
+import { FileCardProps } from "../types/FileTypes";
 
 const FileCard = ({
   file,
   isSelected,
   toggleSelection,
   maxTokenCount = 5000, // Default if not provided
-}: FileCardComponentProps) => {
+}: FileCardProps & { maxTokenCount?: number }) => {
   const { name, path: filePath, tokenCount } = file;
   const [barWidth, setBarWidth] = useState(0);
 

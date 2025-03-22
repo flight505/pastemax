@@ -52,7 +52,6 @@ const Sidebar = ({
   
   // State for ignore patterns modal
   const [ignoreModalOpen, setIgnoreModalOpen] = useState(false);
-  const [isLoadingPatterns, setIsLoadingPatterns] = useState(false);
   const [ignoreGlobal, setIgnoreGlobal] = useState(false);
   const [globalIgnorePatterns, setGlobalIgnorePatterns] = useState("");
   const [localIgnorePatterns, setLocalIgnorePatterns] = useState("");
@@ -66,6 +65,35 @@ const Sidebar = ({
   const lastProcessedFolderRef = useRef<string | null>(null);
   const isBuildingTreeRef = useRef(false);
   const isUpdatingExpandedNodesRef = useRef(false);
+
+  // Check if we're running in Electron environment - move this to the top
+  const isElectron = typeof window !== 'undefined' && 'electron' in window;
+
+  // Memoized function to load patterns - define this first
+  const loadPatterns = useCallback((folderPath: string, isGlobal: boolean) => {
+    if (isElectron && window.electron) {
+      loadIgnorePatterns(folderPath, isGlobal);
+    }
+  }, [isElectron, loadIgnorePatterns]);
+
+  // Load ignore patterns when folder changes
+  useEffect(() => {
+    if (!selectedFolder) return;
+    
+    if (lastProcessedFolderRef.current === selectedFolder && 
+        loadedFoldersRef.current.has(selectedFolder)) return;
+    
+    lastProcessedFolderRef.current = selectedFolder;
+    loadedFoldersRef.current.add(selectedFolder);
+    loadPatterns(selectedFolder, false);
+  }, [selectedFolder, loadPatterns]);
+
+  // Load system ignore patterns on mount
+  useEffect(() => {
+    if (systemIgnorePatterns?.length === undefined) {
+      loadPatterns('', true);
+    }
+  }, [loadPatterns, systemIgnorePatterns?.length]);
 
   // Handle mouse down for resizing
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -96,35 +124,6 @@ const Sidebar = ({
       document.removeEventListener("mouseup", handleResizeEnd);
     };
   }, [isResizing]);
-
-  // Load ignore patterns when folder changes - with optimization to prevent infinite loops
-  useEffect(() => {
-    // Skip if no folder is selected
-    if (!selectedFolder) return;
-    
-    // Skip if we already processed this exact folder
-    if (lastProcessedFolderRef.current === selectedFolder && 
-        loadedFoldersRef.current.has(selectedFolder)) return;
-    
-    // Set the last processed folder reference
-    lastProcessedFolderRef.current = selectedFolder;
-    
-    // Track that we're processing this folder
-    loadedFoldersRef.current.add(selectedFolder);
-    
-    // Set loading state
-    setIsLoadingPatterns(true);
-    
-    // Load the patterns
-    loadIgnorePatterns(selectedFolder, false);
-    
-    // Reset loading state after a delay
-    const timer = setTimeout(() => {
-      setIsLoadingPatterns(false);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [selectedFolder, loadIgnorePatterns]); // Deliberately omitting isLoadingPatterns
 
   // Sort file tree nodes - memoized with useCallback to prevent recreation on every render
   const sortFileTreeNodes = useCallback((nodes: TreeNode[]): TreeNode[] => {
@@ -349,86 +348,30 @@ const Sidebar = ({
     };
   }, [expandedNodes, fileTree.length, applyExpandedState]);
 
-  // Handler for opening ignore patterns modal
+  // Handle open ignore patterns modal
   const handleOpenIgnorePatterns = (isGlobal = false) => {
-    // Set the global flag first
     setIgnoreGlobal(isGlobal);
-    
-    // First, open the modal
     setIgnoreModalOpen(true);
     
-    // Then check if we need to load patterns
-    if (selectedFolder) {
-      // Force a reload by clearing tracking flags
-      lastProcessedFolderRef.current = null;
-      loadedFoldersRef.current.delete(selectedFolder);
-      
-      // Make sure we're not in a loading state
-      if (isLoadingPatterns) {
-        // If already loading, just wait for it to complete
-        return;
-      }
-      
-      // Set loading state
-      setIsLoadingPatterns(true);
-      
-      // Load patterns based on global flag
-      console.log(`Loading ${isGlobal ? 'global' : 'local'} patterns`);
-      loadIgnorePatterns(selectedFolder, isGlobal);
-      
-      // Set the ignorePatterns state based on which one is selected
-      if (isGlobal) {
-        setIgnorePatterns(globalIgnorePatterns);
-      } else {
-        setIgnorePatterns(localIgnorePatterns);
-      }
-      
-      // Clear loading state after a delay
-      const timer = setTimeout(() => {
-        setIsLoadingPatterns(false);
-      }, 500);
-    }
+    // Load patterns based on global flag
+    console.log(`Loading ${isGlobal ? 'global' : 'local'} patterns`);
+    loadPatterns(selectedFolder, isGlobal);
+    
+    // Set the ignorePatterns state based on which one is selected
+    setIgnorePatterns(isGlobal ? globalIgnorePatterns : localIgnorePatterns);
   };
-  
-  // Modified to handle folder path in reset and save
+
+  // Handle reset ignore patterns
   const handleResetIgnorePatterns = (isGlobal: boolean, folderPath?: string) => {
-    // Use either the provided folderPath or the selected folder
-    const targetFolder = folderPath || selectedFolder || '';
-    
-    // Call resetIgnorePatterns with isGlobal and folder path
-    resetIgnorePatterns(isGlobal, targetFolder);
-    
-    // Update state based on which patterns were reset
-    if (isGlobal) {
-      // When resetting global patterns, set global patterns to empty
-      // The actual patterns will be loaded with the API call result
-      setGlobalIgnorePatterns('');
-      if (ignoreGlobal) {
-        setIgnorePatterns('');
-      }
-    } else {
-      // When resetting local patterns, set local patterns to empty
-      // The actual patterns will be loaded with the API call result
-      setLocalIgnorePatterns('');
-      if (!ignoreGlobal) {
-        setIgnorePatterns('');
-      }
+    if (resetIgnorePatterns) {
+      resetIgnorePatterns(isGlobal, folderPath || selectedFolder);
     }
   };
 
-  // Handler for clearing local patterns
+  // Handle clear ignore patterns
   const handleClearIgnorePatterns = (folderPath?: string) => {
-    const targetFolder = folderPath || selectedFolder || '';
-    
-    // Clear the local patterns through the API
-    if (targetFolder) {
-      clearIgnorePatterns(targetFolder);
-      
-      // Update local state
-      setLocalIgnorePatterns('');
-      if (!ignoreGlobal) {
-        setIgnorePatterns('');
-      }
+    if (clearIgnorePatterns) {
+      clearIgnorePatterns(folderPath || selectedFolder);
     }
   };
 
@@ -519,53 +462,6 @@ const Sidebar = ({
 
   // Flatten for rendering
   const flattenedFilteredTree = flattenTree(filteredTree);
-
-  useEffect(() => {
-    if (selectedFolder) {
-      // Load local patterns specific to the selected folder
-      loadPatterns(false);
-    }
-  }, [selectedFolder]);
-
-  // Load global patterns only once when component mounts
-  useEffect(() => {
-    // Load global patterns on component mount
-    loadPatterns(true);
-    
-    // Debug log for system patterns
-    console.log(`Sidebar received ${systemIgnorePatterns?.length || 0} system patterns`);
-  }, []);
-
-  const loadPatterns = async (isGlobal) => {
-    try {
-      if (!isGlobal && !selectedFolder) {
-        console.log("Cannot load local patterns: No folder selected");
-        return;
-      }
-
-      console.log(`Loading ${isGlobal ? 'global' : 'local'} patterns...`);
-      
-      const patterns = await loadIgnorePatterns(selectedFolder || '', isGlobal);
-      
-      if (patterns) {
-        if (isGlobal) {
-          setGlobalIgnorePatterns(patterns);
-          // Only update ignorePatterns if we're currently viewing global patterns
-          if (ignoreGlobal) {
-            setIgnorePatterns(patterns);
-          }
-        } else {
-          setLocalIgnorePatterns(patterns);
-          // Only update ignorePatterns if we're currently viewing local patterns
-          if (!ignoreGlobal) {
-            setIgnorePatterns(patterns);
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`Error loading ${isGlobal ? 'global' : 'local'} ignore patterns:`, error);
-    }
-  };
 
   return (
     <div className="sidebar" style={{ width: `${sidebarWidth}px` }}>

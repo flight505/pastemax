@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, RefreshCw, Info, ChevronDown, Trash2 } from "lucide-react";
+import { X, RefreshCw, ChevronDown, Trash2 } from "lucide-react";
 import "../styles/IgnorePatterns.css";
 
 interface IgnorePatternsProps {
@@ -14,7 +14,6 @@ interface IgnorePatternsProps {
   globalPatterns: string;
   localPatterns: string;
   onTabChange?: (isGlobal: boolean) => void;
-  systemPatterns?: string[]; // Keep prop for compatibility
   availableFolders?: string[]; // List of available folders for selection
 }
 
@@ -40,7 +39,6 @@ const IgnorePatterns = ({
   globalPatterns = "",
   localPatterns = "",
   onTabChange,
-  systemPatterns = [],
   availableFolders = [],
 }: IgnorePatternsProps): JSX.Element | null => {
   const [patterns, setPatterns] = useState(existingPatterns);
@@ -136,15 +134,6 @@ const IgnorePatterns = ({
   const handleSave = () => {
     onSave(patterns, activeGlobal, !activeGlobal ? selectedFolder : undefined);
     setHasChanges(false);
-  };
-
-  const renderHighlightedPatterns = (text: string) => {
-    return text.split('\n').map((line, i) => {
-      if (line.trimStart().startsWith('#')) {
-        return <div key={i} className="pattern-comment">{line}</div>;
-      }
-      return <div key={i}>{line}</div>;
-    }).join('\n');
   };
 
   if (!isOpen) return null;

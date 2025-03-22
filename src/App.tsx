@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
-import FileList from "./components/FileList";
-import CopyButton from "./components/CopyButton";
 import UserInstructions from "./components/UserInstructions";
 import ControlContainer from "./components/ControlContainer";
+import FileList from "./components/FileList";
 import { FileData, FileTreeMode, SortOrder } from "./types/FileTypes";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
@@ -729,16 +728,11 @@ const App = () => {
     }
   };
 
-  // Add handler for folder reload
-  const reloadFolder = () => {
-    if (isElectron && selectedFolder) {
-      setProcessingStatus({
-        status: "processing",
-        message: "Reloading files...",
-      });
-      window.electron.ipcRenderer.send("reload-file-list", selectedFolder);
+  const reloadFolder = useCallback(() => {
+    if (selectedFolder) {
+      loadFolder(selectedFolder);
     }
-  };
+  }, [selectedFolder]);
 
   // Now add the ignore-patterns-saved handler after reloadFolder is defined
   useEffect(() => {

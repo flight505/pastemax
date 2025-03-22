@@ -1,7 +1,7 @@
 import React from 'react';
 import Switch from './Switch';
 import CopyButton from './CopyButton';
-import { FileTreeMode, SortOrder } from '../types/FileTypes';
+import { FileTreeMode } from '../types/FileTypes';
 
 interface ControlContainerProps {
   fileTreeMode: FileTreeMode;
@@ -10,35 +10,15 @@ interface ControlContainerProps {
   setShowUserInstructions: (value: boolean) => void;
   getSelectedFilesContent: () => string;
   selectedFilesCount: number;
-  fileTreeSortOrder?: SortOrder;
-  setFileTreeSortOrder?: (value: SortOrder) => void;
-  ignorePatterns?: string;
-  setIgnorePatterns?: (value: string) => void;
-  loadIgnorePatterns?: (folderPath: string, isGlobal?: boolean) => void;
-  saveIgnorePatterns?: (patterns: string, isGlobal: boolean, folderPath: string) => void;
-  resetIgnorePatterns?: (isGlobal: boolean, folderPath: string) => void;
-  reloadFolder?: () => void;
-  clearSelection?: () => void;
-  removeAllFolders?: () => void;
 }
 
-const ControlContainer = ({
+const ControlContainer: React.FC<ControlContainerProps> = ({
   fileTreeMode,
   setFileTreeMode,
   showUserInstructions,
   setShowUserInstructions,
   getSelectedFilesContent,
   selectedFilesCount,
-  fileTreeSortOrder,
-  setFileTreeSortOrder,
-  ignorePatterns,
-  setIgnorePatterns,
-  loadIgnorePatterns,
-  saveIgnorePatterns,
-  resetIgnorePatterns,
-  reloadFolder,
-  clearSelection,
-  removeAllFolders,
 }: ControlContainerProps): JSX.Element => {
   return (
     <div className="control-container">

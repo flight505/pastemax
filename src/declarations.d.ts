@@ -15,7 +15,7 @@ declare module "*.css" {
 
 // Allow importing various file types
 declare module "*.svg" {
-  const content: string;
+  const content: React.FC<Record<string, never>>;
   export default content;
 }
 
@@ -29,13 +29,28 @@ declare module "*.jpg" {
   export default content;
 }
 
+declare module "*.jpeg" {
+  const content: string;
+  export default content;
+}
+
+declare module "*.gif" {
+  const content: string;
+  export default content;
+}
+
+declare module '*.module.css' {
+  const classes: Record<string, string>;
+  export default classes;
+}
+
 // React / TypeScript setup fixes
 import 'react';
 
 declare module 'react' {
-  export type FC<P = {}> = React.FunctionComponent<P>;
+  export type FC<P = Record<string, never>> = React.FunctionComponent<P>;
   
-  export interface FunctionComponent<P = {}> {
+  export interface FunctionComponent<P = Record<string, never>> {
     (props: P, context?: any): React.ReactElement<any, any> | null;
     displayName?: string;
   }
