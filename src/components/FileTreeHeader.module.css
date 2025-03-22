@@ -1,19 +1,12 @@
 .fileTreeHeader {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
   padding: 0.5rem;
-  background: var(--bg-secondary);
+  background: var(--background-secondary);
   border-bottom: 1px solid var(--border-color);
   height: 52px;
-}
-
-.fileTreeBtn {
-  color: var(--text-primary);
-}
-
-.fileTreeBtn:hover {
-  background: var(--bg-hover);
+  justify-content: center;
 }
 
 .fileTreeBtn:focus-visible {
@@ -23,13 +16,9 @@
 
 .dropdownContainer {
   position: relative;
-  display: flex;
-}
-
-/* Style overrides for the Dropdown component when used in the header */
-.headerDropdownMenu {
-  min-width: 180px;
-  margin-top: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
 }
 
 .excludedFilesCount {

@@ -14,7 +14,38 @@ PasteMax is a desktop application designed to help developers easily format and 
   <p>Current state of PasteMax</p>
 </div>
 
+## Branch Structure
 
+The repository maintains a simple, clean branch structure:
+
+- `main` - Active development branch with the latest stable code
+- `main-backup` - Historical reference of the previous main branch (preserved for reference)
+
+For detailed information about our branch workflow, see [Branch Workflow Guide](docs/branch_workflow.md).
+
+## Development Workflow
+
+1. **Feature Development**
+   - Create feature branches from `main`
+   - Follow the naming convention: `feature/descriptive-name`
+   - Keep changes focused and atomic
+
+2. **Code Quality**
+   - Follow the [Component System Guide](docs/style-guide/component-system.md)
+   - Ensure all components use our theme system
+   - Run linting before commits: `npm run lint:strict`
+
+3. **Testing**
+   - Add tests for new features
+   - Run tests locally: `npm test`
+   - Ensure CI passes before merging
+
+4. **Documentation**
+   - Update relevant documentation
+   - Add usage examples if needed
+   - Keep README.md current
+
+For more details, check our documentation in the `docs` directory.
 
 ## Features
 

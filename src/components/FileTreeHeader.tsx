@@ -56,7 +56,7 @@ const FileTreeHeader = ({
     <>
       <div className={styles.fileTreeHeader}>
         <Button 
-          variant="ghost"
+          variant="icon"
           size="sm"
           iconOnly
           startIcon={<Folder size={16} />}
@@ -72,7 +72,7 @@ const FileTreeHeader = ({
             placeholder="Sort by..."
             trigger={
               <Button 
-                variant="ghost"
+                variant="icon"
                 size="sm"
                 iconOnly
                 startIcon={<ArrowUpDown size={16} />}
@@ -85,7 +85,7 @@ const FileTreeHeader = ({
         </div>
         
         <Button 
-          variant="ghost"
+          variant="icon"
           size="sm"
           iconOnly
           startIcon={<Filter size={16} />}
@@ -101,7 +101,7 @@ const FileTreeHeader = ({
             placeholder="Clear options..."
             trigger={
               <Button 
-                variant="ghost"
+                variant="icon"
                 size="sm"
                 iconOnly
                 startIcon={<X size={16} />}
@@ -114,7 +114,7 @@ const FileTreeHeader = ({
         </div>
         
         <Button 
-          variant="ghost"
+          variant="icon"
           size="sm"
           iconOnly
           startIcon={<RefreshCw size={16} />}

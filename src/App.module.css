@@ -35,6 +35,13 @@
   margin-top: 0.25rem;
 }
 
+.dropdownContainer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+}
+
 .appContainer {
   display: flex;
   flex-direction: column;
@@ -102,58 +109,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.sortDropdown {
-  position: relative;
-  height: 32px;
-}
-
-.sortDropdownButton {
-  height: 32px;
-  width: 240px;
-  font-size: 0.875rem;
-  padding: 0 0.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  background: var(--background-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.sortDropdownButton:hover {
-  background: var(--hover-color);
-}
-
-.sortOptions {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: var(--z-index-dropdown);
-  min-width: 180px;
-  background: var(--background-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  animation: dropdownFadeIn 0.15s ease-in;
-}
-
-.sortOption {
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-  font-size: 14px;
-  color: var(--text-primary);
-}
-
-.sortOption:hover {
-  background: var(--hover-color);
-  color: var(--text-primary);
 }
 
 .fileStats {

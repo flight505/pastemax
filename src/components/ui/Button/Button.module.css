@@ -208,4 +208,26 @@
 .round.iconOnly .startIcon,
 .round.iconOnly .endIcon {
   margin: 0;
+}
+
+/* Icon variant - for icon-only buttons without background effects */
+.icon {
+  background-color: transparent;
+  border: none;
+  color: var(--icon-color);
+  padding: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.icon:hover:not(:disabled) {
+  background-color: transparent;
+  color: var(--text-primary);
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.icon:active:not(:disabled) {
+  background-color: transparent;
+  opacity: 0.9;
+  transform: scale(1.05);
 } 

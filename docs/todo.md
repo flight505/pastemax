@@ -12,6 +12,7 @@
 
 ## 🚀 In Progress
 
+- [ ] if the css style is comming from the for example a ui/ component, we could remove the css from the explicit css file in component/ and just import the component css file in the ui/ file? 
 - [ ] Add more comprehensive testing for theme system
 - [ ] Implement E2E tests for core functionality
 - [ ] Add performance monitoring for large file trees

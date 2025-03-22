@@ -1,28 +1,28 @@
 .dropdown {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  vertical-align: middle;
 }
 
 .button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem;
   font-size: 0.875rem;
-  background: var(--background-primary);
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
   border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.15s ease;
-  min-width: 150px;
-  width: 100%;
+  background: transparent;
+  border: none;
+  height: 32px;
+  width: 32px;
 }
 
 .button:hover:not(:disabled) {
   background: var(--hover-color);
-  border-color: var(--border-hover);
 }
 
 .button:focus-visible {
@@ -31,7 +31,7 @@
 }
 
 .button.active {
-  border-color: var(--border-hover);
+  background: var(--hover-color);
 }
 
 .buttonLabel {
@@ -45,6 +45,8 @@
 .chevron {
   color: var(--text-secondary);
   transition: transform 0.2s ease;
+  width: 16px;
+  height: 16px;
 }
 
 .chevronOpen {
@@ -54,17 +56,18 @@
 .menu {
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0;
   z-index: var(--z-index-dropdown);
-  min-width: 100%;
+  min-width: 180px;
   margin-top: 0.25rem;
-  padding: 0.25rem;
+  padding: 0.375rem;
   background: var(--background-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
   overflow-y: auto;
-  animation: dropdownFadeIn 0.15s ease-in;
+  max-height: 300px;
+  animation: dropdownFadeIn 0.15s ease;
 }
 
 .option {
@@ -75,7 +78,7 @@
   font-size: 0.875rem;
   color: var(--text-primary);
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   transition: background-color 0.1s ease;
   user-select: none;
 }
@@ -90,8 +93,8 @@
 }
 
 .option.selected {
-  background: var(--accent-muted);
-  color: var(--accent-color);
+  background: var(--background-selected);
+  color: var(--text-primary);
 }
 
 .option.disabled {
@@ -101,11 +104,16 @@
 
 .optionIcon {
   flex-shrink: 0;
-  color: var(--text-secondary);
+  color: var(--icon-color);
+  width: 16px;
+  height: 16px;
 }
 
 .optionLabel {
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .checkmark {
@@ -114,28 +122,15 @@
 
 /* Size variants */
 .sm .button {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+  height: 28px;
+  width: 28px;
+  padding: 0.25rem;
 }
 
 .lg .button {
-  padding: 0.75rem 1.25rem;
-  font-size: 1rem;
-}
-
-/* Disabled state */
-.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Custom trigger styles */
-.trigger {
-  cursor: pointer;
-}
-
-.trigger.active {
-  opacity: 0.8;
+  height: 36px;
+  width: 36px;
+  padding: 0.75rem;
 }
 
 @keyframes dropdownFadeIn {
@@ -147,4 +142,29 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Dark mode enhancements */
+:global(.dark-mode) .menu {
+  background: var(--dropdown-menu-background);
+  border-color: var(--border-color);
+}
+
+:global(.dark-mode) .option:hover:not(.disabled) {
+  background: var(--dropdown-item-hover);
+}
+
+/* Improved focus styles for keyboard navigation */
+.option:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--ring-color);
+}
+
+/* Add subtle divider between groups of options if needed */
+.option + .option {
+  border-top: 1px solid transparent;
+}
+
+.option:hover + .option {
+  border-top-color: transparent;
 } 

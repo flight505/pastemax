@@ -1010,23 +1010,15 @@ const App = () => {
                   <div className={styles.folderPathDisplay}>
                     {truncatePath(selectedFolder)}
                   </div>
-                  <div className={styles.sortDropdown}>
+                  <div className={styles.dropdownContainer}>
                     <Dropdown
                       options={sortOptions}
                       value={sortOrder}
                       onChange={handleSortChange}
-                      placeholder="Sort by..."
-                      trigger={
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          iconOnly
-                          startIcon={<ArrowUpDown size={16} />}
-                          title="Sort By"
-                          className={styles.headerBtn}
-                        />
-                      }
-                      menuClassName={styles.headerDropdownMenu}
+                      variant="icon"
+                      size="sm"
+                      icon={<ArrowUpDown />}
+                      title="Sort files"
                     />
                   </div>
                   <div className={styles.fileStats}>
