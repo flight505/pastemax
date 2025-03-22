@@ -1,60 +1,46 @@
-import React, { useEffect } from "react";
-import { useTheme } from "../context/ThemeContext";
-import { Sun, Moon, Monitor } from "lucide-react";
-import { Button } from "./ui";
-import styles from "./ThemeToggle.module.css";
+import React, { useEffect, useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
+import { Sun, Moon, Monitor } from 'lucide-react';
+import styles from './ThemeToggle.module.css';
 
-const themes = [
-  {
-    key: "light",
-    icon: Sun,
-    title: "Light Mode"
-  },
-  {
-    key: "dark",
-    icon: Moon,
-    title: "Dark Mode"
-  },
-  {
-    key: "system",
-    icon: Monitor,
-    title: "Use System Settings"
-  }
-];
-
-const ThemeToggle = (): JSX.Element => {
+const ThemeToggle: React.FC = () => {
   const { theme, setTheme } = useTheme();
-  
-  // Add animation class after initial render to enable transitions
+  const [isAnimated, setIsAnimated] = useState(false);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const background = document.querySelector(`.${styles.themeSegmentsBackground}`);
-      if (background) {
-        background.classList.add(styles.animated);
-      }
-    }, 50);
-    
+    // Add animation class after initial render
+    const timer = setTimeout(() => setIsAnimated(true), 0);
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <div className={styles.themeSegmentedControl}>
-      <div 
-        className={`${styles.themeSegmentsBackground} ${styles[theme]}`} 
-        data-state={theme}
+      <div
+        className={`${styles.themeSegmentsBackground} ${styles[theme]} ${
+          isAnimated ? styles.animated : ''
+        }`}
       />
-      {themes.map(({ key, icon: Icon, title }) => (
-        <Button
-          key={key}
-          variant="ghost"
-          size="sm"
-          iconOnly
-          startIcon={<Icon size={16} strokeWidth={1.5} />}
-          onClick={() => setTheme(key as "light" | "dark" | "system")}
-          title={title}
-          className={`${styles.themeSegment} ${theme === key ? styles.active : ""}`}
-        />
-      ))}
+      <button
+        className={`${styles.themeSegment} ${theme === 'light' ? styles.active : ''}`}
+        onClick={() => setTheme('light')}
+        title="Light theme"
+      >
+        <Sun size={16} />
+      </button>
+      <button
+        className={`${styles.themeSegment} ${theme === 'dark' ? styles.active : ''}`}
+        onClick={() => setTheme('dark')}
+        title="Dark theme"
+      >
+        <Moon size={16} />
+      </button>
+      <button
+        className={`${styles.themeSegment} ${theme === 'system' ? styles.active : ''}`}
+        onClick={() => setTheme('system')}
+        title="System theme"
+      >
+        <Monitor size={16} />
+      </button>
     </div>
   );
 };
