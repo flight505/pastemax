@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { SidebarProps, TreeNode, SortOrder } from "../types/FileTypes";
 import TreeItem from "./TreeItem";
 import FileTreeHeader from "./FileTreeHeader";
@@ -15,7 +15,6 @@ interface ExtendedSidebarProps extends SidebarProps {
   removeAllFolders: () => void;
   ignorePatterns: string;
   setIgnorePatterns: (patterns: string) => void;
-  loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
   systemIgnorePatterns: string[];
   clearIgnorePatterns: (folderPath: string) => void;
@@ -41,7 +40,6 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
   removeAllFolders,
   ignorePatterns,
   setIgnorePatterns,
-  loadIgnorePatterns,
   saveIgnorePatterns,
   systemIgnorePatterns,
   clearIgnorePatterns,
@@ -76,11 +74,70 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
   const isElectron = typeof window !== 'undefined' && 'electron' in window;
 
   // Memoized function to load patterns - define this first
-  const loadPatterns = useCallback((folderPath: string, isGlobal: boolean) => {
-    if (isElectron && window.electron) {
-      loadIgnorePatterns(folderPath, isGlobal);
+  const loadPatterns = useCallback(async (folderPath: string, isGlobal: boolean = false) => {
+    if (!isElectron) {
+      console.log("Not in Electron environment, skipping loadPatterns");
+      return "";
     }
-  }, [isElectron, loadIgnorePatterns]);
+    
+    // Prevent duplicate loading of patterns
+    if (isGlobal && globalIgnorePatterns !== "") {
+      console.log("Global ignore patterns already loaded, skipping...");
+      return globalIgnorePatterns;
+    }
+    
+    if (!isGlobal && folderPath === selectedFolder && localIgnorePatterns !== "") {
+      console.log("Local ignore patterns already loaded for current folder, skipping...");
+      return localIgnorePatterns;
+    }
+    
+    console.log(`Loading ${isGlobal ? 'global' : 'local'} ignore patterns${!isGlobal ? ` for ${folderPath}` : ''}`);
+    
+    try {
+      const result = await window.electron.ipcRenderer.invoke("load-ignore-patterns", {
+        folderPath,
+        isGlobal
+      });
+      
+      if (result.success) {
+        console.log(`Successfully loaded ${isGlobal ? 'global' : 'local'} ignore patterns`);
+        
+        // Debug log the patterns that were loaded
+        const patterns = result.patterns || '';
+        if (patterns.trim()) {
+          console.log(`Loaded user patterns:\n${patterns}`);
+        } else {
+          console.log(`No ${isGlobal ? 'global' : 'local'} patterns found`);
+        }
+        
+        // Store system patterns if provided
+        if (result.systemPatterns && Array.isArray(result.systemPatterns)) {
+          console.log(`Received ${result.systemPatterns.length} system patterns from main process`);
+          setSystemIgnorePatterns(result.systemPatterns);
+        } else {
+          console.warn('No system patterns received from main process or not in expected format');
+        }
+        
+        // Update pattern state
+        if (isGlobal) {
+          setGlobalIgnorePatterns(patterns);
+          setIgnorePatterns(patterns);
+        } else if (folderPath === selectedFolder) {
+          // Only update local patterns if they're for the current folder
+          setLocalIgnorePatterns(patterns);
+          setIgnorePatterns(patterns);
+        }
+        
+        return patterns;
+      } else {
+        console.error(`Error loading ${isGlobal ? 'global' : 'local'} ignore patterns:`, result.error);
+        return "";
+      }
+    } catch (error) {
+      console.error("Error invoking load-ignore-patterns:", error);
+      return "";
+    }
+  }, [isElectron, globalIgnorePatterns, localIgnorePatterns, selectedFolder, setIgnorePatterns]);
 
   // Load ignore patterns when folder changes
   useEffect(() => {
@@ -296,54 +353,62 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     };
   }, [allFiles, expandedNodes, selectedFolder, sortFileTreeNodes]);
 
-  // Update tree with expanded state
-  const updateTreeWithExpandedState = useCallback(() => {
-    if (fileTree.length === 0 || isUpdatingExpandedNodesRef.current) return;
+  // Update the useEffect hook to include the tree update logic
+  useEffect(() => {
+    if (!fileTree.length || isUpdatingExpandedNodesRef.current) return;
     
-    isUpdatingExpandedNodesRef.current = true;
-    
-    // Add change detection to prevent unnecessary updates
-    let hasChanged = false;
-    
-    const updateNodes = (nodes: TreeNode[]): TreeNode[] => {
-      return nodes.map(node => {
-        const nodeExpanded = expandedNodes.has(node.id) ? !!expandedNodes.get(node.id) : false;
-        const isExpanded = nodeExpanded || node.isExpanded;
-        
-        // Check if there's a change in expanded state
-        if (isExpanded !== node.isExpanded) {
-          hasChanged = true;
-        }
-        
-        // Check if directory has children to update
-        if (node.type === "directory" && node.children && node.children.length > 0) {
+    const updateTreeWithExpandedState = () => {
+      isUpdatingExpandedNodesRef.current = true;
+      
+      // Add change detection to prevent unnecessary updates
+      let hasChanged = false;
+      
+      const updateNodes = (nodes: TreeNode[]): TreeNode[] => {
+        return nodes.map(node => {
+          const nodeExpanded = expandedNodes.has(node.id) ? !!expandedNodes.get(node.id) : false;
+          const isExpanded = nodeExpanded || node.isExpanded;
+          
+          // Check if there's a change in expanded state
+          if (isExpanded !== node.isExpanded) {
+            hasChanged = true;
+          }
+          
+          // Check if directory has children to update
+          if (node.type === "directory" && node.children && node.children.length > 0) {
+            return {
+              ...node,
+              isExpanded,
+              children: updateNodes(node.children),
+            };
+          }
+          
           return {
             ...node,
             isExpanded,
-            children: updateNodes(node.children),
           };
-        }
-        
-        return {
-          ...node,
-          isExpanded,
-        };
-      });
-    };
-    
-    try {
-      const updatedTree = updateNodes(fileTree);
+        });
+      };
       
-      // Only update the tree if there were changes
-      if (hasChanged) {
-        setFileTree(updatedTree);
+      try {
+        const updatedTree = updateNodes(fileTree);
+        
+        // Only update the tree if there were changes
+        if (hasChanged) {
+          setFileTree(updatedTree);
+        }
+      } catch (error) {
+        console.error("Error updating tree with expanded state:", error);
+      } finally {
+        isUpdatingExpandedNodesRef.current = false;
       }
-    } catch (error) {
-      console.error("Error updating tree with expanded state:", error);
-    } finally {
+    };
+
+    updateTreeWithExpandedState();
+    
+    return () => {
       isUpdatingExpandedNodesRef.current = false;
-    }
-  }, [fileTree, expandedNodes]);
+    };
+  }, [fileTree, expandedNodes, setFileTree]);
 
   // Handle opening the ignore patterns modal
   const handleOpenIgnorePatterns = (isGlobal = false) => {
@@ -351,42 +416,22 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     
     // Ensure we have patterns loaded
     if (isGlobal) {
-      loadPatterns(true);
-    } else {
-      loadPatterns(false);
+      loadPatterns('', true);
+    } else if (selectedFolder) {
+      loadPatterns(selectedFolder, false);
     }
     
     setIgnoreModalOpen(true);
   };
 
-  // Load patterns based on global or local scope
-  const loadPatterns = useCallback(async (isGlobal: boolean) => {
-    try {
-      // Load global patterns if needed
-      if (isGlobal) {
-        if (!globalIgnorePatterns) {
-          await loadIgnorePatterns('', true);
-        } else {
-          setIgnorePatterns(globalIgnorePatterns);
-        }
-      } 
-      // Load local patterns if needed
-      else if (selectedFolder && !localIgnorePatterns) {
-        await loadIgnorePatterns(selectedFolder, false);
-      } else if (selectedFolder) {
-        setIgnorePatterns(localIgnorePatterns);
-      }
-    } catch (err) {
-      console.error(`Error loading ${isGlobal ? 'global' : 'local'} patterns:`, err);
-    }
-  }, [selectedFolder, loadIgnorePatterns, globalIgnorePatterns, localIgnorePatterns, setIgnorePatterns]);
-
   // Handle reset button click in ignore patterns modal
   const handleResetIgnorePatterns = useCallback(async () => {
     if (!isElectron) return;
     await window.electron.resetIgnorePatterns(true, selectedFolder);
-    await loadPatterns();
-  }, [selectedFolder, loadPatterns]);
+    if (selectedFolder) {
+      await loadPatterns(selectedFolder, false);
+    }
+  }, [selectedFolder, loadPatterns, isElectron]);
 
   // Handle clear button click in ignore patterns modal
   const handleClearIgnorePatterns = (folderPath?: string) => {
@@ -435,15 +480,6 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     return excludedFilesCount;
   };
 
-  // Add expanded node state to the tree
-  useEffect(() => {
-    if (!fileTree.length || isUpdatingExpandedNodesRef.current) return;
-    updateTreeWithExpandedState();
-    return () => {
-      isUpdatingExpandedNodesRef.current = false;
-    };
-  }, [fileTree, expandedNodes, updateTreeWithExpandedState]);
-
   return (
     <div className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>
       <FileTreeHeader 
@@ -483,9 +519,9 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
 
           <div className={styles.fileTree}>
             {isTreeBuildingComplete ? (
-              memoizedFlattenedTree.length > 0 ? (
+              fileTree.length > 0 ? (
                 <>
-                  {memoizedFlattenedTree.map((node) => (
+                  {fileTree.map((node) => (
                     <TreeItem
                       key={node.id}
                       node={node}
