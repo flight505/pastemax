@@ -1,0 +1,498 @@
+:root {
+  /* Monochrome Zinc theme - shadcn inspired */
+  --background-primary: hsl(0, 0%, 100%);
+  --background-secondary: hsl(240, 4.8%, 95.9%);
+  --background-selected: hsl(240, 4.8%, 95.9%);
+  --card-background: hsl(0, 0%, 100%);
+  --card-foreground: hsl(240, 10%, 3.9%);
+  --accent-color: hsl(240, 3.8%, 46.1%);
+  --border-color: hsl(240, 5.9%, 90%);
+  --hover-color: hsl(240, 4.8%, 95.9%);
+  --text-primary: hsl(240, 10%, 3.9%);
+  --text-secondary: hsl(240, 3.8%, 46.1%);
+  --text-disabled: hsl(240, 3.8%, 70%);
+  --icon-color: hsl(240, 3.8%, 46.1%);
+  --success-color: hsl(142, 72%, 29%);
+  --warning-color: hsl(40, 92%, 40%);
+  --error-color: hsl(0, 84.2%, 60.2%);
+  --primary-button-background: hsl(240, 5.9%, 10%);
+  --primary-button-hover: hsla(240, 5.9%, 10%, 0.9);
+  --primary-button-active: hsla(240, 5.9%, 10%, 0.8);
+  --primary-button-text: hsl(0, 0%, 98%);
+  --secondary-button-background: hsl(240, 4.8%, 95.9%);
+  --secondary-button-hover: hsl(240, 4.8%, 90%);
+  --secondary-button-active: hsl(240, 4.8%, 85%);
+  --file-card-selected-border: hsl(240, 5.9%, 90%);
+  
+  /* User instructions area specific colors */
+  --instructions-background: hsl(240, 5%, 96%);
+  --instructions-border: hsl(240, 5.9%, 90%);
+  
+  /* Ring for focus states */
+  --ring-color: hsl(240, 5.9%, 10%);
+  
+  /* Border radius */
+  --radius: 0.5rem;
+  --radius-full: 9999px;
+  
+  /* Component Sizing */
+  --button-height-sm: 30px;
+  --button-height-md: 36px;
+  --button-height-lg: 42px;
+  
+  /* Toggle/Switch Variables */
+  --toggle-width: 36px;
+  --toggle-height: 20px;
+  --toggle-thumb-size: 14px;
+  --toggle-thumb-offset: 3px;
+  --toggle-active: var(--accent-color);
+  --toggle-inactive: var(--background-secondary);
+}
+
+.dark-mode {
+  /* Monochrome dark Zinc theme - shadcn inspired */
+  --background-primary: hsl(240, 10%, 3.9%);
+  --background-secondary: hsl(240, 3.7%, 15.9%);
+  --background-selected: hsl(240, 3.7%, 15.9%);
+  --card-background: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --accent-color: hsl(240, 5%, 64.9%);
+  --border-color: hsl(240, 3.7%, 15.9%);
+  --hover-color: hsl(240, 3.7%, 15.9%);
+  --text-primary: hsl(0, 0%, 98%);
+  --text-secondary: hsl(240, 5%, 64.9%);
+  --text-disabled: hsl(240, 5%, 50%);
+  --icon-color: hsl(0, 0%, 80%);
+  --success-color: hsl(142, 72%, 29%);
+  --warning-color: hsl(40, 92%, 40%);
+  --error-color: hsl(0, 62.8%, 30.6%);
+  --primary-button-background: hsl(0, 0%, 98%);
+  --primary-button-hover: hsla(0, 0%, 98%, 0.9);
+  --primary-button-active: hsla(0, 0%, 98%, 0.8);
+  --primary-button-text: hsl(240, 5.9%, 10%);
+  --secondary-button-background: hsl(240, 3.7%, 15.9%);
+  --secondary-button-hover: hsl(240, 3.7%, 20%);
+  --secondary-button-active: hsl(240, 3.7%, 25%);
+  --file-card-selected-border: hsl(240, 3.7%, 25%);
+  
+  /* User instructions area specific colors */
+  --instructions-background: hsl(240, 3.7%, 8%);
+  --instructions-border: hsl(240, 3.7%, 20%);
+  
+  /* Ring for focus states */
+  --ring-color: hsl(240, 4.9%, 83.9%);
+  
+  /* Toggle specific */
+  --toggle-active: var(--accent-color);
+  --toggle-inactive: var(--background-secondary);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid var(--border-color);
+  background-color: var(--background-primary);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+button:hover {
+  background-color: var(--hover-color);
+}
+
+/* General button focus styles */
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent-color);
+  outline-offset: 0;
+}
+
+button.primary {
+  background-color: var(--primary-button-background);
+  color: var(--primary-button-text);
+  border-color: var(--primary-button-background);
+}
+
+button.primary:hover {
+  background-color: var(--primary-button-background);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input[type="text"],
+input[type="search"] {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+}
+
+input[type="text"]:focus,
+input[type="search"]:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+/* Form element styling - checkboxes and radios */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent-color);
+  cursor: pointer;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+  margin: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: hsl(240, 3.8%, 80%);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(240, 3.8%, 70%);
+}
+
+::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+
+/* Dark mode scrollbars */
+.dark-mode ::-webkit-scrollbar-thumb {
+  background-color: hsl(240, 3.7%, 25%);
+}
+
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(240, 3.7%, 35%);
+}
+
+/* Specific scrollbar styling for sidebar file tree */
+.file-tree::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.dark-mode .file-tree::-webkit-scrollbar-thumb {
+  background-color: hsl(240, 3.7%, 25%);
+}
+
+/* FileList styles migrated to FileList.module.css */
+.dark-mode .file-list::-webkit-scrollbar-thumb {
+  background-color: hsl(240, 10%, 20%);
+}
+
+.monospace {
+  font-family: Consolas, Menlo, Monaco, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Main layout structure */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.header {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--background-primary);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-separator {
+  height: 16px;
+  width: 1px;
+  background-color: var(--border-color);
+  opacity: 0.6;
+}
+
+.folder-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selected-folder {
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  background-color: var(--background-secondary);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 13px;
+  border: 1px solid transparent;
+}
+
+.select-folder-btn {
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  height: 28px;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+}
+
+.sidebar {
+  width: 300px;
+  min-width: 200px;
+  max-width: 500px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
+  overflow: hidden;
+  background-color: var(--background-secondary);
+  position: relative;
+  transition: width 0.1s ease;
+}
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--background-secondary);
+}
+
+.sidebar-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.sidebar-folder-path {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--background-secondary);
+}
+
+.sidebar-actions {
+  display: flex;
+  padding: 12px 16px;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--background-secondary);
+}
+
+.sidebar-action-btn {
+  flex: 1;
+  font-size: 13px;
+  padding: 6px 12px;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+}
+
+.sidebar-action-btn:hover {
+  background-color: var(--background-primary);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.file-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+  background-color: var(--background-secondary);
+}
+
+.tree-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.tree-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  gap: 12px;
+  color: var(--text-secondary);
+}
+
+.tree-loading .spinner {
+  width: 24px;
+  height: 24px;
+}
+
+/* TreeItem styles migrated to TreeItem.module.css */
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: var(--radius);
+  background-color: var(--hover-color);
+  color: var(--text-secondary);
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--background-primary);
+  min-width: 0;
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--background-primary);
+}
+
+.content-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.content-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sort-dropdown {
+  position: relative;
+}
+
+.sort-dropdown-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.sort-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  min-width: 180px;
+}
+
+.sort-option {
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: var(--text-primary);
+}
+
+.sort-option:hover {
+  background-color: var(--hover-color);
+}
+
+.sort-option.active {
+  background-color: var(--background-selected);
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+.file-stats {
+  font-size: 14px;
+  color: var(--text-secondary);
+}

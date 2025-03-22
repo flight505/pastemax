@@ -11,6 +11,7 @@ export interface FileData {
   excludedByDefault?: boolean;
   lastModified?: number;
   isAppDirectory?: boolean;
+  excluded?: boolean;
 }
 
 export interface TreeNode {
@@ -20,7 +21,9 @@ export interface TreeNode {
   type: "file" | "directory";
   children?: TreeNode[];
   isExpanded?: boolean;
-  level: number;
+  isSelected?: boolean;
+  depth: number;
+  parentId?: string;
   fileData?: FileData;
 }
 
@@ -67,12 +70,6 @@ export interface SortOption {
 export interface SearchBarProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
-}
-
-export interface CopyButtonProps {
-  onCopy: () => void;
-  isDisabled: boolean;
-  copyStatus: boolean;
 }
 
 export type FileTreeMode = "none" | "selected" | "selected-with-roots" | "complete";

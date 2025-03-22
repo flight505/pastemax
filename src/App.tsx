@@ -1,13 +1,17 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Sidebar from "./components/Sidebar";
+import FileList from "./components/FileList";
 import UserInstructions from "./components/UserInstructions";
 import ControlContainer from "./components/ControlContainer";
-import FileList from "./components/FileList";
 import { FileData, FileTreeMode, SortOrder } from "./types/FileTypes";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
-import { Github } from "lucide-react";
+import { Github, ArrowUpDown } from "lucide-react";
+import styles from "./App.module.css";
+import { Button } from "./components/ui/Button";
+import { Dropdown } from "./components/ui/Dropdown";
+import { ConfirmationDialog } from "./components/ui/ConfirmationDialog";
 
 // Access the electron API from the window object
 declare global {
@@ -21,6 +25,7 @@ declare global {
           func: (...args: any[]) => void
         ) => void;
         invoke: (channel: string, data?: any) => Promise<any>;
+        setMaxListeners?: (n: number) => void;
       };
     };
   }
@@ -62,6 +67,37 @@ const App = () => {
   const savedFiles = localStorage.getItem(STORAGE_KEYS.SELECTED_FILES);
   const savedSortOrder = localStorage.getItem(STORAGE_KEYS.SORT_ORDER);
   const savedSearchTerm = localStorage.getItem(STORAGE_KEYS.SEARCH_TERM);
+  const savedExpandedNodes = localStorage.getItem(STORAGE_KEYS.EXPANDED_NODES);
+
+  // Initialize expanded nodes from localStorage if available
+  const initialExpandedNodes = useMemo(() => {
+    const map = new Map<string, boolean>();
+    if (savedExpandedNodes) {
+      try {
+        const parsedNodes = JSON.parse(savedExpandedNodes);
+        
+        // Handle array format [key, value][]
+        if (Array.isArray(parsedNodes)) {
+          parsedNodes.forEach(([key, value]) => {
+            if (typeof key === 'string' && typeof value === 'boolean') {
+              map.set(key, value);
+            }
+          });
+        }
+        // Handle object format {key: value}
+        else if (typeof parsedNodes === 'object' && parsedNodes !== null) {
+          Object.entries(parsedNodes).forEach(([key, value]) => {
+            if (typeof value === 'boolean') {
+              map.set(key, value);
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error parsing saved expanded nodes:", error);
+      }
+    }
+    return map;
+  }, [savedExpandedNodes]);
 
   const [selectedFolder, setSelectedFolder] = useState(
     savedFolder as string | null
@@ -72,9 +108,7 @@ const App = () => {
   );
   const [sortOrder, setSortOrder] = useState(savedSortOrder || "tokens-desc");
   const [searchTerm, setSearchTerm] = useState(savedSearchTerm || "");
-  const [expandedNodes, setExpandedNodes] = useState(
-    {} as Record<string, boolean>
-  );
+  const [expandedNodes, setExpandedNodes] = useState<Map<string, boolean>>(initialExpandedNodes);
   const [displayedFiles, setDisplayedFiles] = useState([] as FileData[]);
   const [processingStatus, setProcessingStatus] = useState({
     status: "idle",
@@ -84,9 +118,6 @@ const App = () => {
     message: string;
   });
   const [fileTreeMode, setFileTreeMode] = useState("none" as FileTreeMode);
-
-  // State for sort dropdown
-  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
 
   // NEW: State for user instructions
   const [userInstructions, setUserInstructions] = useState("");
@@ -111,9 +142,25 @@ const App = () => {
     );
     if (savedExpandedNodes) {
       try {
-        setExpandedNodes(JSON.parse(savedExpandedNodes));
+        // Parse the JSON string
+        const parsedNodes = JSON.parse(savedExpandedNodes);
+        
+        // Check if it's an object that needs to be converted to entries
+        if (parsedNodes && typeof parsedNodes === 'object' && !Array.isArray(parsedNodes)) {
+          // Convert object to array of entries
+          const entries = Object.entries(parsedNodes);
+          setExpandedNodes(new Map(entries));
+        } else if (Array.isArray(parsedNodes)) {
+          // It's already in the format of [key, value] pairs
+          setExpandedNodes(new Map(parsedNodes));
+        } else {
+          // Reset to empty Map if format is not recognized
+          setExpandedNodes(new Map());
+        }
       } catch (error) {
         console.error("Error parsing saved expanded nodes:", error);
+        // Reset to empty Map on error
+        setExpandedNodes(new Map());
       }
     }
   }, []);
@@ -368,70 +415,57 @@ const App = () => {
     );
   };
 
-  // Toggle folder selection (select/deselect all files in folder)
+  // Toggle folder selection (select/deselect all files within a folder)
   const toggleFolderSelection = (folderPath: string, isSelected: boolean) => {
-    // Normalize the folder path
-    const normalizedFolderPath = normalizePath(folderPath);
+    if (!folderPath) return;
     
-    // Get all files that are under this folder path at any depth
-    const filesInFolder = allFiles.filter(
-      (file: FileData) => {
-        const normalizedFilePath = normalizePath(file.path);
-        // Check if the file is within this folder (at any depth)
-        const isWithinFolder = normalizedFilePath.startsWith(normalizedFolderPath);
-        // Only include files that are not binary, not skipped, and not excluded by patterns
-        const isSelectable = !file.isBinary && !file.isSkipped && !file.excludedByDefault;
-        return isWithinFolder && isSelectable;
-      }
-    );
-
-    // Get paths of all selectable files in this folder
-    const selectableFilePaths = filesInFolder.map((file: FileData) => normalizePath(file.path));
-    
-    if (isSelected) {
-      // Add all files from this folder that aren't already selected
-      setSelectedFiles((prev: string[]) => {
-        // Start with current selection
-        const newSelection = [...prev];
-        
-        // Add each selectable file path if it's not already selected
-        selectableFilePaths.forEach((path: string) => {
-          if (!newSelection.some((p: string) => arePathsEqual(p, path))) {
-            newSelection.push(path);
+    setSelectedFiles((prev: string[]) => {
+      // Create a copy of the current selectedFiles array
+      const newSelectedFiles = [...prev];
+      
+      // Find all files that match this folder path prefix
+      const filesInFolder = allFiles.filter(
+        (file) => 
+          file.path.startsWith(folderPath) && 
+          !file.excluded && 
+          file.type !== 'directory'
+      );
+      
+      // Use a Set for better lookup performance
+      const selectedFilesSet = new Set(newSelectedFiles);
+      
+      // Check if we should select or deselect
+      if (isSelected) {
+        // Add all files in the folder to selection
+        filesInFolder.forEach((file) => {
+          if (!selectedFilesSet.has(file.path)) {
+            selectedFilesSet.add(file.path);
           }
         });
-        
-        return newSelection;
-      });
-    } else {
-      // Remove all files from this folder
-      setSelectedFiles((prev: string[]) => {
-        // Remove any currently selected files that are within this folder
-        return prev.filter((path: string) => 
-          !selectableFilePaths.some((folderFilePath: string) => 
-            arePathsEqual(folderFilePath, path)
-          )
-        );
-      });
-    }
+      } else {
+        // Remove all files in the folder from selection
+        filesInFolder.forEach((file) => {
+          selectedFilesSet.delete(file.path);
+        });
+      }
+      
+      // Convert Set back to array
+      return Array.from(selectedFilesSet);
+    });
   };
 
-  // Handle sort change
-  const handleSortChange = (newSort: string) => {
-    setSortOrder(newSort);
-    applyFiltersAndSort(allFiles, newSort, searchTerm);
-    setSortDropdownOpen(false); // Close dropdown after selection
+  // Update the sort change handler
+  const handleSortChange = (value: string | string[]) => {
+    if (typeof value === 'string') {
+      setSortOrder(value);
+      applyFiltersAndSort(allFiles, value, searchTerm);
+    }
   };
 
   // Handle search change
   const handleSearchChange = (newSearch: string) => {
     setSearchTerm(newSearch);
     applyFiltersAndSort(allFiles, sortOrder, newSearch);
-  };
-
-  // Toggle sort dropdown
-  const toggleSortDropdown = () => {
-    setSortDropdownOpen(!sortDropdownOpen);
   };
 
   // Calculate total tokens from selected files
@@ -510,26 +544,31 @@ const App = () => {
 
   // Sort options for the dropdown
   const sortOptions = [
-    { value: "tokens-desc", label: "Tokens: High to Low" },
-    { value: "tokens-asc", label: "Tokens: Low to High" },
-    { value: "name-asc", label: "Name: A to Z" },
-    { value: "name-desc", label: "Name: Z to A" },
+    { value: "tokens-desc", label: "Tokens (High to Low)" },
+    { value: "tokens-asc", label: "Tokens (Low to High)" },
+    { value: "name-asc", label: "Name (A to Z)" },
+    { value: "name-desc", label: "Name (Z to A)" },
+    { value: "date-newest", label: "Date Modified (Newest)" },
+    { value: "date-oldest", label: "Date Modified (Oldest)" },
   ];
 
   // Handle expand/collapse state changes
   const toggleExpanded = (nodeId: string) => {
-    setExpandedNodes((prev: Record<string, boolean>) => {
-      const newState = {
-        ...prev,
-        [nodeId]: prev[nodeId] === undefined ? false : !prev[nodeId],
-      };
-
-      // Save to localStorage
-      localStorage.setItem(
-        STORAGE_KEYS.EXPANDED_NODES,
-        JSON.stringify(newState)
-      );
-
+    setExpandedNodes((prev: Map<string, boolean>) => {
+      const newState = new Map(prev);
+      const currentValue = prev.get(nodeId);
+      newState.set(nodeId, currentValue === undefined ? true : !currentValue);
+      
+      // Save to localStorage as an array of entries [key, value]
+      try {
+        localStorage.setItem(
+          STORAGE_KEYS.EXPANDED_NODES,
+          JSON.stringify(Array.from(newState.entries()))
+        );
+      } catch (error) {
+        console.error("Error saving expanded nodes:", error);
+      }
+      
       return newState;
     });
   };
@@ -728,11 +767,23 @@ const App = () => {
     }
   };
 
+  // Wrap reloadFolder in useCallback to prevent recreating it on every render
   const reloadFolder = useCallback(() => {
-    if (selectedFolder) {
-      loadFolder(selectedFolder);
+    if (isElectron && selectedFolder) {
+      console.log(`Reloading folder: ${selectedFolder}`);
+      setProcessingStatus({
+        status: "processing",
+        message: "Loading files...",
+      });
+      
+      // Clear state
+      setAllFiles([]);
+      setDisplayedFiles([]);
+      
+      // Trigger folder loading - use the correct event name
+      window.electron.ipcRenderer.send("reload-file-list", selectedFolder);
     }
-  }, [selectedFolder]);
+  }, [isElectron, selectedFolder, setProcessingStatus, setAllFiles, setDisplayedFiles]);
 
   // Now add the ignore-patterns-saved handler after reloadFolder is defined
   useEffect(() => {
@@ -759,6 +810,11 @@ const App = () => {
         }
       };
       
+      // Increase the maximum number of listeners to prevent the warning
+      if (window.electron.ipcRenderer.setMaxListeners) {
+        window.electron.ipcRenderer.setMaxListeners(20);
+      }
+      
       window.electron.ipcRenderer.on("ignore-patterns-saved", handleIgnorePatternsSaved);
       
       return () => {
@@ -767,9 +823,24 @@ const App = () => {
     }
   }, [isElectron, selectedFolder, reloadFolder]);
 
-  // Add handlers for clear functionality
+  // Add dialog states
+  const [showClearSelectionDialog, setShowClearSelectionDialog] = useState(false);
+  const [showRemoveAllFoldersDialog, setShowRemoveAllFoldersDialog] = useState(false);
+  const [showResetPatternsDialog, setShowResetPatternsDialog] = useState(false);
+  const [resetPatternsContext, setResetPatternsContext] = useState<{isGlobal: boolean; folderPath: string} | null>(null);
+
+  // Update handlers to show dialogs
+  const handleClearSelectionClick = () => {
+    setShowClearSelectionDialog(true);
+  };
+
   const clearSelection = () => {
     setSelectedFiles([]);
+    setShowClearSelectionDialog(false);
+  };
+
+  const handleRemoveAllFoldersClick = () => {
+    setShowRemoveAllFoldersDialog(true);
   };
 
   const removeAllFolders = () => {
@@ -785,6 +856,12 @@ const App = () => {
     
     // Clear sessionStorage flag to allow loading data next time
     sessionStorage.removeItem("hasLoadedInitialData");
+    setShowRemoveAllFoldersDialog(false);
+  };
+
+  const handleResetPatternsClick = (isGlobal: boolean, folderPath: string) => {
+    setResetPatternsContext({ isGlobal, folderPath });
+    setShowResetPatternsDialog(true);
   };
 
   // Initialize system patterns with defaults on component mount
@@ -854,34 +931,48 @@ const App = () => {
     }
   };
 
+  const truncatePath = (path: string) => {
+    const parts = path.split('/');
+    if (parts.length <= 3) return path;
+    
+    // Get the last two meaningful parts
+    const lastParts = parts.filter(p => p).slice(-2);
+    return `.../${lastParts.join('/')}`;
+  };
+
   return (
     <ThemeProvider>
-      <div className="app-container">
-        <header className="header">
+      <div className={styles.appContainer}>
+        <header className={styles.appHeader}>
           <h1>PasteMax</h1>
-          <div className="header-actions">
-            <a href="#" className="header-link">Guide</a>
-            <div className="header-separator"></div>
+          <div className={styles.headerActions}>
+            <a href="#" className={styles.headerLink}>Guide</a>
+            <div className={styles.headerSeparator}></div>
             <ThemeToggle />
-            <div className="header-separator"></div>
-            <a href="https://github.com/user/pastemax" className="header-link" target="_blank" rel="noopener noreferrer" title="View on GitHub">
-              <Github size={18} />
+            <div className={styles.headerSeparator}></div>
+            <a
+              href="https://github.com/jsulpis/pastemax"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.githubButton}
+            >
+              <Github size={16} />
             </a>
           </div>
         </header>
 
         {processingStatus.status === "processing" && (
-          <div className="processing-indicator">
-            <div className="spinner"></div>
+          <div className={styles.processingIndicator}>
+            <div className={styles.spinner}></div>
             <span>{processingStatus.message}</span>
           </div>
         )}
 
         {processingStatus.status === "error" && (
-          <div className="error-message">Error: {processingStatus.message}</div>
+          <div className={styles.errorMessage}>Error: {processingStatus.message}</div>
         )}
 
-        <div className="main-content">
+        <div className={styles.mainContainer}>
           <Sidebar
             selectedFolder={selectedFolder}
             openFolder={openFolder}
@@ -895,7 +986,6 @@ const App = () => {
             deselectAllFiles={deselectAllFiles}
             expandedNodes={expandedNodes}
             toggleExpanded={toggleExpanded}
-            // New props
             reloadFolder={reloadFolder}
             clearSelection={clearSelection}
             removeAllFolders={removeAllFolders}
@@ -906,43 +996,40 @@ const App = () => {
             resetIgnorePatterns={resetIgnorePatterns}
             systemIgnorePatterns={systemIgnorePatterns}
             clearIgnorePatterns={clearIgnorePatterns}
+            onClearSelectionClick={handleClearSelectionClick}
+            onRemoveAllFoldersClick={handleRemoveAllFoldersClick}
+            onResetPatternsClick={handleResetPatternsClick}
           />
           
           {selectedFolder ? (
-            <div className="content-area">
-              <div className="content-header">
-                <div className="content-title">Selected Files</div>
-                <div className="content-actions">
-                  <div className="folder-path-display" title={selectedFolder}>
-                    {selectedFolder}
+            <div className={styles.contentArea}>
+              <div className={styles.contentHeader}>
+                <div className={styles.contentTitle}>Selected Files</div>
+                <div className={styles.contentActions}>
+                  <div className={styles.folderPathDisplay}>
+                    {truncatePath(selectedFolder)}
                   </div>
-                  <div className="sort-dropdown">
-                    <button
-                      className="sort-dropdown-button"
-                      onClick={toggleSortDropdown}
-                    >
-                      Sort:{" "}
-                      {sortOptions.find((opt) => opt.value === sortOrder)
-                        ?.label || sortOrder}
-                    </button>
-                    {sortDropdownOpen && (
-                      <div className="sort-options">
-                        {sortOptions.map((option) => (
-                          <div
-                            key={option.value}
-                            className={`sort-option ${
-                              sortOrder === option.value ? "active" : ""
-                            }`}
-                            onClick={() => handleSortChange(option.value)}
-                          >
-                            {option.label}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  <div className={styles.sortDropdown}>
+                    <Dropdown
+                      options={sortOptions}
+                      value={sortOrder}
+                      onChange={handleSortChange}
+                      placeholder="Sort by..."
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          iconOnly
+                          startIcon={<ArrowUpDown size={16} />}
+                          title="Sort By"
+                          className={styles.headerBtn}
+                        />
+                      }
+                      menuClassName={styles.headerDropdownMenu}
+                    />
                   </div>
-                  <div className="file-stats">
-                    {selectedFiles.length} files | ~
+                  <div className={styles.fileStats}>
+                    {selectedFiles.length} {selectedFiles.length === 1 ? 'file' : 'files'} | ~
                     {calculateTotalTokens().toLocaleString()} tokens
                   </div>
                 </div>
@@ -955,7 +1042,7 @@ const App = () => {
               />
 
               {showUserInstructions && (
-                <div className="user-instructions-container">
+                <div className={styles.userInstructionsContainer}>
                   <UserInstructions
                     instructions={userInstructions}
                     setInstructions={setUserInstructions}
@@ -983,8 +1070,8 @@ const App = () => {
               />
             </div>
           ) : (
-            <div className="content-area empty-state">
-              <div className="empty-state-content">
+            <div className={styles.contentArea}>
+              <div className={styles.emptyStateContent}>
                 <h2>Welcome to PasteMax</h2>
                 <p>Select a folder from the file tree panel to start working with your files.</p>
                 <p>PasteMax helps you format your code for AI models by:</p>
@@ -998,6 +1085,46 @@ const App = () => {
             </div>
           )}
         </div>
+
+        {/* Add confirmation dialogs */}
+        <ConfirmationDialog
+          isOpen={showClearSelectionDialog}
+          onClose={() => setShowClearSelectionDialog(false)}
+          onConfirm={clearSelection}
+          title="Clear Selection"
+          description="Are you sure you want to clear all selected files?"
+          confirmLabel="Clear Selection"
+          variant="destructive"
+        />
+
+        <ConfirmationDialog
+          isOpen={showRemoveAllFoldersDialog}
+          onClose={() => setShowRemoveAllFoldersDialog(false)}
+          onConfirm={removeAllFolders}
+          title="Remove All Folders"
+          description="Are you sure you want to remove all folders? This will reset the application state."
+          confirmLabel="Remove All"
+          variant="destructive"
+        />
+
+        <ConfirmationDialog
+          isOpen={showResetPatternsDialog}
+          onClose={() => setShowResetPatternsDialog(false)}
+          onConfirm={() => {
+            if (resetPatternsContext) {
+              resetIgnorePatterns(
+                resetPatternsContext.isGlobal,
+                resetPatternsContext.folderPath
+              );
+              setShowResetPatternsDialog(false);
+              setResetPatternsContext(null);
+            }
+          }}
+          title={`Reset ${resetPatternsContext?.isGlobal ? 'Global' : 'Local'} Ignore Patterns`}
+          description="Are you sure you want to reset the ignore patterns to their default values?"
+          confirmLabel="Reset Patterns"
+          variant="destructive"
+        />
       </div>
     </ThemeProvider>
   );

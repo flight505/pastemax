@@ -30,35 +30,23 @@
    - Assign each optimization a priority level (e.g., high, medium, low) and difficulty level (e.g., easy, moderate, hard).
    - Store this rank-ordered list for reference.
 
-7. **Prepare ShadcnUI Component Implementation**  
-   - Create or designate a folder for reusable ShadcnUI-based components (e.g., `src/components/ui`).
-   - Set up boilerplate files for common components like buttons, tables, and input fields.
-   - Integrate ShadcnUI styles or theming if applicable, ensuring each new component follows the established design approach.
 
-8. **Extract and Replace Existing Components with ShadcnUI**  
-   - Identify repetitive UI elements (buttons, forms, table layouts) across the codebase.
-   - Move any shared logic or styling into the new ShadcnUI-based component files.
-   - Update all references in the application to point to the new reusable components.
+7. **Refactor the Sidebar if needed**
+   - we cant select folder in the sidebar only the root and files
+   - insure we are getting the full deep file tree
 
-9. **Refactor the Sidebar to Fix the Maximum Update Depth Error**  
-   - Examine the `useEffect` dependencies and any state updates that occur within `Sidebar.tsx`.
-   - Adjust the dependency arrays or relocate the state updates to prevent infinite re-render loops.
-   - Remove or modify redundant `setState` calls occurring within `useEffect`.
 
-10. **Remove or Archive Duplicate and Unused Files**  
+8. **Remove or Archive Duplicate and Unused Files**  
     - For all identified duplicates or unused files, remove them from the project or relocate them to an archive folder if needed for reference.
     - Update any import statements that relied on these duplicates if applicable.
 
-11. **Commit Changes**  
+9. **run lint and fix**
+    - run lint and fix all the issues
+
+10. **Commit Changes**  
     - Stage all modified, removed, or newly created files for commit.
     - Commit the refactor with a message referencing the changes (e.g., “Refactor: Resolve Sidebar update depth, add ShadcnUI components, remove duplicates”).
 
-12. **Run a Build to Confirm Compilation**  
-    - Execute the build command (e.g., `npm run build` or `npm run package`), ensuring all refactored code compiles successfully.
-
-
-13. **Option to work on a github branch**
-    - It would be nice to be able to see the changes on a branch and not only the local folder if we were working in on a specific GitHub branch and we make some changes by copying something back. It is not reflected in the local folder and thus it is not reflected in pastebacks either.
 
 </INSTRUCTIONS>
 </TEMPLATE>

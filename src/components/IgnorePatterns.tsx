@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, RefreshCw, ChevronDown, Trash2 } from "lucide-react";
-import "../styles/IgnorePatterns.css";
+import { Button } from "./ui";
+import styles from "./IgnorePatterns.module.css";
 
 interface IgnorePatternsProps {
   isOpen: boolean;
@@ -39,6 +40,8 @@ const IgnorePatterns = ({
   globalPatterns = "",
   localPatterns = "",
   onTabChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  systemPatterns = [],
   availableFolders = [],
 }: IgnorePatternsProps): JSX.Element | null => {
   const [patterns, setPatterns] = useState(existingPatterns);
@@ -81,14 +84,12 @@ const IgnorePatterns = ({
     if (newIsGlobal !== activeGlobal) {
       if (hasChanges) {
         if (window.confirm("You have unsaved changes. Do you want to discard them?")) {
-          console.log(`Tab changed from ${activeGlobal ? 'global' : 'local'} to ${newIsGlobal ? 'global' : 'local'}`);
           setActiveGlobal(newIsGlobal);
           if (onTabChange) {
             onTabChange(newIsGlobal);
           }
         }
       } else {
-        console.log(`Tab changed from ${activeGlobal ? 'global' : 'local'} to ${newIsGlobal ? 'global' : 'local'}`);
         setActiveGlobal(newIsGlobal);
         if (onTabChange) {
           onTabChange(newIsGlobal);
@@ -102,11 +103,9 @@ const IgnorePatterns = ({
     if (folder !== selectedFolder) {
       if (hasChanges) {
         if (window.confirm("You have unsaved changes. Do you want to discard them?")) {
-          console.log(`Folder changed from "${selectedFolder}" to "${folder}"`);
           setSelectedFolder(folder);
         }
       } else {
-        console.log(`Folder changed from "${selectedFolder}" to "${folder}"`);
         setSelectedFolder(folder);
       }
     }
@@ -139,75 +138,82 @@ const IgnorePatterns = ({
   if (!isOpen) return null;
 
   return (
-    <div className="ignore-patterns-modal">
-      <div className="ignore-patterns-content">
-        <div className="ignore-patterns-header">
+    <div className={styles.modal}>
+      <div className={styles.content}>
+        <div className={styles.header}>
           <h2>Ignore Patterns</h2>
-          <button className="close-btn" onClick={onClose}>
-            <X size={16} />
-          </button>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            iconOnly
+            onClick={onClose}
+            startIcon={<X size={16} />}
+            title="Close"
+          />
         </div>
         
-        <div className="ignore-description">
+        <div className={styles.description}>
           Edit ignore patterns. Global defaults from your settings are always combined with any .repo_ignore file found in a folder. Local patterns (from .repo_ignore) will override global defaults.
         </div>
         
-        <div className="scope-selector">
-          <button 
-            className={`scope-btn ${!activeGlobal ? "active" : ""}`}
+        <div className={styles.scopeSelector}>
+          <Button 
+            variant={!activeGlobal ? "secondary" : "ghost"}
+            className={`${styles.scopeBtn} ${!activeGlobal ? styles.active : ""}`}
             onClick={() => handleTabChange(false)}
           >
             Local Folder
-          </button>
-          <button 
-            className={`scope-btn ${activeGlobal ? "active" : ""}`}
+          </Button>
+          <Button 
+            variant={activeGlobal ? "secondary" : "ghost"}
+            className={`${styles.scopeBtn} ${activeGlobal ? styles.active : ""}`}
             onClick={() => handleTabChange(true)}
           >
             Global Defaults
-          </button>
+          </Button>
         </div>
         
-        <div className="scope-description">
+        <div className={styles.scopeDescription}>
           {activeGlobal 
             ? "Global patterns apply to all folders and can be overridden by local patterns." 
             : "Local scope will create a .repo_ignore file upon save and will be combined with global defaults."}
         </div>
         
         {!activeGlobal && (
-          <div className="folder-selector">
+          <div className={styles.folderSelector}>
             <label>Select Folder</label>
-            <div className="custom-select" onClick={() => setFolderSelectOpen(!folderSelectOpen)}>
-              <div className="selected-value">
+            <div className={styles.customSelect} onClick={() => setFolderSelectOpen(!folderSelectOpen)}>
+              <div className={styles.selectedValue}>
                 {selectedFolder || 'Select a folder'}
-                <ChevronDown size={16} className={`chevron ${folderSelectOpen ? 'open' : ''}`} />
+                <ChevronDown size={16} className={`${styles.chevron} ${folderSelectOpen ? styles.open : ''}`} />
               </div>
               {folderSelectOpen && (
-                <div className="options-container">
+                <div className={styles.optionsContainer}>
                   {availableFolders.length > 0 ? (
                     availableFolders.map((folder, index) => (
                       <div 
                         key={index} 
-                        className="option" 
+                        className={styles.option} 
                         onClick={() => handleFolderChange(folder)}
                       >
                         {folder}
                       </div>
                     ))
                   ) : (
-                    <div className="option">{selectedFolder || 'No folders available'}</div>
+                    <div className={styles.option}>{selectedFolder || 'No folders available'}</div>
                   )}
                 </div>
               )}
             </div>
-            <div className="path-display">
+            <div className={styles.pathDisplay}>
               {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'No folder selected'}
             </div>
           </div>
         )}
         
-        <div className="patterns-section">
+        <div className={styles.patternsSection}>
           <textarea 
-            className="patterns-input"
+            className={styles.patternsInput}
             value={patterns}
             onChange={(e) => {
               setPatterns(e.target.value);
@@ -216,50 +222,44 @@ const IgnorePatterns = ({
             placeholder={DEFAULT_PLACEHOLDER}
           />
           
-          <div className="patterns-help">
+          <div className={styles.patternsHelp}>
             <p>Use gitignore-style syntax. Lines starting with # are comments.</p>
             <p>Excluded files are visible in the sidebar with a dimmed appearance.</p>
           </div>
         </div>
         
-        <div className="modal-status">
-          {hasChanges && <span className="unsaved">Unsaved Changes</span>}
+        <div className={styles.modalStatus}>
+          {hasChanges && <span className={styles.unsaved}>Unsaved Changes</span>}
         </div>
         
-        <div className="modal-actions">
-          <button className="cancel-btn" onClick={onClose}>
-            Cancel
-          </button>
-          
-          {!activeGlobal && onClear && (
-            <button 
-              className="clear-btn"
-              onClick={handleClear}
-              title="Clear all patterns for this folder"
-            >
-              <Trash2 size={14} />
-              Clear Patterns
-            </button>
-          )}
-          
+        <div className={styles.modalActions}>
           {onReset && (
-            <button 
-              className="reset-btn"
+            <Button 
+              variant="ghost"
               onClick={handleReset}
-              title={activeGlobal ? "Reset to default patterns" : "Reset to empty patterns"}
+              title="Reset to default patterns"
+              startIcon={<RefreshCw size={14} />}
             >
-              <RefreshCw size={14} />
-              Reset to {activeGlobal ? "Defaults" : "Empty"}
-            </button>
+              Reset
+            </Button>
           )}
-          
-          <button 
-            className="save-btn"
+          {onClear && !activeGlobal && (
+            <Button 
+              variant="ghost"
+              onClick={handleClear}
+              title="Clear all patterns"
+              startIcon={<Trash2 size={14} />}
+            >
+              Clear
+            </Button>
+          )}
+          <Button 
+            variant="secondary"
             onClick={handleSave}
             disabled={!hasChanges}
           >
-            Save
-          </button>
+            Save Changes
+          </Button>
         </div>
       </div>
     </div>

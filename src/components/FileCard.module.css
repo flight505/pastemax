@@ -1,0 +1,125 @@
+.fileCard {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  position: relative;
+  height: auto;
+  min-height: 100px;
+  background-color: var(--card-background);
+  color: var(--card-foreground);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.fileCard:hover {
+  background-color: var(--card-background);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: var(--border-color);
+  transform: translateY(-1px);
+}
+
+.fileCard.selected {
+  border-color: var(--file-card-selected-border);
+  box-shadow: 0 0 0 1px var(--file-card-selected-border);
+}
+
+.fileCardContent {
+  padding: 12px !important;
+}
+
+.fileCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.fileCardIcon {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.fileCardName {
+  flex: 1;
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: var(--card-foreground);
+}
+
+.fileCardInfo {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 24px;
+  flex-grow: 1;
+}
+
+.fileCardTokens {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.fileCardStatus {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.tokenBarContainer {
+  width: 100%;
+  height: 4px;
+  background-color: var(--background-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tokenBar {
+  height: 100%;
+  background-color: var(--accent-color);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.fileCardActions {
+  display: flex;
+  gap: 2px;
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.fileCard:hover .fileCardActions {
+  opacity: 1;
+}
+
+.fileCardAction {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+}
+
+.copySuccess {
+  color: var(--success-color);
+  animation: pulse 1s ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+} 

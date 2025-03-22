@@ -1,0 +1,116 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-right: 1px solid var(--border-color);
+  background: var(--background-primary);
+  position: relative;
+}
+
+.sidebarSearch {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.sidebarActions {
+  display: flex;
+  padding: 6px 8px;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+}
+
+.fileTree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.treeEmpty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.treeLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  border: 2px solid var(--border-color);
+  border-top: 2px solid var(--text-primary);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+.sidebarEmptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px;
+  text-align: center;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.sidebarEmptyIcon {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.sidebarResizeHandle {
+  position: absolute;
+  right: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color 0.2s;
+}
+
+.sidebarResizeHandle:hover {
+  background: var(--accent);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.excludedFilesIndicator {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  padding: 6px 8px;
+  margin: 4px 8px;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.7;
+  background-color: var(--background-secondary);
+  border-radius: var(--radius);
+}
+
+.excludedFilesMessage {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.7;
+  border-bottom: 1px solid var(--border-color);
+} 

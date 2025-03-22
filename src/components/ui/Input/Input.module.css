@@ -1,0 +1,87 @@
+.inputWrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  height: var(--button-height-md);
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.input:hover:not(:disabled) {
+  border-color: var(--text-secondary);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--ring-color);
+  box-shadow: 0 0 0 2px var(--background-primary),
+              0 0 0 4px var(--ring-color);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--background-secondary);
+}
+
+.withStartIcon {
+  padding-left: 36px;
+}
+
+.withEndIcon {
+  padding-right: 36px;
+}
+
+.startIcon,
+.endIcon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  width: 36px;
+}
+
+.startIcon {
+  left: 0;
+}
+
+.endIcon {
+  right: 0;
+}
+
+.inputError {
+  border-color: var(--error-color);
+}
+
+.inputError:focus {
+  border-color: var(--error-color);
+  box-shadow: 0 0 0 2px var(--background-primary),
+              0 0 0 4px var(--error-color);
+}
+
+/* Search input specific styles */
+.searchInput {
+  padding-left: 36px;
+  background-color: var(--background-secondary);
+  border-color: transparent;
+}
+
+.searchInput:focus {
+  background-color: var(--background-primary);
+  border-color: var(--ring-color);
+} 

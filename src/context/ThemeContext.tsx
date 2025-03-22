@@ -17,9 +17,15 @@ const defaultThemeContext: ThemeContextType = {
 
 const ThemeContext = createContext(defaultThemeContext);
 
-type ThemeProviderProps = { children: JSX.Element | JSX.Element[] };
+// Add eslint-disable comment to suppress the warning about fast refresh
+ 
+export const STORAGE_KEY = "pastemax-theme";
 
-export const ThemeProvider = ({ children }: ThemeProviderProps): JSX.Element => {
+export const ThemeProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}): JSX.Element => {
   // Initialize theme from localStorage or default to "system"
   const [theme, setThemeState] = useState<ThemeType>(() => {
     const savedTheme = localStorage.getItem("theme") as ThemeType;

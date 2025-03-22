@@ -1,0 +1,232 @@
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: var(--z-index-modal);
+}
+
+.content {
+  background-color: var(--background-primary);
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+}
+
+.description {
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.scopeSelector {
+  display: flex;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 4px;
+  gap: 1px;
+}
+
+.scopeBtn {
+  flex: 1;
+  border-radius: var(--radius) var(--radius) 0 0 !important;
+  font-size: 0.95rem !important;
+  padding: 10px 15px !important;
+  transition: all 0.15s ease-out;
+}
+
+.scopeBtn:first-child {
+  border-top-right-radius: 0 !important;
+}
+
+.scopeBtn:last-child {
+  border-top-left-radius: 0 !important;
+}
+
+.scopeBtn:hover {
+  background-color: var(--hover-color);
+  opacity: 0.9;
+}
+
+.scopeBtn.active {
+  font-weight: 500 !important;
+  position: relative;
+}
+
+.scopeBtn.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--accent-color);
+}
+
+.scopeDescription {
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 0 8px;
+}
+
+.folderSelector {
+  margin-bottom: 16px;
+}
+
+.folderSelector label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.customSelect {
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+}
+
+.selectedValue {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.selectedValue:hover {
+  border-color: var(--accent-color);
+}
+
+.chevron {
+  transition: transform 0.2s;
+}
+
+.chevron.open {
+  transform: rotate(180deg);
+}
+
+.optionsContainer {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-index-dropdown);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.option {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.option:hover {
+  background-color: var(--hover-color);
+}
+
+.pathDisplay {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.patternsSection {
+  margin-bottom: 20px;
+}
+
+.patternsInput {
+  width: 100%;
+  height: 200px;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 12px;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  resize: vertical;
+}
+
+.patternsInput:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.patternComment {
+  color: var(--text-secondary);
+}
+
+.patternsHelp {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.patternsHelp p {
+  margin: 4px 0;
+}
+
+.modalStatus {
+  margin-bottom: 16px;
+  min-height: 20px;
+}
+
+.unsaved {
+  color: var(--warning-color);
+  font-size: 0.85rem;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 0 12px;
+}
+
+.modalActions button {
+  min-width: 100px;
+}
+
+.destructiveIcon {
+  color: var(--error-color);
+}
+
+/* We'll override these with our Button component */

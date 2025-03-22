@@ -1,0 +1,160 @@
+.controlContainer {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  background-color: var(--background-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+.controlContainerHeader {
+  background-color: var(--background-secondary);
+  padding: 8px 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+  font-size: 14px;
+}
+
+.controlItems {
+  padding: 12px;
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.controlItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* For the tree mode selector */
+.controlSelect {
+  flex: 1;
+  padding: 6px 10px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+  height: 28px;
+  min-width: 160px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='feather feather-chevron-down'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.controlSelect:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.dark .controlSelect {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='feather feather-chevron-down'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.controlSelectLabel {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Control groups */
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+}
+
+.controlGroupTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Remove CopyButton related styles */
+.copyButtonWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.tokenBarContainer {
+  height: 3px;
+  width: 100%;
+  background-color: hsl(240, 5.9%, 90%);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  position: relative;
+}
+
+.tokenBar {
+  height: 100%;
+  width: 0;
+  background: var(--accent-color);
+  transition: width 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 9999px;
+}
+
+.dark .tokenBarContainer {
+  background-color: hsl(240, 3.7%, 25%);
+}
+
+@media (max-width: 768px) {
+  .controlItems {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .controlGroup {
+    width: 100%;
+  }
+  
+  .copyButtonWrapper {
+    width: 100%;
+  }
+}
+
+.outputButtons {
+  display: flex;
+  align-items: center;
+}
+
+.outputButtons > button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.outputButtons > button:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid var(--border-color);
+}
+
+/* Ensure hover is visible */
+.outputButtons > button:hover:not(:disabled) {
+  background-color: var(--hover-color);
+  z-index: 1;
+}
+
+/* Active state */
+.outputButtons > button:active:not(:disabled) {
+  background-color: var(--secondary-button-active);
+  z-index: 2;
+} 

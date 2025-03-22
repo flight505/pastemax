@@ -1,0 +1,211 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  font-weight: 500;
+  height: 32px;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.button:hover:not(:disabled) {
+  background-color: var(--hover-color);
+}
+
+.button:active:not(:disabled) {
+  background-color: var(--secondary-button-active);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Variants */
+.ghost {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.ghost:hover:not(:disabled) {
+  background-color: var(--hover-color);
+}
+
+.ghost:active:not(:disabled) {
+  background-color: var(--secondary-button-active);
+}
+
+.secondary {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: var(--hover-color);
+}
+
+.secondary:active:not(:disabled) {
+  background-color: var(--secondary-button-active);
+}
+
+/* Icon styles */
+.startIcon {
+  margin-right: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.endIcon {
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+}
+
+/* Variants */
+.primary {
+  background-color: var(--primary-button-background);
+  color: var(--primary-button-text);
+  border: 1px solid var(--primary-button-border);
+}
+
+.primary:hover:not(:disabled) {
+  background-color: var(--primary-button-hover);
+  border-color: var(--primary-button-border);
+}
+
+.primary:active:not(:disabled) {
+  background-color: var(--primary-button-active);
+  border-color: var(--primary-button-border);
+}
+
+.destructive {
+  background-color: var(--error-color);
+  color: white;
+  border: 1px solid var(--error-color);
+}
+
+.destructive:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.destructive:active:not(:disabled) {
+  opacity: 0.8;
+}
+
+/* Sizes */
+.sm {
+  font-size: 12px;
+  padding: 0 12px;
+  height: var(--button-height-sm);
+}
+
+.md {
+  font-size: 14px;
+  padding: 0 16px;
+  height: var(--button-height-md);
+}
+
+.lg {
+  font-size: 16px;
+  padding: 0 20px;
+  height: var(--button-height-lg);
+}
+
+/* Icon styles */
+.startIcon {
+  margin-right: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.endIcon {
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.iconOnly {
+  padding: 0;
+  aspect-ratio: 1/1;
+  justify-content: center;
+}
+
+.iconOnly.sm {
+  width: var(--button-height-sm);
+}
+
+.iconOnly.md {
+  width: var(--button-height-md);
+}
+
+.iconOnly.lg {
+  width: var(--button-height-lg);
+}
+
+/* Pill variant */
+.pill {
+  border-radius: var(--radius-full);
+}
+
+/* Round variant - inherits from primary but with enhancements */
+.round {
+  background-color: var(--primary-button-background);
+  color: var(--primary-button-text);
+  border-color: var(--primary-button-background);
+  padding: 0 20px;
+  border-width: 1.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.round:hover:not(:disabled) {
+  background-color: var(--primary-button-hover);
+  border-color: var(--primary-button-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.round:active:not(:disabled) {
+  background-color: var(--primary-button-active);
+  border-color: var(--primary-button-active);
+}
+
+.round.iconOnly {
+  padding: 0;
+  width: var(--button-height-md);
+  height: var(--button-height-md);
+}
+
+.round.sm.iconOnly {
+  width: var(--button-height-sm);
+  height: var(--button-height-sm);
+}
+
+.round.lg.iconOnly {
+  width: var(--button-height-lg);
+  height: var(--button-height-lg);
+}
+
+/* Adjust icon spacing for round variant */
+.round .startIcon {
+  margin-right: 8px;
+}
+
+.round .endIcon {
+  margin-left: 8px;
+}
+
+.round.iconOnly .startIcon,
+.round.iconOnly .endIcon {
+  margin: 0;
+} 

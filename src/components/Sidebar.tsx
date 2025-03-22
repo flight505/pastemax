@@ -1,12 +1,29 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { SidebarProps, TreeNode, SortOrder } from "../types/FileTypes";
-import SearchBar from "./SearchBar";
 import TreeItem from "./TreeItem";
 import FileTreeHeader from "./FileTreeHeader";
 import IgnorePatterns from "./IgnorePatterns";
 import { FolderPlus } from "lucide-react";
+import { Button } from "./ui";
+import SearchBar from "./SearchBar";
+import styles from "./Sidebar.module.css";
 
-const Sidebar = ({
+// Extend the existing SidebarProps from FileTypes
+interface ExtendedSidebarProps extends SidebarProps {
+  reloadFolder: () => void;
+  clearSelection: () => void;
+  removeAllFolders: () => void;
+  ignorePatterns: string;
+  setIgnorePatterns: (patterns: string) => void;
+  loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
+  saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
+  systemIgnorePatterns: string[];
+  clearIgnorePatterns: (folderPath: string) => void;
+  onClearSelectionClick?: () => void;
+  onRemoveAllFoldersClick?: () => void;
+}
+
+const Sidebar: React.FC<ExtendedSidebarProps> = ({
   selectedFolder,
   openFolder,
   allFiles,
@@ -19,7 +36,6 @@ const Sidebar = ({
   deselectAllFiles,
   expandedNodes,
   toggleExpanded,
-  // New props
   reloadFolder,
   clearSelection,
   removeAllFolders,
@@ -27,21 +43,11 @@ const Sidebar = ({
   setIgnorePatterns,
   loadIgnorePatterns,
   saveIgnorePatterns,
-  resetIgnorePatterns,
   systemIgnorePatterns,
   clearIgnorePatterns,
-}: SidebarProps & {
-  reloadFolder: () => void;
-  clearSelection: () => void;
-  removeAllFolders: () => void;
-  ignorePatterns: string;
-  setIgnorePatterns: (patterns: string) => void;
-  loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
-  saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
-  resetIgnorePatterns: (isGlobal: boolean, folderPath: string) => void;
-  systemIgnorePatterns: string[];
-  clearIgnorePatterns: (folderPath: string) => void;
-}) => {
+  onClearSelectionClick,
+  onRemoveAllFoldersClick,
+}: ExtendedSidebarProps) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [isTreeBuildingComplete, setIsTreeBuildingComplete] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(300);
@@ -176,7 +182,6 @@ const Sidebar = ({
     const buildTree = () => {
       // Mark that we're starting to build
       isBuildingTreeRef.current = true;
-      console.log("Building file tree from", allFiles.length, "files");
       
       try {
         // Create a structured representation using nested objects first
@@ -197,39 +202,27 @@ const Sidebar = ({
           let currentPath = "";
           let current = fileMap;
 
-          // Build the path in the tree
+          // Process path parts to create directory structure
           for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
-            if (!part) continue;
-
+            if (!part) continue; // Skip empty parts
+            
             currentPath = currentPath ? `${currentPath}/${part}` : part;
             
-            // Use the original file.path for files to avoid path duplication
-            const fullPath = i === parts.length - 1 
-              ? file.path // For files, use the original path
-              : (selectedFolder 
-                  ? `${selectedFolder}/${currentPath}` 
-                  : currentPath); // For directories
-
             if (i === parts.length - 1) {
               // This is a file
               current[part] = {
-                id: `node-${fullPath}`,
-                name: part,
-                path: file.path, // Use the original file path
                 type: "file",
-                level: i,
+                name: part,
+                path: file.path,
                 fileData: file,
               };
             } else {
               // This is a directory
               if (!current[part]) {
                 current[part] = {
-                  id: `node-${fullPath}`,
-                  name: part,
-                  path: fullPath,
                   type: "directory",
-                  level: i,
+                  name: part,
                   children: {},
                 };
               }
@@ -238,238 +231,226 @@ const Sidebar = ({
           }
         });
 
-        // Convert the nested object structure to the TreeNode array format
+        // Convert the nested object structure to TreeNode array with proper nesting
         const convertToTreeNodes = (
           node: Record<string, any>,
           level = 0,
         ): TreeNode[] => {
           return Object.keys(node).map((key) => {
             const item = node[key];
-
-            if (item.type === "file") {
-              return item as TreeNode;
-            } else {
-              const children = convertToTreeNodes(item.children, level + 1);
-              const isExpanded =
-                expandedNodes[item.id] !== undefined
-                  ? expandedNodes[item.id]
-                  : true; // Default to expanded if not in state
-
+            const id = `node-${Math.random().toString(36).substring(2, 9)}`;
+            
+            if (item.type === "directory") {
               return {
-                ...item,
-                children: sortFileTreeNodes(children),
-                isExpanded,
+                id,
+                name: item.name,
+                type: "directory",
+                path: "", // Add empty string as default path for directory nodes
+                children: convertToTreeNodes(item.children, level + 1),
+                isExpanded: level < 2 || (expandedNodes.has(id) ? !!expandedNodes.get(id) : false),
+                depth: level,
+              };
+            } else {
+              return {
+                id,
+                name: item.name,
+                type: "file",
+                path: item.path,
+                children: [],
+                isExpanded: false,
+                fileData: item.fileData,
+                depth: level,
               };
             }
           });
         };
 
-        // Convert to proper tree structure
-        const treeRoots = convertToTreeNodes(fileMap);
-
-        // Sort the tree roots and update state in a single batch
-        const sortedRoots = sortFileTreeNodes(treeRoots);
+        // Convert the fileMap to a TreeNode array
+        const tempTree = convertToTreeNodes(fileMap);
         
-        // Update state only if component is still mounted and data has changed
-        setFileTree(sortedRoots);
+        // Sort the tree based on current sort order
+        const sortedTree = sortFileTreeNodes(tempTree);
+        
+        // Update the file tree state
+        setFileTree(sortedTree);
         setIsTreeBuildingComplete(true);
-      } catch (err) {
-        console.error("Error building file tree:", err);
-        setFileTree([]);
-        setIsTreeBuildingComplete(true);
-      } finally {
-        // Always clean up our building flag
+        
+        // Mark that we're done building
+        isBuildingTreeRef.current = false;
+        
+        // Update expanded state if needed
+        if (typeof expandedNodes.size === 'number' && expandedNodes.size > 0 && !isUpdatingExpandedNodesRef.current) {
+          updateTreeWithExpandedState();
+        }
+      } catch (error) {
+        console.error("Error building file tree:", error);
         isBuildingTreeRef.current = false;
       }
     };
-
-    // Use a timeout to not block UI
-    const buildTreeTimeoutId = setTimeout(buildTree, 0);
+    
+    // Schedule the tree building for the next rendering cycle
+    const timeoutId = setTimeout(buildTree, 0);
+    
     return () => {
-      clearTimeout(buildTreeTimeoutId);
-      // Make sure we clean up the flag if component unmounts during build
-      isBuildingTreeRef.current = false;
+      clearTimeout(timeoutId);
     };
-  }, [allFiles, selectedFolder, expandedNodes, fileTreeSortOrder, sortFileTreeNodes]);
+  }, [allFiles, expandedNodes, selectedFolder, sortFileTreeNodes]);
 
-  // Memoize the applyExpandedState function to prevent recreating it on every render
-  const applyExpandedState = useCallback((nodes: TreeNode[]): TreeNode[] => {
-    // Skip if we're already updating expanded nodes to prevent loops
-    if (isUpdatingExpandedNodesRef.current) return nodes;
+  // Update tree with expanded state
+  const updateTreeWithExpandedState = useCallback(() => {
+    if (fileTree.length === 0 || isUpdatingExpandedNodesRef.current) return;
     
     isUpdatingExpandedNodesRef.current = true;
     
-    try {
-      return nodes.map((node: TreeNode): TreeNode => {
-        if (node.type === "directory") {
-          const isExpanded =
-            expandedNodes[node.id] !== undefined
-              ? expandedNodes[node.id]
-              : true; // Default to expanded if not in state
-
+    // Add change detection to prevent unnecessary updates
+    let hasChanged = false;
+    
+    const updateNodes = (nodes: TreeNode[]): TreeNode[] => {
+      return nodes.map(node => {
+        const nodeExpanded = expandedNodes.has(node.id) ? !!expandedNodes.get(node.id) : false;
+        const isExpanded = nodeExpanded || node.isExpanded;
+        
+        // Check if there's a change in expanded state
+        if (isExpanded !== node.isExpanded) {
+          hasChanged = true;
+        }
+        
+        // Check if directory has children to update
+        if (node.type === "directory" && node.children && node.children.length > 0) {
           return {
             ...node,
             isExpanded,
-            children: node.children
-              ? applyExpandedState(node.children)
-              : undefined,
+            children: updateNodes(node.children),
           };
         }
-        return node;
+        
+        return {
+          ...node,
+          isExpanded,
+        };
       });
+    };
+    
+    try {
+      const updatedTree = updateNodes(fileTree);
+      
+      // Only update the tree if there were changes
+      if (hasChanged) {
+        setFileTree(updatedTree);
+      }
+    } catch (error) {
+      console.error("Error updating tree with expanded state:", error);
     } finally {
       isUpdatingExpandedNodesRef.current = false;
     }
-  }, [expandedNodes]);
+  }, [fileTree, expandedNodes]);
 
-  // Apply expanded state as a separate operation when expandedNodes change
-  useEffect(() => {
-    if (fileTree.length === 0) return;
-    
-    // Skip if we're already updating
-    if (isUpdatingExpandedNodesRef.current) return;
-    
-    const updateTreeWithExpandedState = () => {
-      isUpdatingExpandedNodesRef.current = true;
-      
-      try {
-        setFileTree((prevTree: TreeNode[]) => applyExpandedState(prevTree));
-      } finally {
-        isUpdatingExpandedNodesRef.current = false;
-      }
-    };
-    
-    // Schedule the update for next tick to avoid blocking UI
-    const updateTimeout = setTimeout(updateTreeWithExpandedState, 0);
-    
-    return () => {
-      clearTimeout(updateTimeout);
-      isUpdatingExpandedNodesRef.current = false;
-    };
-  }, [expandedNodes, fileTree.length, applyExpandedState]);
-
-  // Handle open ignore patterns modal
+  // Handle opening the ignore patterns modal
   const handleOpenIgnorePatterns = (isGlobal = false) => {
     setIgnoreGlobal(isGlobal);
+    
+    // Ensure we have patterns loaded
+    if (isGlobal) {
+      loadPatterns(true);
+    } else {
+      loadPatterns(false);
+    }
+    
     setIgnoreModalOpen(true);
-    
-    // Load patterns based on global flag
-    console.log(`Loading ${isGlobal ? 'global' : 'local'} patterns`);
-    loadPatterns(selectedFolder, isGlobal);
-    
-    // Set the ignorePatterns state based on which one is selected
-    setIgnorePatterns(isGlobal ? globalIgnorePatterns : localIgnorePatterns);
   };
 
-  // Handle reset ignore patterns
-  const handleResetIgnorePatterns = (isGlobal: boolean, folderPath?: string) => {
-    if (resetIgnorePatterns) {
-      resetIgnorePatterns(isGlobal, folderPath || selectedFolder);
+  // Load patterns based on global or local scope
+  const loadPatterns = useCallback(async (isGlobal: boolean) => {
+    try {
+      // Load global patterns if needed
+      if (isGlobal) {
+        if (!globalIgnorePatterns) {
+          await loadIgnorePatterns('', true);
+        } else {
+          setIgnorePatterns(globalIgnorePatterns);
+        }
+      } 
+      // Load local patterns if needed
+      else if (selectedFolder && !localIgnorePatterns) {
+        await loadIgnorePatterns(selectedFolder, false);
+      } else if (selectedFolder) {
+        setIgnorePatterns(localIgnorePatterns);
+      }
+    } catch (err) {
+      console.error(`Error loading ${isGlobal ? 'global' : 'local'} patterns:`, err);
     }
-  };
+  }, [selectedFolder, loadIgnorePatterns, globalIgnorePatterns, localIgnorePatterns, setIgnorePatterns]);
 
-  // Handle clear ignore patterns
+  // Handle reset button click in ignore patterns modal
+  const handleResetIgnorePatterns = useCallback(async () => {
+    if (!isElectron) return;
+    await window.electron.resetIgnorePatterns(true, selectedFolder);
+    await loadPatterns();
+  }, [selectedFolder, loadPatterns]);
+
+  // Handle clear button click in ignore patterns modal
   const handleClearIgnorePatterns = (folderPath?: string) => {
-    if (clearIgnorePatterns) {
-      clearIgnorePatterns(folderPath || selectedFolder);
+    // Use the provided folderPath if available, otherwise use selectedFolder
+    const targetFolder = folderPath || selectedFolder || '';
+    
+    if (targetFolder) {
+      // Call the parent's clear function
+      clearIgnorePatterns(targetFolder);
+      
+      // Preview empty patterns in the UI immediately
+      setLocalIgnorePatterns('');
+      if (!ignoreGlobal) {
+        setIgnorePatterns('');
+      }
     }
   };
 
-  // Get the list of top-level folders from the file tree for folder selection
+  // Get a list of available folders for the folder selector
   const getAvailableFolders = () => {
-    // Extract unique top-level directories from the file tree
     const folders = new Set<string>();
     
-    // Handle the case where the current folder is not in the tree
-    if (selectedFolder) {
-      folders.add(selectedFolder);
-    }
-    
-    // Add folders from the file tree
-    if (fileTree && fileTree.length > 0) {
-      fileTree.forEach(node => {
-        if (node.type === 'directory') {
-          folders.add(node.path);
+    // Collect all unique folder paths
+    allFiles.forEach((file) => {
+      if (file.path) {
+        // Extract directory without the file name
+        const lastSlashIndex = Math.max(
+          file.path.lastIndexOf('/'),
+          file.path.lastIndexOf('\\')
+        );
+        
+        if (lastSlashIndex > 0) {
+          const folder = file.path.substring(0, lastSlashIndex);
+          folders.add(folder);
         }
-      });
-    }
-    
-    const folderList = Array.from(folders);
-    console.log('Available folders for selection:', folderList);
-    return folderList;
-  };
-
-  // Function to count excluded files
-  const countExcludedFiles = () => {
-    if (!allFiles || allFiles.length === 0) return 0;
-    
-    // Count files that are excluded by patterns (excludedByDefault)
-    return allFiles.filter(file => file.excludedByDefault).length;
-  };
-
-  // Calculate excluded files count
-  const excludedFilesCount = countExcludedFiles();
-
-  // Function to flatten tree
-  const flattenTree = (nodes: TreeNode[]): TreeNode[] => {
-    let flattened: TreeNode[] = [];
-    nodes.forEach((node) => {
-      flattened.push(node);
-      if (node.type === "directory" && node.isExpanded && node.children) {
-        flattened = flattened.concat(flattenTree(node.children));
       }
     });
-    return flattened;
+    
+    return Array.from(folders);
   };
 
-  // Filter the tree based on search term
-  const filterTree = (nodes: TreeNode[], term: string): TreeNode[] => {
-    if (!term) return nodes;
+  // Count files excluded by ignore patterns
+  const countExcludedFiles = () => {
+    // For simplicity, we just return 0 here until we can compute this properly
+    const excludedFilesCount = allFiles.filter(file => file.excluded).length;
+    return excludedFilesCount;
+  };
 
-    const lowerTerm = term.toLowerCase();
-
-    // Check if a node or any of its children match the search term
-    const nodeMatches = (node: TreeNode): boolean => {
-      if (node.name.toLowerCase().includes(lowerTerm)) {
-        return true;
-      }
-
-      if (node.type === "directory" && node.children) {
-        return node.children.some((child) => nodeMatches(child));
-      }
-
-      return false;
+  // Add expanded node state to the tree
+  useEffect(() => {
+    if (!fileTree.length || isUpdatingExpandedNodesRef.current) return;
+    updateTreeWithExpandedState();
+    return () => {
+      isUpdatingExpandedNodesRef.current = false;
     };
-
-    // Filter the tree nodes
-    return nodes
-      .filter((node) => nodeMatches(node))
-      .map((node) => {
-        if (node.type === "directory" && node.children) {
-          return {
-            ...node,
-            children: filterTree(node.children, term),
-          };
-        }
-        return node;
-      });
-  };
-
-  // Apply the search filter to the tree
-  const filteredTree = searchTerm
-    ? filterTree(fileTree, searchTerm)
-    : fileTree;
-
-  // Flatten for rendering
-  const flattenedFilteredTree = flattenTree(filteredTree);
+  }, [fileTree, expandedNodes, updateTreeWithExpandedState]);
 
   return (
-    <div className="sidebar" style={{ width: `${sidebarWidth}px` }}>
+    <div className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>
       <FileTreeHeader 
         onOpenFolder={openFolder}
         onSortChange={setFileTreeSortOrder}
-        onClearSelection={clearSelection}
-        onRemoveAllFolders={removeAllFolders}
+        onClearSelection={onClearSelectionClick || clearSelection}
+        onRemoveAllFolders={onRemoveAllFoldersClick || removeAllFolders}
         onReloadFileTree={reloadFolder}
         onOpenIgnorePatterns={() => handleOpenIgnorePatterns(false)}
         excludedFilesCount={countExcludedFiles()}
@@ -477,32 +458,34 @@ const Sidebar = ({
       
       {selectedFolder ? (
         <>
-          <div className="sidebar-search">
+          <div className={styles.sidebarSearch}>
             <SearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
           </div>
 
-          <div className="sidebar-actions">
-            <button
-              className="sidebar-action-btn"
+          <div className={styles.sidebarActions}>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={selectAllFiles}
               title="Select all files"
             >
               Select All
-            </button>
-            <button
-              className="sidebar-action-btn"
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={deselectAllFiles}
               title="Deselect all files"
             >
               Deselect All
-            </button>
+            </Button>
           </div>
 
-          <div className="file-tree">
+          <div className={styles.fileTree}>
             {isTreeBuildingComplete ? (
-              flattenedFilteredTree.length > 0 ? (
+              memoizedFlattenedTree.length > 0 ? (
                 <>
-                  {flattenedFilteredTree.map((node) => (
+                  {memoizedFlattenedTree.map((node) => (
                     <TreeItem
                       key={node.id}
                       node={node}
@@ -512,38 +495,32 @@ const Sidebar = ({
                       toggleExpanded={toggleExpanded}
                     />
                   ))}
-                  
-                  {excludedFilesCount > 0 && (
-                    <div className="excluded-files-indicator">
-                      {excludedFilesCount} {excludedFilesCount === 1 ? 'file' : 'files'} excluded by patterns
-                    </div>
-                  )}
                 </>
               ) : (
-                <div className="tree-empty">
+                <div className={styles.treeEmpty}>
                   {searchTerm
                     ? "No files match your search."
                     : "No files in this folder."}
                 </div>
               )
             ) : (
-              <div className="tree-loading">
-                <div className="spinner"></div>
+              <div className={styles.treeLoading}>
+                <div className={styles.spinner}></div>
                 <p>Loading files...</p>
               </div>
             )}
           </div>
         </>
       ) : (
-        <div className="sidebar-empty-state">
-          <FolderPlus size={48} className="sidebar-empty-icon" />
+        <div className={styles.sidebarEmptyState}>
+          <FolderPlus size={48} className={styles.sidebarEmptyIcon} />
           <h3>No Folder Selected</h3>
           <p>Click the folder icon above to select a project folder.</p>
         </div>
       )}
 
       <div
-        className="sidebar-resize-handle"
+        className={styles.sidebarResizeHandle}
         onMouseDown={handleResizeStart}
         title="Resize sidebar"
       />

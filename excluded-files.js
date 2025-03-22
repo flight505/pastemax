@@ -81,8 +81,6 @@ venv/
     "venv/**",
     ".venv/**",
     "*.egg-info/**",
-    "pip-log.txt",
-    "pip-delete-this-directory.txt",
 
     // Go related
     "go.sum",
@@ -139,10 +137,6 @@ venv/
     "build/**",
     "out/**",
     ".next/**",
-
-    // Log files
-    "logs/**",
-    "*.log",
 
     // Database files
     "*.sqlite",

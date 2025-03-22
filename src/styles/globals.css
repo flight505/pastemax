@@ -1,0 +1,72 @@
+:root {
+  /* Base colors */
+  --background: #ffffff;
+  --background-primary: #ffffff;
+  --background-secondary: #f1f5f9;
+  --background-selected: #f8fafc;
+  --foreground: #0f172a;
+  
+  /* Text colors */
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  
+  /* Border colors */
+  --border-color: #e2e8f0;
+  --border-hover: #cbd5e1;
+  
+  /* Component colors */
+  --accent-color: #0ea5e9;
+  --accent-hover: #0284c7;
+  --accent-muted: #e0f2fe;
+  
+  /* Status colors */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  /* Radii */
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+}
+
+.dark-mode {
+  /* Base colors */
+  --background: #0f172a;
+  --background-primary: #1e293b;
+  --background-secondary: #0f172a;
+  --background-selected: #334155;
+  --foreground: #f8fafc;
+  
+  /* Text colors */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  
+  /* Border colors */
+  --border-color: #1e293b;
+  --border-hover: #334155;
+  
+  /* Component colors */
+  --accent-color: #0ea5e9;
+  --accent-hover: #38bdf8;
+  --accent-muted: #0c4a6e;
+  
+  /* Status colors */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+}
+
+/* ... rest of the existing styles ... */ 

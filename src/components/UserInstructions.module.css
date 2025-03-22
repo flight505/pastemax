@@ -1,0 +1,48 @@
+.userInstructionsContainer {
+  padding: 1rem 0.75rem 0.75rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--instructions-background);
+  border-bottom: 1px solid var(--instructions-border);
+  border-top: 1px solid var(--instructions-border);
+  margin: 0.5rem 1rem;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.userInstructions {
+  display: flex;
+  flex-direction: column;
+}
+
+.textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 1rem;
+  background-color: var(--card-background);
+  color: var(--text-primary);
+  min-height: 100px;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.userInstructionsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  background-color: var(--instructions-background);
+  font-weight: 500;
+} 

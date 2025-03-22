@@ -2,6 +2,7 @@ import React from "react";
 import { FileListProps, FileData } from "../types/FileTypes";
 import FileCard from "./FileCard";
 import { arePathsEqual } from "../utils/pathUtils";
+import styles from "./FileList.module.css";
 
 const FileList = ({
   files,
@@ -19,27 +20,25 @@ const FileList = ({
   // Find the maximum token count for relative scaling
   const maxTokenCount = displayableFiles.length > 0
     ? Math.max(...displayableFiles.map(file => file.tokenCount))
-    : 5000; // Default fallback
+    : 5000; // Default if no files
 
   return (
-    <div className="file-list-container">
+    <div className={styles.fileListContainer}>
       {displayableFiles.length > 0 ? (
-        <div className="file-list">
-          {displayableFiles.map((file: FileData) => (
+        <div className={styles.fileList}>
+          {displayableFiles.map((file) => (
             <FileCard
               key={file.path}
               file={file}
-              isSelected={true} // All displayed files are selected
+              isSelected={true} // Always true since we're already filtering for selected files
               toggleSelection={toggleFileSelection}
               maxTokenCount={maxTokenCount}
             />
           ))}
         </div>
       ) : (
-        <div className="file-list-empty">
-          {files.length > 0
-            ? "No files selected. Select files from the sidebar."
-            : "Select a folder to view files"}
+        <div className={styles.fileListEmpty}>
+          No files selected. Select files from the sidebar to see them here.
         </div>
       )}
     </div>

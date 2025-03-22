@@ -1,4 +1,5 @@
 import React from "react";
+import styles from "./UserInstructions.module.css";
 
 interface UserInstructionsProps {
   instructions: string;
@@ -11,23 +12,19 @@ const UserInstructions = ({
 }: UserInstructionsProps): JSX.Element => {
   return (
     <>
-      <div className="user-instructions-header">
+      <div className={styles.userInstructionsHeader}>
         <label className="content-title" htmlFor="userInstructionsInput">
           User Instructions
         </label>
       </div>
-      <div className="user-instructions-container">
-        <div className="user-instructions">
+      <div className={styles.userInstructionsContainer}>
+        <div className={styles.userInstructions}>
           <textarea
             id="userInstructionsInput"
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
-            placeholder="Enter your instructions here..."
-            rows={4}
-            style={{
-              width: "100%",
-              resize: "none",
-            }}
+            placeholder="Add instructions to pass to the LLM about how to transform the content..."
+            className={styles.textarea}
           />
         </div>
       </div>

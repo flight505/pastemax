@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import { Folder, ArrowUpDown, Filter, X, RefreshCw } from "lucide-react";
 import { SortOrder } from "../types/FileTypes";
-import "../styles/FileTreeHeader.css";
+import { Button } from "./ui";
+import { Dropdown } from "./ui/Dropdown";
+import styles from "./FileTreeHeader.module.css";
 
 interface FileTreeHeaderProps {
   onOpenFolder: () => void;
@@ -13,8 +15,18 @@ interface FileTreeHeaderProps {
   excludedFilesCount?: number;
 }
 
-// Define types for dropdown menus
-type DropdownType = 'sort' | 'clear' | null;
+const sortOptions = [
+  { value: "name-asc", label: "Name (⬆ A-Z)" },
+  { value: "name-desc", label: "Name (⬇ Z-A)" },
+  { value: "ext-asc", label: "Extension (⬆ A-Z)" },
+  { value: "ext-desc", label: "Extension (⬇ Z-A)" },
+  { value: "date-newest", label: "Date (⬇ Newest)" },
+];
+
+const clearOptions = [
+  { value: "clear", label: "Clear selection" },
+  { value: "removeAll", label: "Remove All Folders" },
+];
 
 const FileTreeHeader = ({
   onOpenFolder,
@@ -25,164 +37,96 @@ const FileTreeHeader = ({
   onOpenIgnorePatterns,
   excludedFilesCount,
 }: FileTreeHeaderProps): JSX.Element => {
-  // Single state to track which dropdown is currently open
-  const [activeDropdown, setActiveDropdown] = useState<DropdownType>(null);
   
-  // Refs for click detection
-  const sortMenuRef = useRef<HTMLDivElement>(null);
-  const clearMenuRef = useRef<HTMLDivElement>(null);
-  
-  // Toggle dropdown function - behaves like VSCode
-  const toggleDropdown = (dropdown: DropdownType) => {
-    if (activeDropdown === dropdown) {
-      // Close if clicking the same dropdown button
-      setActiveDropdown(null);
-    } else {
-      // Open this dropdown, closing any other that might be open
-      setActiveDropdown(dropdown);
-    }
-  };
-  
-  // Handle global clicks to implement VSCode-like behavior
-  useEffect(() => {
-    const handleGlobalClick = (event: MouseEvent) => {
-      // Don't do anything if no dropdown is open
-      if (!activeDropdown) return;
-      
-      const target = event.target as Node;
-      
-      // Check if click is inside the active dropdown menu
-      const isClickInMenu = 
-        (activeDropdown === 'sort' && sortMenuRef.current?.contains(target)) ||
-        (activeDropdown === 'clear' && clearMenuRef.current?.contains(target));
-      
-      // If click is not in the active menu, close the dropdown
-      if (!isClickInMenu) {
-        setActiveDropdown(null);
-      }
-    };
-    
-    // Using mousedown instead of click to match most menu behaviors
-    document.addEventListener('mousedown', handleGlobalClick);
-    
-    return () => {
-      document.removeEventListener('mousedown', handleGlobalClick);
-    };
-  }, [activeDropdown]);
-  
-  // Handle dropdown item selection
-  const handleSortSelect = (sortOrder: SortOrder) => {
-    onSortChange(sortOrder);
-    setActiveDropdown(null);
+  const handleSortSelect = (value: string | string[]) => {
+    onSortChange(value as SortOrder);
   };
 
-  const handleClearSelect = (action: 'clear' | 'removeAll') => {
-    if (action === 'clear') {
-      onClearSelection();
-    } else {
-      onRemoveAllFolders();
+  const handleClearSelect = (value: string | string[]) => {
+    if (typeof value === 'string') {
+      if (value === 'clear') {
+        onClearSelection();
+      } else if (value === 'removeAll') {
+        onRemoveAllFolders();
+      }
     }
-    setActiveDropdown(null);
   };
 
   return (
     <>
-      <div className="file-tree-header">
-        <button 
-          className="file-tree-btn" 
-          onClick={() => {
-            setActiveDropdown(null); // Close any open dropdown
-            onOpenFolder();
-          }}
+      <div className={styles.fileTreeHeader}>
+        <Button 
+          variant="ghost"
+          size="sm"
+          iconOnly
+          startIcon={<Folder size={16} />}
+          onClick={onOpenFolder}
           title="Select Folder"
-        >
-          <Folder size={16} />
-        </button>
+          className={styles.fileTreeBtn}
+        />
         
-        <div className="dropdown-container">
-          <button 
-            className={`file-tree-btn ${activeDropdown === 'sort' ? 'active' : ''}`}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              e.stopPropagation(); // Prevent immediate closure
-              toggleDropdown('sort');
-            }}
-            title="Sort"
-          >
-            <ArrowUpDown size={16} />
-          </button>
-          
-          {activeDropdown === 'sort' && (
-            <div className="dropdown-menu" ref={sortMenuRef}>
-              <div className="dropdown-item" onClick={() => handleSortSelect("name-asc")}>
-                Name (A-Z)
-              </div>
-              <div className="dropdown-item" onClick={() => handleSortSelect("name-desc")}>
-                Name (Z-A)
-              </div>
-              <div className="dropdown-item" onClick={() => handleSortSelect("ext-asc")}>
-                Extension (A-Z)
-              </div>
-              <div className="dropdown-item" onClick={() => handleSortSelect("ext-desc")}>
-                Extension (Z-A)
-              </div>
-              <div className="dropdown-item" onClick={() => handleSortSelect("date-newest")}>
-                Date (Newest)
-              </div>
-            </div>
-          )}
+        <div className={styles.dropdownContainer}>
+          <Dropdown
+            options={sortOptions}
+            onChange={handleSortSelect}
+            placeholder="Sort by..."
+            trigger={
+              <Button 
+                variant="ghost"
+                size="sm"
+                iconOnly
+                startIcon={<ArrowUpDown size={16} />}
+                title="Sort By"
+                className={styles.fileTreeBtn}
+              />
+            }
+            menuClassName={styles.headerDropdownMenu}
+          />
         </div>
         
-        <button 
-          className="file-tree-btn" 
-          onClick={() => {
-            setActiveDropdown(null); // Close any open dropdown
-            onOpenIgnorePatterns(false); // Open ignore patterns modal with local patterns by default
-          }}
+        <Button 
+          variant="ghost"
+          size="sm"
+          iconOnly
+          startIcon={<Filter size={16} />}
+          onClick={() => onOpenIgnorePatterns(false)}
           title="Ignore Patterns"
-        >
-          <Filter size={16} />
-        </button>
+          className={styles.fileTreeBtn}
+        />
         
-        <div className="dropdown-container">
-          <button 
-            className={`file-tree-btn ${activeDropdown === 'clear' ? 'active' : ''}`}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              e.stopPropagation(); // Prevent immediate closure
-              toggleDropdown('clear');
-            }}
-            title="Clear"
-          >
-            <X size={16} />
-          </button>
-          
-          {activeDropdown === 'clear' && (
-            <div className="dropdown-menu" ref={clearMenuRef}>
-              <div className="dropdown-item" onClick={() => handleClearSelect('clear')}>
-                Clear selection
-              </div>
-              <div className="dropdown-item" onClick={() => handleClearSelect('removeAll')}>
-                Remove All Folders
-              </div>
-            </div>
-          )}
+        <div className={styles.dropdownContainer}>
+          <Dropdown
+            options={clearOptions}
+            onChange={handleClearSelect}
+            placeholder="Clear options..."
+            trigger={
+              <Button 
+                variant="ghost"
+                size="sm"
+                iconOnly
+                startIcon={<X size={16} />}
+                title="Clear"
+                className={styles.fileTreeBtn}
+              />
+            }
+            menuClassName={styles.headerDropdownMenu}
+          />
         </div>
         
-        <button 
-          className="file-tree-btn" 
-          onClick={() => {
-            setActiveDropdown(null); // Close any open dropdown
-            onReloadFileTree();
-          }}
+        <Button 
+          variant="ghost"
+          size="sm"
+          iconOnly
+          startIcon={<RefreshCw size={16} />}
+          onClick={onReloadFileTree}
           title="Reload"
-        >
-          <RefreshCw size={16} />
-        </button>
+          className={styles.fileTreeBtn}
+        />
       </div>
       
-      {/* Display excluded files count if provided */}
       {excludedFilesCount !== undefined && excludedFilesCount > 0 && (
-        <div className="excluded-files-count">
-          {excludedFilesCount} files excluded by patterns
+        <div className={styles.excludedFilesCount}>
+          {excludedFilesCount} {excludedFilesCount === 1 ? 'file' : 'files'} excluded by ignore patterns
         </div>
       )}
     </>

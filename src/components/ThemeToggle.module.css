@@ -1,0 +1,89 @@
+.themeSegmentedControl {
+  display: flex;
+  background-color: var(--background-secondary);
+  border-radius: 9999px;
+  padding: 2px;
+  width: fit-content;
+  position: relative;
+  height: 28px;
+  border: 1px solid hsla(240, 5.9%, 90%, 0.3);
+  gap: 1px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.themeSegmentsBackground {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(33.33% - 2px);
+  height: calc(100% - 4px);
+  background-color: var(--background-primary);
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  z-index: 0;
+  transform: translateX(0);
+}
+
+.themeSegmentsBackground.animated {
+  transition-property: transform, box-shadow;
+}
+
+.themeSegmentsBackground.light {
+  transform: translateX(0);
+}
+
+.themeSegmentsBackground.dark {
+  transform: translateX(100%);
+}
+
+.themeSegmentsBackground.system {
+  transform: translateX(200%);
+}
+
+.themeSegment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  position: relative;
+  z-index: 1;
+  transition: color 0.2s ease;
+  border-radius: 9999px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.themeSegment:hover {
+  color: var(--text-primary);
+  background: none;
+}
+
+.themeSegment:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.themeSegment:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.themeSegment.active {
+  color: var(--text-primary);
+}
+
+/* Dark mode adjustments */
+:global(.dark-mode) .themeSegmentedControl {
+  border-color: hsla(240, 3.7%, 25%, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+:global(.dark-mode) .themeSegmentsBackground {
+  background-color: var(--background-selected);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
+} 

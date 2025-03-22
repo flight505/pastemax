@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Search, X } from "lucide-react";
+import { Input } from "./ui";
+import styles from "./SearchBar.module.css";
 
 interface SearchBarProps {
   searchTerm: string;
@@ -12,31 +14,29 @@ const SearchBar = ({
   onSearchChange,
   placeholder = "Search...",
 }: SearchBarProps) => {
-  const [isFocused, setIsFocused] = useState(false);
+  // Create a custom end icon that clears the search when clicked
+  const ClearButton = searchTerm ? (
+    <button
+      className={styles.clearButton}
+      onClick={() => onSearchChange("")}
+      aria-label="Clear search"
+    >
+      <X size={14} />
+    </button>
+  ) : null;
 
   return (
-    <div className={`search-bar ${isFocused ? "focused" : ""}`}>
-      <div className="search-icon">
-        <Search size={16} />
-      </div>
-      <input
+    <div className={styles.searchBarWrapper}>
+      <Input
         type="text"
-        className="search-input"
         placeholder={placeholder}
         value={searchTerm}
         onChange={(e) => onSearchChange(e.target.value)}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
+        isSearchInput
+        startIcon={<Search size={16} />}
+        endIcon={ClearButton}
+        className={styles.searchInput}
       />
-      {searchTerm && (
-        <button
-          className="search-clear-btn"
-          onClick={() => onSearchChange("")}
-          aria-label="Clear search"
-        >
-          <X size={14} />
-        </button>
-      )}
     </div>
   );
 };
