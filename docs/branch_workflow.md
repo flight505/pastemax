@@ -2,6 +2,16 @@
 
 This guide outlines the recommended workflow for managing complex enhancements to PasteMax using a feature branch approach. Following these practices will ensure code quality, maintainability, and smooth collaboration.
 
+## Recent Branch Restructuring (March 2024)
+
+The main branch was reset to match the feature/styling branch on March 22, 2024, as it contained significant improvements:
+- Enhanced theme system with proper TypeScript types
+- Improved component architecture
+- Better UI consistency and styling
+- Comprehensive documentation updates
+
+The old main branch is preserved as `main-backup` for reference.
+
 ## Core Principles
 
 - Keep the `main` branch always deployable
@@ -10,6 +20,7 @@ This guide outlines the recommended workflow for managing complex enhancements t
 - Merge only after CI validation and review
 - Keep branches focused on single concerns
 - Rebase frequently to avoid complex merges
+- When a feature branch contains substantial improvements, consider making it the new main
 
 ## Workflow Overview
 
@@ -19,8 +30,9 @@ This guide outlines the recommended workflow for managing complex enhancements t
 4. **Push to Remote** - Push your branch to GitHub
 5. **Create PR** - Open a pull request for review
 6. **Review Process** - Address feedback and make necessary changes
-7. **Merge** - After approval, merge to main
-8. **Clean Up** - Delete the feature branch
+7. **Evaluate Impact** - Determine if changes should be merged or become new main
+8. **Integration** - Either merge to main or reset main to feature branch
+9. **Clean Up** - Delete unused branches
 
 ## Terminal Commands
 

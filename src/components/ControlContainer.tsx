@@ -7,11 +7,19 @@ import styles from './ControlContainer.module.css';
 interface ControlContainerProps {
   fileTreeMode: FileTreeMode;
   setFileTreeMode: (value: FileTreeMode) => void;
+  showUserInstructions: boolean;
+  setShowUserInstructions: (value: boolean) => void;
+  getSelectedFilesContent: () => string;
+  selectedFilesCount: number;
 }
 
 const ControlContainer: React.FC<ControlContainerProps> = ({
   fileTreeMode,
   setFileTreeMode,
+  showUserInstructions,
+  setShowUserInstructions,
+  getSelectedFilesContent,
+  selectedFilesCount,
 }) => {
   const [copied, setCopied] = useState(false);
 

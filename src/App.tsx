@@ -68,6 +68,11 @@ const App = () => {
   const savedSortOrder = localStorage.getItem(STORAGE_KEYS.SORT_ORDER);
   const savedSearchTerm = localStorage.getItem(STORAGE_KEYS.SEARCH_TERM);
   const savedExpandedNodes = localStorage.getItem(STORAGE_KEYS.EXPANDED_NODES);
+  const savedShowInstructions = localStorage.getItem('pastemax-show-instructions');
+
+  // State for user interface controls
+  const [showUserInstructions, setShowUserInstructions] = useState(savedShowInstructions !== 'false');
+  const [fileTreeMode, setFileTreeMode] = useState<FileTreeMode>('tree');
 
   // Initialize expanded nodes from localStorage if available
   const initialExpandedNodes = useMemo(() => {
@@ -117,13 +122,9 @@ const App = () => {
     status: "idle" | "processing" | "complete" | "error";
     message: string;
   });
-  const [fileTreeMode, setFileTreeMode] = useState("none" as FileTreeMode);
 
   // NEW: State for user instructions
   const [userInstructions, setUserInstructions] = useState("");
-
-  // Add a new state for showing/hiding user instructions
-  const [showUserInstructions, setShowUserInstructions] = useState(true);
 
   // NEW: State for file tree sorting and ignore patterns
   const [fileTreeSortOrder, setFileTreeSortOrder] = useState("name-asc" as SortOrder);

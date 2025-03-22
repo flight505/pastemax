@@ -105,15 +105,12 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   }, [isOpen]);
   
-  const handleSelect = useCallback((option: Element) => {
-    if (option instanceof HTMLElement) {
-      const value = option.dataset.value;
-      if (value) {
-        onChange(value);
-        setIsOpen(false);
-      }
+  const handleSelect = useCallback((option: DropdownOption) => {
+    if (!option.disabled) {
+      onChange(option.value);
+      setIsOpen(false);
     }
-  }, [onChange, setIsOpen]);
+  }, [onChange]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const options = Array.from(dropdownRef.current?.querySelectorAll('[role="option"]') || []);
@@ -137,7 +134,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
         event.preventDefault();
         const focusedOption = document.activeElement as HTMLDivElement;
         if (focusedOption?.dataset?.value) {
-          handleSelect(focusedOption);
+          const option = options.find(opt => opt.value === focusedOption.dataset.value);
+          if (option) {
+            handleSelect(option);
+          }
         }
         break;
       }
@@ -147,12 +147,14 @@ export const Dropdown: React.FC<DropdownProps> = ({
         break;
       }
     }
-  }, [handleSelect, setIsOpen]);
+  }, [handleSelect, options]);
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleKeyDown]);
   
   const getSelectedLabel = () => {
     if (multiple) {
@@ -223,7 +225,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 isSelected(option.value) && styles.selected,
                 option.disabled && styles.disabled
               )}
-              onClick={() => !option.disabled && handleSelect(option)}
+              onClick={() => handleSelect(option)}
               role="option"
               aria-selected={isSelected(option.value)}
               tabIndex={0}
