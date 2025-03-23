@@ -30,11 +30,6 @@
   background: var(--bg-hover);
 }
 
-.headerDropdownMenu {
-  min-width: 180px;
-  margin-top: 0.25rem;
-}
-
 .dropdownContainer {
   position: relative;
   display: inline-flex;
