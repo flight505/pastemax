@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../hooks/useTheme';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import styles from './ThemeToggle.module.css';
 

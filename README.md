@@ -64,6 +64,21 @@ For more details, check our documentation in the `docs` directory.
 - 📊 **Token Counting**: Track token usage to stay within AI model limits
 - 📋 **One-Click Copy**: Easily copy formatted output to clipboard
 
+## Features Highlights
+
+PasteMax offers a comprehensive set of features for efficient file management and code viewing:
+
+- 🌳 **Smart File Tree** - Intuitive navigation with multi-select and custom ignore patterns
+- 🔍 **Advanced Search** - Real-time search with regex support and flexible filtering
+- 🎨 **Theme Support** - Light/Dark modes with system theme integration
+- ⌨️ **Keyboard Friendly** - Full keyboard navigation and shortcuts
+- 🔒 **Secure** - Local-only processing with no external dependencies
+- ⚡ **Performant** - Optimized for large codebases with virtual rendering
+- 🔄 **Session Persistence** - Remembers your preferences and selections
+- 🎯 **Token Management** - Track and optimize token usage for AI interactions
+
+For a complete list of features and detailed documentation, see [FEATURES.md](FEATURES.md).
+
 ## Tech Stack
 
 - **Electron**: Cross-platform desktop framework
@@ -251,3 +266,10 @@ For maintainers releasing new versions:
 <div align="center">
   <p>Built with ❤️ using Vite and Electron</p>
 </div>
+
+## Documentation
+
+- [Features Documentation](FEATURES.md) - Complete feature list with screenshots and diagrams
+- [Branch Workflow Guide](docs/branch_workflow.md) - Development workflow and branch management
+- [Component System Guide](docs/style-guide/component-system.md) - UI component guidelines
+- [Screenshots](docs/screenshots/) - Visual documentation of the application

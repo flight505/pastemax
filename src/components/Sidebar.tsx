@@ -238,23 +238,66 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     });
   }, [fileTreeSortOrder]); // Only depends on the sort order
 
+  // Update tree with expanded state
+  const updateTreeWithExpandedState = useCallback(() => {
+    if (fileTree.length === 0 || isUpdatingExpandedNodesRef.current) return;
+    
+    isUpdatingExpandedNodesRef.current = true;
+    
+    // Add change detection to prevent unnecessary updates
+    let hasChanged = false;
+    
+    const updateNodes = (nodes: TreeNode[]): TreeNode[] => {
+      return nodes.map(node => {
+        const nodeExpanded = expandedNodes.has(node.id) ? !!expandedNodes.get(node.id) : false;
+        const isExpanded = nodeExpanded || node.isExpanded;
+        
+        // Check if there's a change in expanded state
+        if (isExpanded !== node.isExpanded) {
+          hasChanged = true;
+        }
+        
+        // Check if directory has children to update
+        if (node.type === "directory" && node.children && node.children.length > 0) {
+          return {
+            ...node,
+            isExpanded,
+            children: updateNodes(node.children),
+          };
+        }
+        
+        return {
+          ...node,
+          isExpanded,
+        };
+      });
+    };
+    
+    // Only update if there are actual changes
+    if (hasChanged) {
+      setFileTree(prevTree => updateNodes([...prevTree]));
+    }
+    
+    isUpdatingExpandedNodesRef.current = false;
+  }, [expandedNodes, fileTree]);
+
   // Build file tree structure from flat list of files
   useEffect(() => {
-    // Skip if no files or if we already updated the tree for this set of files
+    // Skip if no files or if we're already building
     if (allFiles.length === 0) {
       setFileTree([]);
       setIsTreeBuildingComplete(false);
       return;
     }
     
-    // Skip if we're already in the process of building
-    if (isBuildingTreeRef.current) return;
+    if (isBuildingTreeRef.current) {
+      return;
+    }
     
     const buildTree = () => {
-      // Mark that we're starting to build
-      isBuildingTreeRef.current = true;
-      
       try {
+        isBuildingTreeRef.current = true;
+        
         // Create a structured representation using nested objects first
         const fileMap: Record<string, any> = {};
 
@@ -367,55 +410,6 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     };
   }, [allFiles, expandedNodes, selectedFolder, sortFileTreeNodes, updateTreeWithExpandedState]);
 
-  // Update tree with expanded state
-  const updateTreeWithExpandedState = useCallback(() => {
-    if (fileTree.length === 0 || isUpdatingExpandedNodesRef.current) return;
-    
-    isUpdatingExpandedNodesRef.current = true;
-    
-    // Add change detection to prevent unnecessary updates
-    let hasChanged = false;
-    
-    const updateNodes = (nodes: TreeNode[]): TreeNode[] => {
-      return nodes.map(node => {
-        const nodeExpanded = expandedNodes.has(node.id) ? !!expandedNodes.get(node.id) : false;
-        const isExpanded = nodeExpanded || node.isExpanded;
-        
-        // Check if there's a change in expanded state
-        if (isExpanded !== node.isExpanded) {
-          hasChanged = true;
-        }
-        
-        // Check if directory has children to update
-        if (node.type === "directory" && node.children && node.children.length > 0) {
-          return {
-            ...node,
-            isExpanded,
-            children: updateNodes(node.children),
-          };
-        }
-        
-        return {
-          ...node,
-          isExpanded,
-        };
-      });
-    };
-    
-    try {
-      const updatedTree = updateNodes(fileTree);
-      
-      // Only update the tree if there were changes
-      if (hasChanged) {
-        setFileTree(updatedTree);
-      }
-    } catch (error) {
-      console.error("Error updating tree with expanded state:", error);
-    } finally {
-      isUpdatingExpandedNodesRef.current = false;
-    }
-  }, [fileTree, expandedNodes]);
-
   // Handle opening the ignore patterns modal
   const handleOpenIgnorePatterns = (isGlobal = false) => {
     setIgnoreGlobal(isGlobal);
@@ -505,15 +499,6 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     const excludedFilesCount = allFiles.filter(file => file.excluded).length;
     return excludedFilesCount;
   };
-
-  // Add expanded node state to the tree
-  useEffect(() => {
-    if (!fileTree.length || isUpdatingExpandedNodesRef.current) return;
-    updateTreeWithExpandedState();
-    return () => {
-      isUpdatingExpandedNodesRef.current = false;
-    };
-  }, [fileTree, expandedNodes, updateTreeWithExpandedState]);
 
   return (
     <div className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>
