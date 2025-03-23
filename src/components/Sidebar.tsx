@@ -200,7 +200,7 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     // Load the patterns
     loadIgnorePatterns(selectedFolder, false);
     
-  }, [selectedFolder, loadIgnorePatterns]); // Removed the loading state and its setter
+  }, [selectedFolder, loadIgnorePatterns]); // Added loadIgnorePatterns as dependency
 
   // Sort file tree nodes - memoized with useCallback to prevent recreation on every render
   const sortFileTreeNodes = useCallback((nodes: TreeNode[]): TreeNode[] => {
@@ -365,7 +365,7 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [allFiles, expandedNodes, selectedFolder, sortFileTreeNodes]);
+  }, [allFiles, expandedNodes, selectedFolder, sortFileTreeNodes, updateTreeWithExpandedState]);
 
   // Update tree with expanded state
   const updateTreeWithExpandedState = useCallback(() => {

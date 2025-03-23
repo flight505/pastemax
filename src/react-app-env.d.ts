@@ -4,8 +4,12 @@
 
 // Add missing TypeScript definitions
 declare namespace React {
-  interface MouseEvent<T = Element> extends globalThis.MouseEvent {}
-  interface ChangeEvent<T = Element> extends Event {}
+  interface MouseEvent<T extends Element> extends globalThis.MouseEvent {
+    currentTarget: T;
+  }
+  interface ChangeEvent<T extends Element> extends Event {
+    target: T;
+  }
 }
 
 // Fix the type parameters that are unused

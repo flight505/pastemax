@@ -147,7 +147,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         break;
       }
     }
-  }, [handleSelect, options]);
+  }, [handleSelect]);
 
   useEffect(() => {
     if (isOpen) {

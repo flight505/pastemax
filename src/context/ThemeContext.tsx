@@ -1,25 +1,5 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
-
-type ThemeType = "light" | "dark" | "system";
-
-interface ThemeContextType {
-  theme: ThemeType;
-  currentTheme: "light" | "dark"; // The actual applied theme
-  setTheme: (theme: ThemeType) => void;
-}
-
-// Create context with proper typing
-const defaultThemeContext: ThemeContextType = {
-  theme: "system",
-  currentTheme: "light",
-  setTheme: () => {},
-};
-
-const ThemeContext = createContext(defaultThemeContext);
-
-// Add eslint-disable comment to suppress the warning about fast refresh
- 
-export const STORAGE_KEY = "pastemax-theme";
+import React, { useState, useEffect } from "react";
+import { ThemeType, ThemeContext } from "./ThemeContextType";
 
 export const ThemeProvider = ({
   children,
@@ -81,13 +61,4 @@ export const ThemeProvider = ({
       {children}
     </ThemeContext.Provider>
   );
-};
-
-// Custom hook to use the theme context
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
 }; 

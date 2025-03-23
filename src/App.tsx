@@ -9,7 +9,6 @@ import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
 import { Github, ArrowUpDown } from "lucide-react";
 import styles from "./App.module.css";
-import { Button } from "./components/ui/Button";
 import { Dropdown } from "./components/ui/Dropdown";
 import { ConfirmationDialog } from "./components/ui/ConfirmationDialog";
 
