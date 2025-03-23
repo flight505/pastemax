@@ -1005,11 +1005,17 @@ const App = () => {
           {selectedFolder ? (
             <div className={styles.contentArea}>
               <div className={styles.contentHeader}>
-                <div className={styles.contentTitle}>Selected Files</div>
+                <h1 className={styles.contentTitle}>Files</h1>
                 <div className={styles.contentActions}>
                   <div className={styles.folderPathDisplay}>
                     {truncatePath(selectedFolder)}
                   </div>
+                  <div className={styles.headerSeparator} />
+                  <div className={styles.fileStats}>
+                    {selectedFiles.length} {selectedFiles.length === 1 ? 'file' : 'files'} | ~
+                    {calculateTotalTokens().toLocaleString()} tokens
+                  </div>
+                  <div className={styles.headerSeparator} />
                   <div className={styles.dropdownContainer}>
                     <Dropdown
                       options={sortOptions}
@@ -1020,10 +1026,6 @@ const App = () => {
                       icon={<ArrowUpDown />}
                       title="Sort files"
                     />
-                  </div>
-                  <div className={styles.fileStats}>
-                    {selectedFiles.length} {selectedFiles.length === 1 ? 'file' : 'files'} | ~
-                    {calculateTotalTokens().toLocaleString()} tokens
                   </div>
                 </div>
               </div>
