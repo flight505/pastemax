@@ -1088,10 +1088,15 @@ function cancelDirectoryLoading(window) {
     loadingTimeoutId = null;
   }
   
-  window.webContents.send("file-processing-status", {
-    status: "error",
-    message: "Directory loading cancelled - try selecting a smaller directory",
-  });
+  // Check if window exists and has webContents before sending message
+  if (window && window.webContents && !window.isDestroyed()) {
+    window.webContents.send("file-processing-status", {
+      status: "error",
+      message: "Directory loading cancelled - try selecting a smaller directory",
+    });
+  } else {
+    console.log("Unable to send directory loading cancelled message - window not available");
+  }
 }
 
 // Handler for directory loading timeout
@@ -1104,7 +1109,16 @@ function setupDirectoryLoadingTimeout(window, folderPath) {
   // Set a new timeout
   loadingTimeoutId = setTimeout(() => {
     console.log(`Directory loading timed out after ${MAX_DIRECTORY_LOAD_TIME / 1000} seconds: ${folderPath}`);
-    cancelDirectoryLoading(window);
+    
+    // Only attempt to cancel if we have a valid window reference
+    if (window && !window.isDestroyed()) {
+      cancelDirectoryLoading(window);
+    } else {
+      // Just clean up the loading state without window reference
+      isLoadingDirectory = false;
+      loadingTimeoutId = null;
+      console.log("Directory loading timed out but window is no longer available");
+    }
   }, MAX_DIRECTORY_LOAD_TIME);
 }
 
@@ -1325,32 +1339,25 @@ ipcMain.handle('reset-ignore-patterns', async (event, { folderPath, isGlobal }) 
 });
 
 // Handle clearing ignore patterns (only for local patterns)
-ipcMain.handle('clear-ignore-patterns', async (event, { folderPath }) => {
+ipcMain.handle('clear-local-ignore-patterns', async (event, { folderPath }) => {
+  console.log('Clearing local ignore patterns for:', folderPath);
+  
   try {
     if (!folderPath) {
       return { success: false, error: 'No folder path provided' };
     }
+
+    const result = await clearLocalIgnorePatterns(folderPath);
     
-    const ignoreFilePath = path.join(folderPath, '.repo_ignore');
-    
-    // Delete the file if it exists
-    if (fs.existsSync(ignoreFilePath)) {
-      await unlink(ignoreFilePath);
-      console.log(`Cleared local ignore patterns by deleting ${ignoreFilePath}`);
-    } else {
-      console.log(`No local ignore file found at ${ignoreFilePath}, nothing to clear`);
+    // Clear the cache for this folder to ensure patterns are reloaded
+    if (ignoreInstanceCache[folderPath]) {
+      delete ignoreInstanceCache[folderPath];
     }
-    
-    // Clear pattern cache for this folder
-    clearPatternCache(folderPath);
-    
-    // Clear cache for this folder
-    directoryCache.clear(folderPath);
     
     return { success: true };
   } catch (error) {
-    console.error('Error clearing ignore patterns:', error);
-    return { success: false, error: error.message };
+    console.error('Error in clear-local-ignore-patterns handler:', error);
+    return { success: false, error: String(error) };
   }
 });
 
@@ -1371,3 +1378,33 @@ module.exports = {
   loadGitignore,
   normalizePath
 };
+
+/**
+ * Clears local ignore patterns for a specific folder
+ * @param {string} folderPath - Path of the folder for which to clear ignore patterns
+ * @returns {Promise<boolean>} - True if successful, false otherwise
+ */
+async function clearLocalIgnorePatterns(folderPath) {
+  try {
+    const ignoreFilePath = path.join(folderPath, '.repo_ignore');
+    
+    // Delete the file if it exists
+    if (fs.existsSync(ignoreFilePath)) {
+      await unlink(ignoreFilePath);
+      console.log(`Cleared local ignore patterns by deleting ${ignoreFilePath}`);
+    } else {
+      console.log(`No local ignore file found at ${ignoreFilePath}, nothing to clear`);
+    }
+    
+    // Clear pattern cache for this folder
+    clearPatternCache(folderPath);
+    
+    // Clear cache for this folder
+    directoryCache.clear(folderPath);
+    
+    return true;
+  } catch (error) {
+    console.error('Error clearing local ignore patterns:', error);
+    throw error;
+  }
+}

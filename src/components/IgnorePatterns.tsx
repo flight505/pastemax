@@ -1,148 +1,211 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from 'react';
 import { X, RefreshCw, ChevronDown, Trash2 } from "lucide-react";
 import { Button } from "./ui";
 import styles from "./IgnorePatterns.module.css";
 
+// Props interface
 interface IgnorePatternsProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (patterns: string, isGlobal: boolean, folderPath?: string) => void;
-  onReset?: (isGlobal: boolean, folderPath?: string) => void;
-  onClear?: (folderPath?: string) => void;
-  currentFolder: string;
-  existingPatterns: string;
-  isGlobal?: boolean;
-  globalPatterns: string;
-  localPatterns: string;
-  onTabChange?: (isGlobal: boolean) => void;
-  systemPatterns?: string[]; // Keep prop for compatibility
-  availableFolders?: string[]; // List of available folders for selection
+  globalIgnorePatterns: string;
+  localIgnorePatterns: string;
+  localFolderPath?: string;
+  processingStatus?: {
+    status: "idle" | "processing" | "complete" | "error";
+    message: string;
+  };
+  saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath?: string) => Promise<void>;
+  resetIgnorePatterns: (isGlobal: boolean, folderPath?: string) => Promise<void>;
+  clearIgnorePatterns: (folderPath: string) => Promise<void>;
+  systemIgnorePatterns: string[];
+  recentFolders: string[];
 }
 
-// Default placeholder pattern shown in the empty textarea
-const DEFAULT_PLACEHOLDER = `# Add patterns like .gitignore format
-# One pattern per line
-
-# Examples:
-node_modules/
-*.log
-.DS_Store
-venv/`;
-
-const IgnorePatterns = ({
+const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   isOpen,
   onClose,
-  onSave,
-  onReset,
-  onClear,
-  currentFolder,
-  existingPatterns,
-  isGlobal = false,
-  globalPatterns = "",
-  localPatterns = "",
-  onTabChange,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  systemPatterns = [],
-  availableFolders = [],
-}: IgnorePatternsProps): JSX.Element | null => {
-  const [patterns, setPatterns] = useState(existingPatterns);
-  const [activeGlobal, setActiveGlobal] = useState(isGlobal);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [selectedFolder, setSelectedFolder] = useState(currentFolder);
+  globalIgnorePatterns,
+  localIgnorePatterns,
+  localFolderPath,
+  processingStatus = { status: "idle", message: "" },
+  saveIgnorePatterns,
+  resetIgnorePatterns,
+  clearIgnorePatterns,
+  systemIgnorePatterns,
+  recentFolders
+}) => {
+  // State for the active tab
+  const [activeTab, setActiveTab] = useState<"global" | "local">("global");
+  
+  // State for the textarea values
+  const [globalPatterns, setGlobalPatterns] = useState<string>(globalIgnorePatterns);
+  const [localPatterns, setLocalPatterns] = useState<string>(localIgnorePatterns);
+  
+  // State for the selected folder
+  const [selectedFolder, setSelectedFolder] = useState<string | undefined>(localFolderPath);
+  
+  // State for pattern application status
+  const [applyingPatterns, setApplyingPatterns] = useState<boolean>(false);
   const [folderSelectOpen, setFolderSelectOpen] = useState(false);
-
-  // Update activeGlobal when isGlobal prop changes
+  
+  // Ref for the textarea to focus it
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Effect to initialize the components with the props
   useEffect(() => {
-    setActiveGlobal(isGlobal);
-  }, [isGlobal]);
-
-  // Update patterns when activeGlobal, globalPatterns, or localPatterns change
+    if (isOpen) {
+      setGlobalPatterns(globalIgnorePatterns);
+      setLocalPatterns(localIgnorePatterns);
+      setSelectedFolder(localFolderPath);
+      
+      // Reset the pattern application status
+      setApplyingPatterns(false);
+    }
+  }, [isOpen, globalIgnorePatterns, localIgnorePatterns, localFolderPath]);
+  
+  // Effect to update local patterns when selectedFolder changes
   useEffect(() => {
-    const newPatterns = activeGlobal ? globalPatterns : localPatterns;
-    setPatterns(newPatterns);
-    setHasChanges(false);
-  }, [activeGlobal, globalPatterns, localPatterns, isOpen]);
-
-  // Update selected folder when currentFolder changes
+    if (selectedFolder === localFolderPath) {
+      setLocalPatterns(localIgnorePatterns);
+    } else {
+      // Reset local patterns when a different folder is selected
+      setLocalPatterns('');
+    }
+  }, [selectedFolder, localFolderPath, localIgnorePatterns]);
+  
+  // Effect to update UI based on processing status
   useEffect(() => {
-    setSelectedFolder(currentFolder);
-  }, [currentFolder]);
-
-  // Handle ESC key to close modal
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
+    if (!processingStatus) {
+      return; // Exit early if processingStatus is undefined or null
+    }
     
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // Handle tab change with unsaved changes check
-  const handleTabChange = (newIsGlobal: boolean) => {
-    if (newIsGlobal !== activeGlobal) {
-      if (hasChanges) {
-        if (window.confirm("You have unsaved changes. Do you want to discard them?")) {
-          setActiveGlobal(newIsGlobal);
-          if (onTabChange) {
-            onTabChange(newIsGlobal);
-          }
-        }
-      } else {
-        setActiveGlobal(newIsGlobal);
-        if (onTabChange) {
-          onTabChange(newIsGlobal);
-        }
-      }
+    if (processingStatus.status === 'processing') {
+      setApplyingPatterns(true);
+    } else if (processingStatus.status === 'complete' || processingStatus.status === 'error') {
+      // Delay resetting to allow for visual feedback
+      setTimeout(() => {
+        setApplyingPatterns(false);
+      }, 500);
+    }
+  }, [processingStatus]);
+  
+  // Function to handle tab change
+  const handleTabChange = (isGlobal: boolean) => {
+    setActiveTab(isGlobal ? "global" : "local");
+  };
+  
+  // Function to handle textarea change
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const { value } = e.target;
+    
+    if (activeTab === 'global') {
+      setGlobalPatterns(value);
+    } else {
+      setLocalPatterns(value);
     }
   };
-
-  // Handle folder change with unsaved changes check
-  const handleFolderChange = (folder: string) => {
-    if (folder !== selectedFolder) {
-      if (hasChanges) {
-        if (window.confirm("You have unsaved changes. Do you want to discard them?")) {
-          setSelectedFolder(folder);
-        }
-      } else {
-        setSelectedFolder(folder);
-      }
-    }
+  
+  // Function to handle folder selection
+  const handleFolderChange = (folderPath: string) => {
+    setSelectedFolder(folderPath);
     setFolderSelectOpen(false);
   };
-
-  // Handle reset button click - returns to system defaults
-  const handleReset = () => {
-    if (onReset && window.confirm("Reset to default patterns? This will replace any custom patterns you've created.")) {
-      onReset(activeGlobal, !activeGlobal ? selectedFolder : undefined);
-      setHasChanges(false);
+  
+  // Functions to handle saving patterns
+  const handleSaveGlobalPatterns = async () => {
+    setApplyingPatterns(true);
+    await saveIgnorePatterns(globalPatterns, true);
+  };
+  
+  const handleSaveLocalPatterns = async () => {
+    if (selectedFolder) {
+      setApplyingPatterns(true);
+      await saveIgnorePatterns(localPatterns, false, selectedFolder);
     }
   };
-
-  // Handle clear button click - removes all patterns
-  const handleClear = () => {
-    if (onClear && !activeGlobal && window.confirm("Clear all local patterns? This will remove all patterns for this folder.")) {
-      onClear(selectedFolder);
-      setPatterns("");
-      setHasChanges(false);
+  
+  // Functions to handle resetting patterns
+  const handleResetGlobalPatterns = async () => {
+    setApplyingPatterns(true);
+    await resetIgnorePatterns(true);
+  };
+  
+  const handleResetLocalPatterns = async () => {
+    if (selectedFolder) {
+      setApplyingPatterns(true);
+      await resetIgnorePatterns(false, selectedFolder);
     }
   };
-
-  // Handle save button click
-  const handleSave = () => {
-    onSave(patterns, activeGlobal, !activeGlobal ? selectedFolder : undefined);
-    setHasChanges(false);
+  
+  // Function to handle clearing patterns
+  const handleClearLocalPatterns = async () => {
+    if (selectedFolder) {
+      setApplyingPatterns(true);
+      await clearIgnorePatterns(selectedFolder);
+    }
   };
-
-  if (!isOpen) return null;
-
+  
+  // Function to handle keyboard events
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Save on Ctrl+S / Cmd+S
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      
+      if (activeTab === 'global') {
+        handleSaveGlobalPatterns();
+      } else if (selectedFolder) {
+        handleSaveLocalPatterns();
+      }
+    }
+    
+    // Close on Escape
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  };
+  
+  // If the modal is not open, don't render anything
+  if (!isOpen) {
+    return null;
+  }
+  
+  // Function to render the processing status message
+  const renderStatusMessage = () => {
+    if (!processingStatus || processingStatus.status === 'idle') {
+      return null;
+    }
+    
+    let statusClass = styles.statusMessage;
+    
+    switch (processingStatus.status) {
+      case 'processing':
+        statusClass += ` ${styles.processing}`;
+        break;
+      case 'complete':
+        statusClass += ` ${styles.complete}`;
+        break;
+      case 'error':
+        statusClass += ` ${styles.error}`;
+        break;
+      default:
+        statusClass += ` ${styles.idle}`;
+    }
+    
+    return (
+      <div className={statusClass}>
+        {processingStatus.message}
+      </div>
+    );
+  };
+  
   return (
     <div className={styles.modal}>
       <div className={styles.content}>
         <div className={styles.header}>
-          <h2>Ignore Patterns</h2>
+          <h2>
+            Ignore Patterns
+            {applyingPatterns && <span className={styles.applying}>(Applying changes...)</span>}
+          </h2>
           <Button 
             variant="secondary" 
             size="sm" 
@@ -150,48 +213,51 @@ const IgnorePatterns = ({
             onClick={onClose}
             startIcon={<X size={16} />}
             title="Close"
+            disabled={applyingPatterns}
           />
         </div>
         
         <div className={styles.description}>
-          Edit ignore patterns. Global defaults from your settings are always combined with any .repo_ignore file found in a folder. Local patterns (from .repo_ignore) will override global defaults.
+          Edit ignore patterns. Global patterns apply to all folders, while local patterns apply only to the selected folder.
         </div>
         
         <div className={styles.scopeSelector}>
           <Button 
-            variant={!activeGlobal ? "secondary" : "ghost"}
-            className={`${styles.scopeBtn} ${!activeGlobal ? styles.active : ""}`}
+            variant={activeTab === "local" ? "secondary" : "ghost"}
+            className={`${styles.scopeBtn} ${activeTab === "local" ? styles.active : ""}`}
             onClick={() => handleTabChange(false)}
+            disabled={applyingPatterns}
           >
             Local Folder
           </Button>
           <Button 
-            variant={activeGlobal ? "secondary" : "ghost"}
-            className={`${styles.scopeBtn} ${activeGlobal ? styles.active : ""}`}
+            variant={activeTab === "global" ? "secondary" : "ghost"}
+            className={`${styles.scopeBtn} ${activeTab === "global" ? styles.active : ""}`}
             onClick={() => handleTabChange(true)}
+            disabled={applyingPatterns}
           >
             Global Defaults
           </Button>
         </div>
         
         <div className={styles.scopeDescription}>
-          {activeGlobal 
-            ? "Global patterns apply to all folders and can be overridden by local patterns." 
-            : "Local scope will create a .repo_ignore file upon save and will be combined with global defaults."}
+          {activeTab === "global" 
+            ? "Global patterns apply to all folders. One pattern per line. Use * as wildcard." 
+            : "Local patterns apply only to the selected folder. One pattern per line. Use * as wildcard."}
         </div>
         
-        {!activeGlobal && (
+        {activeTab === "local" && (
           <div className={styles.folderSelector}>
             <label>Select Folder</label>
-            <div className={styles.customSelect} onClick={() => setFolderSelectOpen(!folderSelectOpen)}>
+            <div className={styles.customSelect} onClick={() => !applyingPatterns && setFolderSelectOpen(!folderSelectOpen)}>
               <div className={styles.selectedValue}>
                 {selectedFolder || 'Select a folder'}
                 <ChevronDown size={16} className={`${styles.chevron} ${folderSelectOpen ? styles.open : ''}`} />
               </div>
               {folderSelectOpen && (
                 <div className={styles.optionsContainer}>
-                  {availableFolders.length > 0 ? (
-                    availableFolders.map((folder, index) => (
+                  {recentFolders.length > 0 ? (
+                    recentFolders.map((folder, index) => (
                       <div 
                         key={index} 
                         className={styles.option} 
@@ -214,61 +280,80 @@ const IgnorePatterns = ({
         
         <div className={styles.patternsSection}>
           <textarea 
+            ref={textareaRef}
             className={styles.patternsInput}
-            value={patterns}
-            onChange={(e) => {
-              setPatterns(e.target.value);
-              setHasChanges(true);
-            }}
-            placeholder={DEFAULT_PLACEHOLDER}
+            value={activeTab === "global" ? globalPatterns : localPatterns}
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Enter ignore patterns, one per line..."
+            disabled={applyingPatterns || (activeTab === "local" && !selectedFolder)}
           />
           
-          <div className={styles.patternsHelp}>
-            <p>Use gitignore-style syntax. Lines starting with # are comments.</p>
-            <p>Excluded files are visible in the sidebar with a dimmed appearance.</p>
-          </div>
+          {activeTab === "global" && (
+            <div className={styles.systemPatterns}>
+              <h3>System Patterns (Always Applied)</h3>
+              <div className={styles.systemPatternsList}>
+                {systemIgnorePatterns.map((pattern, index) => (
+                  <div key={index} className={styles.systemPattern}>{pattern}</div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         
-        <div className={styles.modalStatus}>
-          {hasChanges && <span className={styles.unsaved}>Unsaved Changes</span>}
-        </div>
+        {/* Status Message */}
+        {renderStatusMessage()}
         
         <div className={styles.modalActions}>
-          {onReset && (
-            <Button 
-              variant="ghost"
-              onClick={handleReset}
-              title="Reset to default patterns"
-              startIcon={<RefreshCw size={14} />}
-            >
-              Reset
-            </Button>
-          )}
-          
-          {!activeGlobal && onClear && (
-            <Button 
-              variant="destructive"
-              onClick={handleClear}
-              title="Clear all patterns for this folder"
-              startIcon={<Trash2 size={14} />}
-            >
-              Clear
-            </Button>
+          {activeTab === "global" ? (
+            <>
+              <Button 
+                variant="primary" 
+                onClick={handleSaveGlobalPatterns}
+                disabled={applyingPatterns}
+              >
+                Save Global Patterns
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={handleResetGlobalPatterns}
+                disabled={applyingPatterns}
+              >
+                Reset to Defaults
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="primary" 
+                onClick={handleSaveLocalPatterns}
+                disabled={!selectedFolder || applyingPatterns}
+              >
+                Save Local Patterns
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={handleResetLocalPatterns}
+                disabled={!selectedFolder || applyingPatterns}
+              >
+                Reset to Defaults
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleClearLocalPatterns}
+                disabled={!selectedFolder || applyingPatterns}
+              >
+                Clear All Patterns
+              </Button>
+            </>
           )}
           
           <Button 
             variant="ghost"
             onClick={onClose}
+            disabled={applyingPatterns}
           >
             Cancel
-          </Button>
-          
-          <Button 
-            variant="primary"
-            onClick={handleSave}
-            disabled={!hasChanges}
-          >
-            Save
           </Button>
         </div>
       </div>

@@ -663,18 +663,25 @@ const App = () => {
   }, [isElectron, globalIgnorePatterns, loadIgnorePatterns]);
 
   // Function to save ignore patterns
-  const saveIgnorePatterns = async (patterns: string, isGlobal: boolean, folderPath: string) => {
+  const saveIgnorePatterns = async (patterns: string, isGlobal: boolean, folderPath?: string) => {
     setProcessingStatus({
       status: "processing",
       message: `Saving ${isGlobal ? "global" : "local"} ignore patterns...`,
     });
 
     try {
+      // Update state first to show immediate feedback in UI
+      if (isGlobal) {
+        setGlobalIgnorePatterns(patterns);
+      } else if (folderPath) {
+        setLocalIgnorePatterns(patterns);
+      }
+
       // Use async/await with the new invoke pattern
       const result = await window.electron.ipcRenderer.invoke("save-ignore-patterns", {
         patterns,
         isGlobal,
-        folderPath
+        folderPath: folderPath || selectedFolder
       });
 
       if (result.success) {
@@ -685,13 +692,20 @@ const App = () => {
           message: `${isGlobal ? "Global" : "Local"} ignore patterns saved successfully.`,
         });
         
-        // If the patterns are for the current folder, reload the folder
+        // Only reload if absolutely necessary
+        // For local patterns, only reload if the folder being modified is the selected folder
         if (!isGlobal && folderPath === selectedFolder) {
-          reloadFolder();
+          // Use a small delay to allow UI to stabilize before reloading
+          setTimeout(() => {
+            reloadFolder();
+          }, 300);
         }
-        // If global patterns were changed, also reload current folder to apply new patterns
+        // For global patterns, only reload if we're viewing files (have a selected folder)
         else if (isGlobal && selectedFolder) {
-          reloadFolder();
+          // Use a small delay to allow UI to stabilize before reloading
+          setTimeout(() => {
+            reloadFolder();
+          }, 300);
         }
       } else {
         console.error(`Error saving ${isGlobal ? 'global' : 'local'} ignore patterns:`, result.error);
@@ -711,43 +725,51 @@ const App = () => {
     }
   };
 
-  // Function to reset ignore patterns
-  const resetIgnorePatterns = async (isGlobal: boolean, folderPath: string) => {
+  // Function to reset ignore patterns to defaults
+  const resetIgnorePatterns = async (isGlobal: boolean, folderPath?: string) => {
     setProcessingStatus({
       status: "processing",
       message: `Resetting ${isGlobal ? "global" : "local"} ignore patterns...`,
     });
 
     try {
+      // Update state immediately for UI feedback
+      if (isGlobal) {
+        setGlobalIgnorePatterns("");
+      } else if (folderPath) {
+        setLocalIgnorePatterns("");
+      }
+
       // Use async/await with the new invoke pattern
       const result = await window.electron.ipcRenderer.invoke("reset-ignore-patterns", {
         isGlobal,
-        folderPath
+        folderPath: folderPath || selectedFolder
       });
 
       if (result.success) {
         console.log(`Successfully reset ${isGlobal ? 'global' : 'local'} ignore patterns`);
         
-        // Update the UI with the reset patterns
-        if (isGlobal) {
-          setGlobalIgnorePatterns(result.patterns || '');
-        } else {
-          setLocalIgnorePatterns(result.patterns || '');
-        }
-        
-        // Store system patterns if provided
-        if (result.systemPatterns && Array.isArray(result.systemPatterns)) {
-          setSystemIgnorePatterns(result.systemPatterns);
+        // Update the local pattern state if applicable
+        if (!isGlobal && folderPath) {
+          setLocalIgnorePatterns("");
+        } else if (isGlobal) {
+          setGlobalIgnorePatterns("");
         }
         
         setProcessingStatus({
           status: "complete",
-          message: `${isGlobal ? "Global" : "Local"} ignore patterns reset to defaults.`,
+          message: `${isGlobal ? "Global" : "Local"} ignore patterns have been reset.`,
         });
         
-        // If the patterns are for the current folder, reload the folder
+        // Only reload if necessary and with a delay
         if (!isGlobal && folderPath === selectedFolder) {
-          reloadFolder();
+          setTimeout(() => {
+            reloadFolder();
+          }, 300);
+        } else if (isGlobal && selectedFolder) {
+          setTimeout(() => {
+            reloadFolder();
+          }, 300);
         }
       } else {
         console.error(`Error resetting ${isGlobal ? 'global' : 'local'} ignore patterns:`, result.error);
@@ -879,54 +901,51 @@ const App = () => {
     }
   }, [selectedFolder]);
 
-  // Function to clear ignore patterns (for local patterns only)
-  const clearIgnorePatterns = async (folderPath: string) => {
-    if (!window.electron) {
-      console.log("Not in Electron environment, skipping clearIgnorePatterns");
-      return;
-    }
-    
+  // Function to clear local ignore patterns for a folder
+  const clearLocalIgnorePatterns = async (folderPath: string) => {
     setProcessingStatus({
       status: "processing",
       message: "Clearing local ignore patterns...",
     });
 
     try {
-      // Use async/await with the invoke pattern
-      const result = await window.electron.ipcRenderer.invoke("clear-ignore-patterns", {
+      // Update state immediately for UI feedback
+      setLocalIgnorePatterns("");
+      
+      const result = await window.electron.ipcRenderer.invoke("clear-local-ignore-patterns", {
         folderPath
       });
 
       if (result.success) {
-        console.log(`Successfully cleared local ignore patterns for ${folderPath}`);
+        console.log("Successfully cleared local ignore patterns");
         
-        // Clear the local patterns state
         setLocalIgnorePatterns("");
-        setIgnorePatterns("");
         
         setProcessingStatus({
           status: "complete",
           message: "Local ignore patterns cleared successfully.",
         });
         
-        // Reload folder to apply changes
+        // Only reload if the folder being cleared is the current selected folder
         if (folderPath === selectedFolder) {
-          reloadFolder();
+          setTimeout(() => {
+            reloadFolder();
+          }, 300);
         }
       } else {
-        console.error("Error clearing ignore patterns:", result.error);
+        console.error("Error clearing local ignore patterns:", result.error);
         
         setProcessingStatus({
           status: "error",
-          message: `Error clearing ignore patterns: ${result.error}`,
+          message: `Error clearing local ignore patterns: ${result.error}`,
         });
       }
     } catch (error) {
-      console.error("Error invoking clear-ignore-patterns:", error);
+      console.error("Error invoking clear-local-ignore-patterns:", error);
       
       setProcessingStatus({
         status: "error",
-        message: `Error clearing ignore patterns: ${String(error)}`,
+        message: `Error clearing local ignore patterns: ${String(error)}`,
       });
     }
   };
@@ -995,10 +1014,12 @@ const App = () => {
             saveIgnorePatterns={saveIgnorePatterns}
             resetIgnorePatterns={resetIgnorePatterns}
             systemIgnorePatterns={systemIgnorePatterns}
-            clearIgnorePatterns={clearIgnorePatterns}
+            clearIgnorePatterns={clearLocalIgnorePatterns}
             onClearSelectionClick={handleClearSelectionClick}
             onRemoveAllFoldersClick={handleRemoveAllFoldersClick}
             onResetPatternsClick={handleResetPatternsClick}
+            fileTreeSortOrder={fileTreeSortOrder}
+            onSortOrderChange={setFileTreeSortOrder}
           />
           
           {selectedFolder ? (
