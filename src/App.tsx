@@ -71,7 +71,7 @@ const App = () => {
 
   // State for user interface controls
   const [showUserInstructions, setShowUserInstructions] = useState(savedShowInstructions !== 'false');
-  const [fileTreeMode, setFileTreeMode] = useState<FileTreeMode>('tree');
+  const [fileTreeMode, setFileTreeMode] = useState<FileTreeMode>('complete');
 
   // Initialize expanded nodes from localStorage if available
   const initialExpandedNodes = useMemo(() => {
@@ -142,17 +142,17 @@ const App = () => {
     );
     if (savedExpandedNodes) {
       try {
-        // Parse the JSON string
         const parsedNodes = JSON.parse(savedExpandedNodes);
         
         // Check if it's an object that needs to be converted to entries
         if (parsedNodes && typeof parsedNodes === 'object' && !Array.isArray(parsedNodes)) {
           // Convert object to array of entries
-          const entries = Object.entries(parsedNodes);
+          const entries = Object.entries(parsedNodes).map(([key, value]) => [key, Boolean(value)]) as [string, boolean][];
           setExpandedNodes(new Map(entries));
         } else if (Array.isArray(parsedNodes)) {
           // It's already in the format of [key, value] pairs
-          setExpandedNodes(new Map(parsedNodes));
+          const typedEntries = parsedNodes.map(([key, value]) => [key, Boolean(value)]) as [string, boolean][];
+          setExpandedNodes(new Map(typedEntries));
         } else {
           // Reset to empty Map if format is not recognized
           setExpandedNodes(new Map());

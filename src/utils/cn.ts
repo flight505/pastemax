@@ -8,7 +8,7 @@ export function cn(...classes: (string | boolean | undefined | null | { [key: st
     .filter(Boolean)
     .map((item) => {
       if (typeof item === 'string') return item;
-      if (typeof item === 'object') {
+      if (typeof item === 'object' && item !== null) {
         return Object.entries(item)
           .filter(([, value]) => value)
           .map(([key]) => key)

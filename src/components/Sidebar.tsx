@@ -17,10 +17,12 @@ interface ExtendedSidebarProps extends SidebarProps {
   setIgnorePatterns: (patterns: string) => void;
   loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
+  resetIgnorePatterns?: (isGlobal: boolean, folderPath: string) => void;
   systemIgnorePatterns: string[];
   clearIgnorePatterns: (folderPath: string) => void;
   onClearSelectionClick?: () => void;
   onRemoveAllFoldersClick?: () => void;
+  onResetPatternsClick?: (isGlobal: boolean, folderPath: string) => void;
 }
 
 const Sidebar: React.FC<ExtendedSidebarProps> = ({
@@ -43,10 +45,12 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
   setIgnorePatterns,
   loadIgnorePatterns,
   saveIgnorePatterns,
+  resetIgnorePatterns,
   systemIgnorePatterns,
   clearIgnorePatterns,
   onClearSelectionClick,
   onRemoveAllFoldersClick,
+  onResetPatternsClick,
 }: ExtendedSidebarProps) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [isTreeBuildingComplete, setIsTreeBuildingComplete] = useState(false);
@@ -448,9 +452,9 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
 
   // Handle reset button click in ignore patterns modal
   const handleResetIgnorePatterns = useCallback(async () => {
-    if (!isElectron) return;
-    await window.electron.resetIgnorePatterns(true, selectedFolder);
-    await loadPatterns();
+    if (!window.electron) return;
+    await window.electron.ipcRenderer.invoke("reset-ignore-patterns", { isGlobal: true, folderPath: selectedFolder });
+    await loadPatterns(true);
   }, [selectedFolder, loadPatterns]);
 
   // Handle clear button click in ignore patterns modal

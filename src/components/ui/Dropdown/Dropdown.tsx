@@ -38,6 +38,11 @@ export interface DropdownProps {
   multiple?: boolean;
   
   /**
+   * Optional title for the dropdown button (for accessibility)
+   */
+  title?: string;
+  
+  /**
    * Optional custom trigger element
    */
   trigger?: React.ReactNode;
@@ -59,6 +64,17 @@ export interface DropdownProps {
   size?: 'sm' | 'md' | 'lg';
   
   /**
+   * Optional style variant
+   * @default 'default'
+   */
+  variant?: string;
+  
+  /**
+   * Optional icon to display in the dropdown
+   */
+  icon?: React.ReactNode;
+  
+  /**
    * Whether the dropdown is disabled
    * @default false
    */
@@ -77,6 +93,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   onChange,
   placeholder = 'Select option',
   multiple = false,
+  title,
   trigger,
   className,
   menuClassName,
@@ -113,20 +130,20 @@ export const Dropdown: React.FC<DropdownProps> = ({
   }, [onChange]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    const options = Array.from(dropdownRef.current?.querySelectorAll('[role="option"]') || []);
-    const currentIndex = options.findIndex(opt => opt === document.activeElement);
+    const optionElements = Array.from(dropdownRef.current?.querySelectorAll('[role="option"]') || []);
+    const currentIndex = optionElements.findIndex(opt => opt === document.activeElement);
 
     switch (event.key) {
       case 'ArrowDown': {
         event.preventDefault();
-        const nextIndex = currentIndex + 1 < options.length ? currentIndex + 1 : 0;
-        (options[nextIndex] as HTMLElement).focus();
+        const nextIndex = currentIndex + 1 < optionElements.length ? currentIndex + 1 : 0;
+        (optionElements[nextIndex] as HTMLElement).focus();
         break;
       }
       case 'ArrowUp': {
         event.preventDefault();
-        const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
-        (options[prevIndex] as HTMLElement).focus();
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : optionElements.length - 1;
+        (optionElements[prevIndex] as HTMLElement).focus();
         break;
       }
       case 'Enter':
@@ -134,9 +151,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
         event.preventDefault();
         const focusedOption = document.activeElement as HTMLDivElement;
         if (focusedOption?.dataset?.value) {
-          const option = options.find(opt => opt.value === focusedOption.dataset.value);
-          if (option) {
-            handleSelect(option);
+          const optionValue = focusedOption.dataset.value;
+          const foundOption = options.find(opt => opt.value === optionValue);
+          if (foundOption) {
+            handleSelect(foundOption);
           }
         }
         break;
@@ -147,7 +165,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         break;
       }
     }
-  }, [handleSelect]);
+  }, [handleSelect, options]);
 
   useEffect(() => {
     if (isOpen) {
@@ -195,11 +213,18 @@ export const Dropdown: React.FC<DropdownProps> = ({
       ) : (
         <button
           type="button"
-          className={cn(styles.button, isOpen && styles.active)}
+          className={cn(
+            styles.button,
+            isOpen && styles.active,
+            size && styles[size],
+            disabled && styles.disabled,
+            className
+          )}
           onClick={() => !disabled && setIsOpen(!isOpen)}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           disabled={disabled}
+          title={title}
         >
           <span className={styles.buttonLabel}>{getSelectedLabel()}</span>
           <ChevronDown

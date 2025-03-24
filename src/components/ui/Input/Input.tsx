@@ -35,10 +35,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           className={cn(
             styles.input,
-            startIcon && styles.withStartIcon,
-            endIcon && styles.withEndIcon,
-            isSearchInput && styles.searchInput,
-            error && styles.inputError,
+            startIcon ? styles.withStartIcon : null,
+            endIcon ? styles.withEndIcon : null,
+            isSearchInput ? styles.searchInput : null,
+            error ? styles.inputError : null,
             className
           )}
           ref={ref}

@@ -8,6 +8,7 @@ export interface FileData {
   isSkipped: boolean;
   error?: string;
   fileType?: string;
+  type?: "file" | "directory";
   excludedByDefault?: boolean;
   lastModified?: number;
   isAppDirectory?: boolean;
@@ -38,7 +39,7 @@ export interface SidebarProps {
   onSearchChange: (term: string) => void;
   selectAllFiles: () => void;
   deselectAllFiles: () => void;
-  expandedNodes: Record<string, boolean>;
+  expandedNodes: Map<string, boolean>;
   toggleExpanded: (nodeId: string) => void;
 }
 

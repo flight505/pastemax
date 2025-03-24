@@ -11,6 +11,16 @@ interface ControlContainerProps {
   setShowUserInstructions: (value: boolean) => void;
   getSelectedFilesContent: () => string;
   selectedFilesCount: number;
+  fileTreeSortOrder?: "name-asc" | "name-desc" | "ext-asc" | "ext-desc" | "date-newest";
+  setFileTreeSortOrder?: (value: "name-asc" | "name-desc" | "ext-asc" | "ext-desc" | "date-newest") => void;
+  ignorePatterns?: string;
+  setIgnorePatterns?: (patterns: string) => void;
+  loadIgnorePatterns?: (folderPath: string, isGlobal?: boolean) => void;
+  saveIgnorePatterns?: (patterns: string, isGlobal: boolean, folderPath: string) => void;
+  resetIgnorePatterns?: (isGlobal: boolean, folderPath: string) => void;
+  reloadFolder?: () => void;
+  clearSelection?: () => void;
+  removeAllFolders?: () => void;
 }
 
 const ControlContainer: React.FC<ControlContainerProps> = ({
@@ -20,6 +30,16 @@ const ControlContainer: React.FC<ControlContainerProps> = ({
   setShowUserInstructions,
   getSelectedFilesContent,
   selectedFilesCount,
+  fileTreeSortOrder,
+  setFileTreeSortOrder,
+  ignorePatterns,
+  setIgnorePatterns,
+  loadIgnorePatterns,
+  saveIgnorePatterns,
+  resetIgnorePatterns,
+  reloadFolder,
+  clearSelection,
+  removeAllFolders,
 }) => {
   const [copied, setCopied] = useState(false);
 
