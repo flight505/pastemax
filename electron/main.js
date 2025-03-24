@@ -511,8 +511,8 @@ ipcMain.on("cancel-directory-loading", (event) => {
 ipcMain.handle('load-ignore-patterns', async (event, { folderPath, isGlobal }) => {
   try {
     // Wait for window to be ready
-    if (!mainWindow) {
-      console.warn("Window not initialized yet, waiting...");
+    if (!isWindowValid(mainWindow)) {
+      console.warn("Window not initialized yet or destroyed");
       // Return default state to prevent errors
       return { 
         success: true, 

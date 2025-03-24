@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { SidebarProps, TreeNode, SortOrder } from "../types/FileTypes";
+import { SidebarProps, TreeNode, SortOrder, FileData } from "../types/FileTypes";
 import TreeItem from "./TreeItem";
 import FileTreeHeader from "./FileTreeHeader";
 import IgnorePatterns from "./IgnorePatterns";
@@ -28,6 +28,22 @@ interface ExtendedSidebarProps extends SidebarProps {
   onResetPatternsClick?: (isGlobal: boolean, folderPath: string) => void;
   fileTreeSortOrder?: SortOrder;
   onSortOrderChange?: (newSortOrder: SortOrder) => void;
+}
+
+interface IgnorePatternsProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (patterns: string, isGlobal: boolean, folderPath: string) => void;
+  onReset: () => Promise<void>;
+  onClear: (folderPath?: string) => void;
+  currentFolder: string;
+  existingPatterns: string;
+  isGlobal: boolean;
+  globalPatterns: string;
+  localPatterns: string;
+  systemPatterns: string[];
+  availableFolders: string[];
+  onTabChange: (isGlobal: boolean) => void;
 }
 
 const Sidebar: React.FC<ExtendedSidebarProps> = ({
@@ -60,7 +76,6 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
   onSortOrderChange,
 }: ExtendedSidebarProps) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
-  const [isTreeBuildingComplete, setIsTreeBuildingComplete] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [isResizing, setIsResizing] = useState(false);
   
@@ -299,7 +314,6 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     // Return early if there are no files
     if (!allFiles || allFiles.length === 0) {
       setFileTree([]);
-      setIsTreeBuildingComplete(true); // Mark as complete even when empty
       return;
     }
     
@@ -308,53 +322,48 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
       return;
     }
 
-    // Set building state at the start
-    setIsTreeBuildingComplete(false);
-
     // Debounce the tree building to prevent rapid UI updates
     const debounceId = setTimeout(() => {
       try {
         isBuildingTreeRef.current = true;
         
-        if (sortFileTreeNodes) {
-          const builtTree = buildFileTree(allFiles, selectedFolder || "", fileTreeSortOrder);
-          
-          // Only update if necessary by doing a shallow comparison
-          setFileTree(prevTree => {
-            try {
-              // Simple length check as first comparison
-              if (prevTree.length !== builtTree.length) {
-                return builtTree;
-              }
-              
-              // If same length, compare a sample of nodes
-              const hasChanged = prevTree.length === 0 || 
-                prevTree[0]?.id !== builtTree[0]?.id || 
-                prevTree[prevTree.length - 1]?.id !== builtTree[builtTree.length - 1]?.id;
-                
-              return hasChanged ? builtTree : prevTree;
-            } catch (error) {
-              console.error('Error comparing trees in setFileTree callback:', error);
-              // Return the new tree on error to ensure we don't get stuck
+        const builtTree = buildFileTree(allFiles, selectedFolder || "", fileTreeSortOrder || "name-asc");
+        
+        // Only update if necessary by doing a shallow comparison
+        setFileTree(prevTree => {
+          try {
+            // Simple length check as first comparison
+            if (prevTree.length !== builtTree.length) {
               return builtTree;
             }
-          });
-
-          // Only update expanded state after the tree has been built
-          // and when we're not already in the process of updating
-          const hasExpandedNodes = expandedNodes.size > 0;
-          if (hasExpandedNodes && !isUpdatingExpandedNodesRef.current) {
-            // Use setTimeout to ensure tree build finishes first
-            setTimeout(() => {
-              try {
-                updateTreeWithExpandedState();
-              } catch (error) {
-                console.error('Error updating tree with expanded state:', error);
-                // Reset the flag even if there's an error
-                isUpdatingExpandedNodesRef.current = false;
-              }
-            }, 0);
+            
+            // If same length, compare a sample of nodes
+            const hasChanged = prevTree.length === 0 || 
+              prevTree[0]?.id !== builtTree[0]?.id || 
+              prevTree[prevTree.length - 1]?.id !== builtTree[builtTree.length - 1]?.id;
+              
+            return hasChanged ? builtTree : prevTree;
+          } catch (error) {
+            console.error('Error comparing trees in setFileTree callback:', error);
+            // Return the new tree on error to ensure we don't get stuck
+            return builtTree;
           }
+        });
+
+        // Only update expanded state after the tree has been built
+        // and when we're not already in the process of updating
+        const hasExpandedNodes = expandedNodes.size > 0;
+        if (hasExpandedNodes && !isUpdatingExpandedNodesRef.current) {
+          // Use setTimeout to ensure tree build finishes first
+          setTimeout(() => {
+            try {
+              updateTreeWithExpandedState();
+            } catch (error) {
+              console.error('Error updating tree with expanded state:', error);
+              // Reset the flag even if there's an error
+              isUpdatingExpandedNodesRef.current = false;
+            }
+          }, 0);
         }
       } catch (error) {
         console.error('Error building file tree:', error);
@@ -362,7 +371,6 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
         setFileTree([]);
       } finally {
         isBuildingTreeRef.current = false;
-        setIsTreeBuildingComplete(true); // Mark as complete whether successful or not
       }
     }, DEBOUNCE_DELAY);
 
@@ -617,31 +625,24 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
           </div>
 
           <div className={styles.fileTree}>
-            {isTreeBuildingComplete ? (
-              memoizedFlattenedTree.length > 0 ? (
-                <>
-                  {memoizedFlattenedTree.map((node) => (
-                    <TreeItem
-                      key={node.id}
-                      node={node}
-                      selectedFiles={selectedFiles}
-                      toggleFileSelection={toggleFileSelection}
-                      toggleFolderSelection={toggleFolderSelection}
-                      toggleExpanded={toggleExpanded}
-                    />
-                  ))}
-                </>
-              ) : (
-                <div className={styles.treeEmpty}>
-                  {searchTerm
-                    ? "No files match your search."
-                    : "No files in this folder."}
-                </div>
-              )
+            {memoizedFlattenedTree.length > 0 ? (
+              <>
+                {memoizedFlattenedTree.map((node) => (
+                  <TreeItem
+                    key={node.id}
+                    node={node}
+                    selectedFiles={selectedFiles}
+                    toggleFileSelection={toggleFileSelection}
+                    toggleFolderSelection={toggleFolderSelection}
+                    toggleExpanded={toggleExpanded}
+                  />
+                ))}
+              </>
             ) : (
-              <div className={styles.treeLoading}>
-                <div className={styles.spinner}></div>
-                <p>Loading files...</p>
+              <div className={styles.treeEmpty}>
+                {searchTerm
+                  ? "No files match your search."
+                  : "No files in this folder."}
               </div>
             )}
           </div>
@@ -663,7 +664,7 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
       <IgnorePatterns 
         isOpen={ignoreModalOpen}
         onClose={() => setIgnoreModalOpen(false)}
-        onSave={(patterns, isGlobal, folderPath) => {
+        onSave={(patterns: string, isGlobal: boolean, folderPath: string) => {
           // Update the appropriate state
           if (isGlobal) {
             setGlobalIgnorePatterns(patterns);
@@ -697,7 +698,7 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
         localPatterns={localIgnorePatterns}
         systemPatterns={systemIgnorePatterns}
         availableFolders={getAvailableFolders()}
-        onTabChange={(isGlobal) => {
+        onTabChange={(isGlobal: boolean) => {
           setIgnoreGlobal(isGlobal);
           // Load the appropriate patterns if needed
           if (isGlobal) {
