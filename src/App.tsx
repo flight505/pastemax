@@ -9,7 +9,7 @@ import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
 import { Github, ArrowUpDown } from "lucide-react";
 import styles from "./App.module.css";
-import { Dropdown } from "./components/ui/Dropdown";
+import { Dropdown } from "./components/ui";
 import { ConfirmationDialog } from "./components/ui/ConfirmationDialog";
 
 // Access the electron API from the window object

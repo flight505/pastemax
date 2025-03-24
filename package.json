@@ -1,7 +1,7 @@
 {
   "name": "pastemax",
   "version": "1.0.0",
-  "main": "main.js",
+  "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "vite",

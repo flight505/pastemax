@@ -1,29 +1,56 @@
-// List of common files to exclude by default
-// Users can still manually select these files if needed
-// Paths can include glob patterns (*, **, etc.)
+/**
+ * Central repository for all file exclusion patterns
+ * This file is the single source of truth for determining which files
+ * should be excluded from processing in the application.
+ */
 
-// Central repository for all exclusion patterns
-// This file is the single source of truth for file exclusions
+// Constants for pattern groups to avoid duplication
+const BINARY_IMAGE_PATTERNS = [
+  "**/*.jpg", "**/*.jpeg", "**/*.png", "**/*.gif", "**/*.ico",
+  "**/*.webp", "**/*.svg", "**/*.pdf" 
+];
+
+const BINARY_ARCHIVE_PATTERNS = [
+  "**/*.zip", "**/*.tar.gz", "**/*.tgz", "**/*.rar", "**/*.7z"
+];
+
+const BINARY_AUDIO_VIDEO_PATTERNS = [
+  "**/*.mp4", "**/*.mov", "**/*.avi", "**/*.mkv", 
+  "**/*.mp3", "**/*.wav", "**/*.flac"
+];
+
+const BINARY_FONT_PATTERNS = [
+  "**/*.woff", "**/*.woff2", "**/*.ttf", "**/*.eot"
+];
+
+const COMMON_DIR_PATTERNS = [
+  "**/node_modules/**", "**/dist/**", "**/build/**", "**/.git/**",
+  "**/__pycache__/**", "**/venv/**", "**/.venv/**"
+];
 
 module.exports = {
-  // System exclusions - should never be modified/overridden
-  // These are the absolute minimum exclusions for the application to function properly
+  /**
+   * System exclusions - should never be modified/overridden
+   * These are the absolute minimum exclusions for the application to function properly
+   */
   systemExclusions: [
-    "**/node_modules/**",
-    "**/dist/**", 
-    "**/build/**",
-    "**/.git/**",
-    "**/*.pyc", // Python compiled files only, not source
+    // Common directories
+    ...COMMON_DIR_PATTERNS,
+    
+    // Compiled Python files (not source)
+    "**/*.pyc",
+    
     // Binary files
-    "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.ico", 
-    "**/*.webp", "**/*.svg", "**/*.pdf", "**/*.zip", "**/*.tar.gz",
-    "**/*.tgz", "**/*.rar", "**/*.7z", "**/*.mp4", "**/*.mov",
-    "**/*.woff", "**/*.woff2", "**/*.ttf", "**/*.eot",
-    "**/*.avi", "**/*.mkv", "**/*.mp3", "**/*.wav", "**/*.flac"
+    ...BINARY_IMAGE_PATTERNS,
+    ...BINARY_ARCHIVE_PATTERNS,
+    ...BINARY_AUDIO_VIDEO_PATTERNS,
+    ...BINARY_FONT_PATTERNS
   ],
 
-  // Default user patterns - these are restored when user resets to defaults
-  // These can be modified by users
+  /**
+   * Default user patterns - these are restored when user resets to defaults
+   * These can be modified by users through the UI
+   */
   defaultUserPatterns: `# Default ignore patterns (editable)
 # These patterns can be modified in the Ignore Patterns UI
 
@@ -47,8 +74,10 @@ venv/
 .env
 `,
 
-  // Files to always exclude by default when a folder is first loaded
-  // Users can override these by selecting them manually
+  /**
+   * Files to always exclude by default when a folder is first loaded
+   * Users can override these by selecting them manually
+   */
   excludedFiles: [
     // NPM/Yarn/Node related
     "package-lock.json",
@@ -157,9 +186,11 @@ venv/
     ".gitlab/**",
   ],
 
-  // File extensions to always mark as binary/unselectable
-  // The app already has binary detection, but this ensures specific types
-  // are always treated as binary regardless of content detection
+  /**
+   * File extensions to always mark as binary/unselectable
+   * The app already has binary detection, but this ensures specific types
+   * are always treated as binary regardless of content detection
+   */
   binaryExtensions: [
     // Images (including .svg which might not be detected as binary)
     ".svg",

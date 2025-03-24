@@ -1,6 +1,34 @@
 // Preload script
 const { contextBridge, ipcRenderer } = require("electron");
 
+// Define valid channels in one place for better maintainability
+const VALID_CHANNELS = {
+  send: [
+    "open-folder", 
+    "request-file-list", 
+    "load-ignore-patterns", 
+    "save-ignore-patterns",
+    "reset-ignore-patterns",
+    "debug-file-selection", 
+    "cancel-directory-loading",
+    "reload-file-list"
+  ],
+  receive: [
+    "folder-selected", 
+    "file-list-data", 
+    "file-processing-status", 
+    "ignore-patterns-loaded", 
+    "ignore-patterns-saved",
+    "startup-mode"
+  ],
+  invoke: [
+    "save-ignore-patterns",
+    "load-ignore-patterns",
+    "reset-ignore-patterns",
+    "clear-ignore-patterns",
+  ]
+};
+
 // Helper function to ensure data is serializable
 function ensureSerializable(data) {
   if (data === null || data === undefined) {
@@ -37,22 +65,14 @@ function ensureSerializable(data) {
 contextBridge.exposeInMainWorld("electron", {
   // Direct API methods
   send: (channel, data) => {
-    // whitelist channels
-    const validChannels = ["open-folder", "request-file-list", "debug-file-selection", "cancel-directory-loading"];
-    if (validChannels.includes(channel)) {
+    if (VALID_CHANNELS.send.includes(channel)) {
       // Ensure data is serializable before sending
       const serializedData = ensureSerializable(data);
       ipcRenderer.send(channel, serializedData);
     }
   },
   receive: (channel, func) => {
-    const validChannels = [
-      "folder-selected",
-      "file-list-data",
-      "file-processing-status",
-      "startup-mode"
-    ];
-    if (validChannels.includes(channel)) {
+    if (VALID_CHANNELS.receive.includes(channel)) {
       // Remove any existing listeners to avoid duplicates
       ipcRenderer.removeAllListeners(channel);
       // Add the new listener
@@ -62,46 +82,19 @@ contextBridge.exposeInMainWorld("electron", {
   // For backward compatibility and additional channels
   ipcRenderer: {
     send: (channel, data) => {
-      // Only allow these channels to be sent
-      const validSendChannels = [
-        "open-folder", 
-        "request-file-list", 
-        "load-ignore-patterns", 
-        "save-ignore-patterns",
-        "reset-ignore-patterns",
-        "debug-file-selection", 
-        "cancel-directory-loading",
-        "reload-file-list"
-      ];
-      if (validSendChannels.includes(channel)) {
+      if (VALID_CHANNELS.send.includes(channel)) {
         const serializedData = ensureSerializable(data);
         ipcRenderer.send(channel, serializedData);
       }
     },
     invoke: (channel, data) => {
-      // Whitelist channels for invoke
-      const validChannels = [
-        'save-ignore-patterns',
-        'load-ignore-patterns',
-        'reset-ignore-patterns',
-        'clear-ignore-patterns',
-      ];
-      if (validChannels.includes(channel)) {
+      if (VALID_CHANNELS.invoke.includes(channel)) {
         return ipcRenderer.invoke(channel, data);
       }
       return Promise.reject(new Error(`Invalid channel: ${channel}`));
     },
     on: (channel, func) => {
-      // Only allow these channels to be received
-      const validReceiveChannels = [
-        "folder-selected", 
-        "file-list-data", 
-        "file-processing-status", 
-        "ignore-patterns-loaded", 
-        "ignore-patterns-saved",
-        "startup-mode"
-      ];
-      if (validReceiveChannels.includes(channel)) {
+      if (VALID_CHANNELS.receive.includes(channel)) {
         // Wrap function to avoid exposing event object
         const subscription = (event, ...args) => {
           const serializedArgs = args.map(ensureSerializable);
@@ -112,15 +105,7 @@ contextBridge.exposeInMainWorld("electron", {
       }
     },
     removeListener: (channel, func) => {
-      const validReceiveChannels = [
-        "folder-selected", 
-        "file-list-data", 
-        "file-processing-status", 
-        "ignore-patterns-loaded", 
-        "ignore-patterns-saved",
-        "startup-mode"
-      ];
-      if (validReceiveChannels.includes(channel)) {
+      if (VALID_CHANNELS.receive.includes(channel)) {
         ipcRenderer.removeListener(channel, func);
       }
     },

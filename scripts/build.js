@@ -29,15 +29,10 @@ async function main() {
     }
 
     console.log(
-      "🚀 Build process completed! The app is ready to run with Electron.",
+      "✨ Build completed successfully! You can run the app with 'npm start' or package it with 'npm run package'",
     );
-
-    // Package the app
-    console.log("📦 Packaging application...");
-    execSync("npm run package", { stdio: "inherit" });
-    console.log("✅ Packaging completed!");
   } catch (error) {
-    console.error("❌ Build failed:", error.message);
+    console.error("❌ Build failed:", error);
     process.exit(1);
   }
 }

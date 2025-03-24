@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, globalShortcut } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, globalShortcut, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -190,61 +190,41 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 let mainWindow;
 
 function createWindow() {
-  // Check if we're starting in safe mode (Shift key pressed)
-  const isSafeMode = process.argv.includes('--safe-mode');
-
-  mainWindow = new BrowserWindow({
+  const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
-      devTools: {
-        // Add these settings to prevent Autofill warnings
-        isDevToolsExtension: false,
-        htmlFullscreen: false,
-      },
     },
   });
 
-  // In development, load from Vite dev server
-  // In production, load from built files
-  const isDev = process.env.NODE_ENV === "development";
-  if (isDev) {
-    // Use the URL provided by the dev script, or fall back to default
-    const startUrl = process.env.ELECTRON_START_URL || "http://localhost:3000";
-    // Wait a moment for dev server to be ready
-    setTimeout(() => {
-      // Clear any cached data to prevent redirection loops
-      mainWindow.webContents.session.clearCache().then(() => {
-        mainWindow.loadURL(startUrl);
-        
-        // Notify renderer about startup mode
-        mainWindow.webContents.on('did-finish-load', () => {
-          mainWindow.webContents.send('startup-mode', { safeMode: isSafeMode });
-        });
-        
-        // Open DevTools in development mode with options to reduce warnings
-        if (mainWindow.webContents.isDevToolsOpened()) {
-          mainWindow.webContents.closeDevTools();
-        }
-        mainWindow.webContents.openDevTools({ mode: "detach" });
-        console.log(`Loading from dev server at ${startUrl}`);
-      });
-    }, 1000);
-  } else {
-    const indexPath = path.join(__dirname, "dist", "index.html");
-    console.log(`Loading from built files at ${indexPath}`);
-
-    // Use loadURL with file protocol for better path resolution
-    const indexUrl = `file://${indexPath}`;
-    mainWindow.loadURL(indexUrl);
-    
-    // Notify renderer about startup mode
-    mainWindow.webContents.on('did-finish-load', () => {
-      mainWindow.webContents.send('startup-mode', { safeMode: isSafeMode });
+  // Set Content Security Policy
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+        ]
+      }
     });
+  });
+
+  // Load the app
+  const startUrl = process.env.ELECTRON_START_URL || `file://${path.join(__dirname, "dist", "index.html")}`;
+  mainWindow.loadURL(startUrl);
+
+  // Open external links in browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+
+  // Open dev tools in development
+  if (process.env.ELECTRON_START_URL) {
+    mainWindow.webContents.openDevTools();
   }
 
   // Add basic error handling for failed loads
@@ -256,14 +236,7 @@ function createWindow() {
       );
       console.error(`Attempted to load URL: ${validatedURL}`);
 
-      if (isDev) {
-        const retryUrl =
-          process.env.ELECTRON_START_URL || "http://localhost:3000";
-        // Clear cache before retrying
-        mainWindow.webContents.session.clearCache().then(() => {
-          setTimeout(() => mainWindow.loadURL(retryUrl), 1000);
-        });
-      } else {
+      if (process.env.ELECTRON_START_URL) {
         // Retry with explicit file URL
         const indexPath = path.join(__dirname, "dist", "index.html");
         const indexUrl = `file://${indexPath}`;
@@ -1380,6 +1353,13 @@ ipcMain.handle('clear-ignore-patterns', async (event, { folderPath }) => {
     return { success: false, error: error.message };
   }
 });
+
+// Disable security warnings in development mode
+// These warnings don't appear in production builds anyway
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
+
+// Enable clipboard reading/writing (for security reasons, this is restricted by default)
+app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
 
 // This module pattern is preserved
 module.exports = { 
