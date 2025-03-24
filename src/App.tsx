@@ -110,7 +110,7 @@ const App = () => {
   const [selectedFiles, setSelectedFiles] = useState(
     savedFiles ? JSON.parse(savedFiles) : ([] as string[])
   );
-  const [sortOrder, setSortOrder] = useState(savedSortOrder || "tokens-desc");
+  const [sortOrder, setSortOrder] = useState(savedSortOrder || "tokens-descending");
   const [searchTerm, setSearchTerm] = useState(savedSearchTerm || "");
   const [expandedNodes, setExpandedNodes] = useState<Map<string, boolean>>(initialExpandedNodes);
   const [displayedFiles, setDisplayedFiles] = useState([] as FileData[]);
@@ -126,7 +126,7 @@ const App = () => {
   const [userInstructions, setUserInstructions] = useState("");
 
   // NEW: State for file tree sorting and ignore patterns
-  const [fileTreeSortOrder, setFileTreeSortOrder] = useState("name-asc" as SortOrder);
+  const [fileTreeSortOrder, setFileTreeSortOrder] = useState("name-ascending" as SortOrder);
   const [ignorePatterns, setIgnorePatterns] = useState("");
   const [globalIgnorePatterns, setGlobalIgnorePatterns] = useState("");
   const [localIgnorePatterns, setLocalIgnorePatterns] = useState("");
@@ -355,15 +355,26 @@ const App = () => {
     const sorted = [...filtered].sort((a, b) => {
       let comparison = 0;
 
-      if (sortKey === "name") {
-        comparison = a.name.localeCompare(b.name);
-      } else if (sortKey === "tokens") {
-        comparison = a.tokenCount - b.tokenCount;
-      } else if (sortKey === "size") {
-        comparison = a.size - b.size;
+      switch (sortKey) {
+        case "name":
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case "tokens":
+          // Ensure we have valid numbers for comparison
+          const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
+          const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
+          comparison = aTokens - bTokens;
+          break;
+        case "date":
+          const aDate = a.lastModified || 0;
+          const bDate = b.lastModified || 0;
+          comparison = aDate - bDate;
+          break;
+        default:
+          comparison = a.name.localeCompare(b.name);
       }
 
-      return sortDir === "asc" ? comparison : -comparison;
+      return sortDir === "ascending" ? comparison : -comparison;
     });
 
     setDisplayedFiles(sorted);
@@ -486,15 +497,26 @@ const App = () => {
       .sort((a: FileData, b: FileData) => {
         let comparison = 0;
 
-        if (sortKey === "name") {
-          comparison = a.name.localeCompare(b.name);
-        } else if (sortKey === "tokens") {
-          comparison = a.tokenCount - b.tokenCount;
-        } else if (sortKey === "size") {
-          comparison = a.size - b.size;
+        switch (sortKey) {
+          case "name":
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case "tokens":
+            // Ensure we have valid numbers for comparison
+            const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
+            const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
+            comparison = aTokens - bTokens;
+            break;
+          case "date":
+            const aDate = a.lastModified || 0;
+            const bDate = b.lastModified || 0;
+            comparison = aDate - bDate;
+            break;
+          default:
+            comparison = a.name.localeCompare(b.name);
         }
 
-        return sortDir === "asc" ? comparison : -comparison;
+        return sortDir === "ascending" ? comparison : -comparison;
       });
 
     if (sortedSelected.length === 0) {
@@ -544,12 +566,12 @@ const App = () => {
 
   // Sort options for the dropdown
   const sortOptions = [
-    { value: "tokens-desc", label: "Tokens (High to Low)" },
-    { value: "tokens-asc", label: "Tokens (Low to High)" },
-    { value: "name-asc", label: "Name (A to Z)" },
-    { value: "name-desc", label: "Name (Z to A)" },
-    { value: "date-newest", label: "Date Modified (Newest)" },
-    { value: "date-oldest", label: "Date Modified (Oldest)" },
+    { value: "name-ascending", label: "Name (A to Z)" },
+    { value: "name-descending", label: "Name (Z to A)" },
+    { value: "tokens-ascending", label: "Tokens (Fewest first)" },
+    { value: "tokens-descending", label: "Tokens (Most first)" },
+    { value: "date-ascending", label: "Date (Oldest first)" },
+    { value: "date-descending", label: "Date (Newest first)" }
   ];
 
   // Handle expand/collapse state changes
@@ -1047,27 +1069,18 @@ const App = () => {
             <div className={styles.contentArea}>
               <div className={styles.contentHeader}>
                 <h1 className={styles.contentTitle}>Files</h1>
+                <div className={styles.folderPathDisplay}>{truncatePath(selectedFolder)}</div>
                 <div className={styles.contentActions}>
-                  <div className={styles.folderPathDisplay}>
-                    {truncatePath(selectedFolder)}
-                  </div>
-                  <div className={styles.headerSeparator} />
-                  <div className={styles.fileStats}>
-                    {selectedFiles.length} {selectedFiles.length === 1 ? 'file' : 'files'} | ~
-                    {calculateTotalTokens().toLocaleString()} tokens
-                  </div>
-                  <div className={styles.headerSeparator} />
-                  <div className={styles.dropdownContainer}>
-                    <Dropdown
-                      options={sortOptions}
-                      value={sortOrder}
-                      onChange={handleSortChange}
-                      variant="icon"
-                      size="sm"
-                      icon={<ArrowUpDown />}
-                      title="Sort files"
-                    />
-                  </div>
+                  <Dropdown
+                    options={sortOptions}
+                    value={sortOrder}
+                    onChange={setSortOrder}
+                    icon={<ArrowUpDown size={16} />}
+                    menuClassName={styles.sortDropdownMenu}
+                  />
+                </div>
+                <div className={styles.fileStats}>
+                  {selectedFiles.length} files selected ({calculateTotalTokens().toLocaleString()} tokens)
                 </div>
               </div>
 

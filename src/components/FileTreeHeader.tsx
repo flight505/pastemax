@@ -16,11 +16,12 @@ interface FileTreeHeaderProps {
 }
 
 const sortOptions = [
-  { value: "name-asc", label: "Name (⬆ A-Z)" },
-  { value: "name-desc", label: "Name (⬇ Z-A)" },
-  { value: "ext-asc", label: "Extension (⬆ A-Z)" },
-  { value: "ext-desc", label: "Extension (⬇ Z-A)" },
-  { value: "date-newest", label: "Date (⬇ Newest)" },
+  { value: "name-ascending", label: "Name (A to Z)" },
+  { value: "name-descending", label: "Name (Z to A)" },
+  { value: "tokens-ascending", label: "Tokens (Fewest first)" },
+  { value: "tokens-descending", label: "Tokens (Most first)" },
+  { value: "date-ascending", label: "Date (Oldest first)" },
+  { value: "date-descending", label: "Date (Newest first)" }
 ];
 
 const clearOptions = [

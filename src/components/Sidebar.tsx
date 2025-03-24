@@ -234,32 +234,23 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
       
       // Sort based on selected sort order
       switch (fileTreeSortOrder) {
-        case "name-asc":
+        case "name-ascending":
           return a.name.localeCompare(b.name);
-        case "name-desc":
+        case "name-descending":
           return b.name.localeCompare(a.name);
-        case "ext-asc": {
-          const extA = a.name.includes('.') ? a.name.split('.').pop() || '' : '';
-          const extB = b.name.includes('.') ? b.name.split('.').pop() || '' : '';
-          return extA.localeCompare(extB) || a.name.localeCompare(b.name);
-        }
-        case "ext-desc": {
-          const extA = a.name.includes('.') ? a.name.split('.').pop() || '' : '';
-          const extB = b.name.includes('.') ? b.name.split('.').pop() || '' : '';
-          return extB.localeCompare(extA) || a.name.localeCompare(b.name);
-        }
-        case "date-newest":
-          if (a.type === "file" && b.type === "file") {
-            const dateA = a.fileData?.lastModified || 0;
-            const dateB = b.fileData?.lastModified || 0;
-            return dateB - dateA;
-          }
-          return a.name.localeCompare(b.name);
+        case "tokens-ascending":
+          return (a.fileData?.tokenCount || 0) - (b.fileData?.tokenCount || 0);
+        case "tokens-descending":
+          return (b.fileData?.tokenCount || 0) - (a.fileData?.tokenCount || 0);
+        case "date-ascending":
+          return (a.fileData?.lastModified || 0) - (b.fileData?.lastModified || 0);
+        case "date-descending":
+          return (b.fileData?.lastModified || 0) - (a.fileData?.lastModified || 0);
         default:
           return a.name.localeCompare(b.name);
       }
     });
-  }, [fileTreeSortOrder]); // Only depends on the sort order
+  }, [fileTreeSortOrder]);
 
   // Update tree with expanded state
   const updateTreeWithExpandedState = useCallback(() => {
@@ -327,7 +318,7 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
       try {
         isBuildingTreeRef.current = true;
         
-        const builtTree = buildFileTree(allFiles, selectedFolder || "", fileTreeSortOrder || "name-asc");
+        const builtTree = buildFileTree(allFiles, selectedFolder || "", fileTreeSortOrder || "name-ascending");
         
         // Only update if necessary by doing a shallow comparison
         setFileTree(prevTree => {

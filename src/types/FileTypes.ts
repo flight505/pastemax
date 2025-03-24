@@ -75,8 +75,14 @@ export interface SearchBarProps {
 
 export type FileTreeMode = "none" | "selected" | "selected-with-roots" | "complete";
 
-// Add SortOrder type for file tree sorting
-export type SortOrder = "name-asc" | "name-desc" | "ext-asc" | "ext-desc" | "date-newest";
+// SortOrder type with consistent naming
+export type SortOrder = 
+  | "name-ascending" 
+  | "name-descending" 
+  | "tokens-ascending" 
+  | "tokens-descending" 
+  | "date-ascending" 
+  | "date-descending";
 
 // Add IgnorePattern interface for ignore patterns feature
 export interface IgnorePattern {
