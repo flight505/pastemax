@@ -599,41 +599,46 @@ const App = () => {
         isGlobal
       });
       
-      if (result.success) {
-        console.log(`Successfully loaded ${isGlobal ? 'global' : 'local'} ignore patterns`);
-        
-        // Debug log the patterns that were loaded
-        const patterns = result.patterns || '';
-        if (patterns.trim()) {
-          console.log(`Loaded user patterns:\n${patterns}`);
-        } else {
-          console.log(`No ${isGlobal ? 'global' : 'local'} patterns found`);
-        }
-        
-        // Store system patterns if provided
-        if (result.systemPatterns && Array.isArray(result.systemPatterns)) {
-          console.log(`Received ${result.systemPatterns.length} system patterns from main process`);
-          setSystemIgnorePatterns(result.systemPatterns);
-        } else {
-          console.warn('No system patterns received from main process or not in expected format');
-        }
-        
-        // Update pattern state
-        if (isGlobal) {
-          setGlobalIgnorePatterns(patterns);
-        } else if (folderPath === selectedFolder) {
-          // Only update local patterns if they're for the current folder
-          setLocalIgnorePatterns(patterns);
-        }
-        
-        return patterns;
+      // Always treat as success since main process now returns safe defaults
+      console.log(`Loaded ${isGlobal ? 'global' : 'local'} ignore patterns`);
+      
+      // Debug log the patterns that were loaded
+      const patterns = result.patterns || '';
+      if (patterns.trim()) {
+        console.log(`Loaded user patterns:\n${patterns}`);
       } else {
-        console.error(`Error loading ${isGlobal ? 'global' : 'local'} ignore patterns:`, result.error);
-        return "";
+        console.log(`No ${isGlobal ? 'global' : 'local'} patterns found`);
       }
+      
+      // Store system patterns if provided
+      if (result.systemPatterns && Array.isArray(result.systemPatterns)) {
+        console.log(`Received ${result.systemPatterns.length} system patterns from main process`);
+        setSystemIgnorePatterns(result.systemPatterns);
+      } else {
+        console.warn('Using default system patterns');
+        setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
+      }
+      
+      // Update pattern state
+      if (isGlobal) {
+        setGlobalIgnorePatterns(patterns);
+      } else if (folderPath === selectedFolder) {
+        // Only update local patterns if they're for the current folder
+        setLocalIgnorePatterns(patterns);
+      }
+      
+      return patterns;
     } catch (error) {
-      console.error("Error invoking load-ignore-patterns:", error);
-      return "";
+      console.error(`Error loading ${isGlobal ? 'global' : 'local'} ignore patterns:`, error);
+      // Return empty string for local patterns, defaults for global
+      const defaultPatterns = isGlobal ? DEFAULT_SYSTEM_PATTERNS : '';
+      if (isGlobal) {
+        setGlobalIgnorePatterns(defaultPatterns);
+      } else if (folderPath === selectedFolder) {
+        setLocalIgnorePatterns(defaultPatterns);
+      }
+      setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
+      return defaultPatterns;
     }
   }, [globalIgnorePatterns, localIgnorePatterns, selectedFolder]);
 
@@ -652,15 +657,31 @@ const App = () => {
     }
   }, [isElectron]);
 
-  // Load global patterns on startup
+  // Load global patterns on startup - with improved error handling
   useEffect(() => {
     if (isElectron) {
       // Only load global patterns on startup if we haven't loaded them yet
       if (globalIgnorePatterns === "") {
-        loadIgnorePatterns('', true);
+        loadIgnorePatterns('', true).catch(error => {
+          console.error('Error loading initial global patterns:', error);
+          // Set defaults on error
+          setGlobalIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
+          setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
+        });
       }
     }
   }, [isElectron, globalIgnorePatterns, loadIgnorePatterns]);
+
+  // Load local patterns when folder changes - with improved error handling
+  useEffect(() => {
+    if (isElectron && selectedFolder) {
+      loadIgnorePatterns(selectedFolder, false).catch(error => {
+        console.error('Error loading local patterns for new folder:', error);
+        // Set empty patterns on error for local
+        setLocalIgnorePatterns('');
+      });
+    }
+  }, [isElectron, selectedFolder, loadIgnorePatterns]);
 
   // Function to save ignore patterns
   const saveIgnorePatterns = async (patterns: string, isGlobal: boolean, folderPath?: string) => {

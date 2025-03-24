@@ -189,8 +189,24 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 // Global reference to the mainWindow to prevent garbage collection
 let mainWindow;
 
+// Add promisify for fs operations
+const readFile = promisify(fs.readFile);
+const writeFile = promisify(fs.writeFile);
+const unlink = promisify(fs.unlink);
+
+// Create a clear pattern organization system with three distinct categories:
+// 1. SYSTEM_EXCLUSIONS: Always excluded, not user-configurable (binary files, media, etc.)
+// 2. DEFAULT_USER_PATTERNS: Initial user-editable patterns, restored on reset
+// 3. Current user patterns: Stored in global_patterns.ignore or .repo_ignore files
+
+// Category 1: System-level exclusions (not user-editable)
+const SYSTEM_EXCLUSIONS = systemExclusions;
+
+// Category 2: Default user patterns (user-editable, used when resetting to defaults)
+const DEFAULT_USER_PATTERNS = defaultUserPatterns;
+
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
@@ -244,6 +260,16 @@ function createWindow() {
       }
     },
   );
+
+  // Handle window ready-to-show event
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+
+  // Handle window closed event
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
 app.whenReady().then(() => {
@@ -265,40 +291,323 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
 
-// Handle folder selection
-ipcMain.on("open-folder", async (event) => {
-  // Don't allow selecting a new folder if we're already loading one
-  if (isLoadingDirectory) {
-    console.log("Directory loading in progress, ignoring new request");
-    return;
-  }
-
+// Helper function to check if window is valid and can receive messages
+function isWindowValid(window) {
   try {
+    return window && !window.isDestroyed() && window.webContents;
+  } catch (error) {
+    console.error('Error checking window validity:', error);
+    return false;
+  }
+}
+
+// Function to safely send to renderer
+function safeRendererSend(window, channel, ...args) {
+  try {
+    if (!isWindowValid(window)) {
+      console.warn(`Cannot send to renderer (${channel}): window is not valid`);
+      return false;
+    }
+    window.webContents.send(channel, ...args);
+    return true;
+  } catch (error) {
+    console.error(`Error sending to renderer (${channel}):`, error);
+    return false;
+  }
+}
+
+// Function to get all patterns (system + user)
+function getAllPatterns(userPatterns) {
+  // Combine system exclusions with user patterns
+  // System exclusions always apply and come first
+  return [...SYSTEM_EXCLUSIONS, ...(userPatterns || [])];
+}
+
+// Update IPC handlers with improved error handling
+ipcMain.on("open-folder", async (event) => {
+  try {
+    // Don't allow selecting a new folder if we're already loading one
+    if (isLoadingDirectory) {
+      console.log("Directory loading in progress, ignoring new request");
+      return;
+    }
+
     const result = await dialog.showOpenDialog({
       properties: ["openDirectory"],
     });
 
-    if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+    if (!result.canceled && result.filePaths.length > 0) {
       const selectedPath = result.filePaths[0];
       try {
         // Ensure we're only sending a string, not an object
         const pathString = String(selectedPath);
-        console.log("Sending folder-selected event with path:", pathString);
-        event.sender.send("folder-selected", pathString);
         
-        // Set loading state and start timeout
-        isLoadingDirectory = true;
-        setupDirectoryLoadingTimeout(mainWindow, pathString);
-      } catch (err) {
-        console.error("Error sending folder-selected event:", err);
-        // Try a more direct approach as a fallback
-        event.sender.send("folder-selected", String(selectedPath));
+        if (isWindowValid(mainWindow)) {
+          console.log("Sending folder-selected event with path:", pathString);
+          if (safeRendererSend(mainWindow, "folder-selected", pathString)) {
+            // Set loading state and start timeout only if send was successful
+            isLoadingDirectory = true;
+            setupDirectoryLoadingTimeout(mainWindow, pathString);
+          }
+        }
+      } catch (error) {
+        console.error("Error processing selected folder:", error);
+        safeRendererSend(mainWindow, "file-processing-status", {
+          status: "error",
+          message: "Error processing selected folder"
+        });
       }
     }
-  } catch (err) {
-    console.error("Error sending folder-selected event:", err);
-    // Try a more direct approach as a fallback
-    event.sender.send("folder-selected", String(selectedPath));
+  } catch (error) {
+    console.error("Error in open-folder dialog:", error);
+    safeRendererSend(mainWindow, "file-processing-status", {
+      status: "error",
+      message: "Error opening folder dialog"
+    });
+  }
+});
+
+ipcMain.on("request-file-list", (event, data) => {
+  try {
+    if (!isWindowValid(mainWindow)) {
+      console.warn("Window is not valid for request-file-list");
+      return;
+    }
+    handleRequestFileList(event, data);
+  } catch (error) {
+    console.error("Error in request-file-list handler:", error);
+  }
+});
+
+ipcMain.on("reload-file-list", (event, folderPath) => {
+  try {
+    if (!isWindowValid(mainWindow)) {
+      console.warn("Window is not valid for reload-file-list");
+      return;
+    }
+    
+    if (!folderPath) return;
+    
+    console.log(`Forcing reload of file list for ${folderPath}`);
+    directoryCache.clear(folderPath);
+    
+    mainWindow.webContents.send("file-processing-status", {
+      status: "processing",
+      message: "Reloading directory...",
+    });
+    
+    // Process the request directly using the same handler for request-file-list
+    try {
+      // Create data object with force refresh flag
+      const data = {
+        path: folderPath,
+        forceRefresh: true
+      };
+      
+      // Handle the request-file-list directly
+      handleRequestFileList(event, data);
+    } catch (err) {
+      console.error("Error reloading file list:", err);
+      if (isWindowValid(mainWindow)) {
+        mainWindow.webContents.send("file-processing-status", {
+          status: "error",
+          message: `Error reloading directory: ${err.message}`,
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error in reload-file-list handler:", error);
+  }
+});
+
+// Function to cancel loading directory with improved error handling
+function cancelDirectoryLoading(window) {
+  try {
+    if (!isWindowValid(window)) {
+      console.warn("Window is not valid for cancelDirectoryLoading");
+      return;
+    }
+
+    isLoadingDirectory = false;
+    
+    if (loadingTimeoutId) {
+      clearTimeout(loadingTimeoutId);
+      loadingTimeoutId = null;
+    }
+    
+    safeRendererSend(window, "file-processing-status", {
+      status: "error",
+      message: "Directory loading cancelled - try selecting a smaller directory",
+    });
+  } catch (error) {
+    console.error("Error in cancelDirectoryLoading:", error);
+    // Try to reset state even if sending to renderer failed
+    isLoadingDirectory = false;
+    loadingTimeoutId = null;
+  }
+}
+
+// Handler for directory loading timeout with improved error handling
+function setupDirectoryLoadingTimeout(window, folderPath) {
+  try {
+    if (!isWindowValid(window)) {
+      console.warn("Window is not valid for setupDirectoryLoadingTimeout");
+      return;
+    }
+
+    // Clear any existing timeout
+    if (loadingTimeoutId) {
+      clearTimeout(loadingTimeoutId);
+    }
+    
+    // Set a new timeout
+    loadingTimeoutId = setTimeout(() => {
+      try {
+        console.log(`Directory loading timed out after ${MAX_DIRECTORY_LOAD_TIME / 1000} seconds: ${folderPath}`);
+        
+        if (isWindowValid(window)) {
+          cancelDirectoryLoading(window);
+        } else {
+          // Just clean up the loading state without window reference
+          isLoadingDirectory = false;
+          loadingTimeoutId = null;
+          console.log("Directory loading timed out but window is no longer available");
+        }
+      } catch (error) {
+        console.error("Error in directory loading timeout handler:", error);
+        // Ensure we clean up state even if there's an error
+        isLoadingDirectory = false;
+        loadingTimeoutId = null;
+      }
+    }, MAX_DIRECTORY_LOAD_TIME);
+  } catch (error) {
+    console.error("Error setting up directory loading timeout:", error);
+    // Clean up state on error
+    isLoadingDirectory = false;
+    if (loadingTimeoutId) {
+      clearTimeout(loadingTimeoutId);
+      loadingTimeoutId = null;
+    }
+  }
+}
+
+ipcMain.on("cancel-directory-loading", (event) => {
+  try {
+    if (!isWindowValid(mainWindow)) {
+      console.warn("Window is not valid for cancel-directory-loading");
+      return;
+    }
+    
+    if (isLoadingDirectory) {
+      console.log("Received cancel directory loading request");
+      cancelDirectoryLoading(mainWindow);
+    }
+  } catch (error) {
+    console.error("Error in cancel-directory-loading handler:", error);
+  }
+});
+
+// Update async handlers with improved error handling and window checks
+ipcMain.handle('load-ignore-patterns', async (event, { folderPath, isGlobal }) => {
+  try {
+    // Wait for window to be ready
+    if (!mainWindow) {
+      console.warn("Window not initialized yet, waiting...");
+      // Return default state to prevent errors
+      return { 
+        success: true, 
+        patterns: isGlobal ? DEFAULT_USER_PATTERNS : '',
+        systemPatterns: SYSTEM_EXCLUSIONS
+      };
+    }
+
+    if (isGlobal) {
+      try {
+        // Load global patterns
+        const appDataPath = app.getPath('userData');
+        const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
+        
+        if (fs.existsSync(globalIgnorePath)) {
+          const patterns = await readFile(globalIgnorePath, 'utf8');
+          console.log(`Loaded global ignore patterns from ${globalIgnorePath}`);
+          return { 
+            success: true, 
+            patterns,
+            systemPatterns: SYSTEM_EXCLUSIONS
+          };
+        } else {
+          console.log('No global ignore patterns file found, creating with defaults');
+          try {
+            if (!fs.existsSync(appDataPath)) {
+              fs.mkdirSync(appDataPath, { recursive: true });
+            }
+            await writeFile(globalIgnorePath, DEFAULT_USER_PATTERNS, 'utf8');
+            console.log(`Created default global ignore patterns at ${globalIgnorePath}`);
+          } catch (error) {
+            console.error('Error creating default global patterns:', error);
+            // Return defaults even if we couldn't save them
+          }
+          return { 
+            success: true, 
+            patterns: DEFAULT_USER_PATTERNS,
+            systemPatterns: SYSTEM_EXCLUSIONS
+          };
+        }
+      } catch (error) {
+        console.error('Error handling global patterns:', error);
+        // Return defaults on error to prevent UI issues
+        return { 
+          success: true, 
+          patterns: DEFAULT_USER_PATTERNS,
+          systemPatterns: SYSTEM_EXCLUSIONS
+        };
+      }
+    } else {
+      try {
+        // Load local patterns
+        if (!folderPath) {
+          return { 
+            success: true, 
+            patterns: '',
+            systemPatterns: SYSTEM_EXCLUSIONS
+          };
+        }
+        
+        const ignoreFilePath = path.join(folderPath, '.repo_ignore');
+        if (fs.existsSync(ignoreFilePath)) {
+          const patterns = await readFile(ignoreFilePath, 'utf8');
+          console.log(`Loaded local ignore patterns from ${ignoreFilePath}`);
+          return { 
+            success: true, 
+            patterns,
+            systemPatterns: SYSTEM_EXCLUSIONS
+          };
+        } else {
+          console.log(`No local ignore patterns file found at ${ignoreFilePath}`);
+          return { 
+            success: true, 
+            patterns: '',
+            systemPatterns: SYSTEM_EXCLUSIONS
+          };
+        }
+      } catch (error) {
+        console.error('Error handling local patterns:', error);
+        // Return empty patterns on error for local files
+        return { 
+          success: true, 
+          patterns: '',
+          systemPatterns: SYSTEM_EXCLUSIONS
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error in load-ignore-patterns handler:', error);
+    // Return safe defaults instead of error to prevent UI issues
+    return { 
+      success: true, 
+      patterns: isGlobal ? DEFAULT_USER_PATTERNS : '',
+      systemPatterns: SYSTEM_EXCLUSIONS
+    };
   }
 });
 
@@ -838,11 +1147,6 @@ function handleRequestFileList(event, data) {
   }
 }
 
-// Handle file list request - now delegates to handleRequestFileList
-ipcMain.on("request-file-list", (event, data) => {
-  handleRequestFileList(event, data);
-});
-
 // Check if a file should be excluded by default, using gitignore-style pattern matching
 // Create a pattern cache to avoid recreating ignore instances
 const patternCache = {
@@ -1045,244 +1349,6 @@ function clearPatternCache(rootDir) {
 // Add a debug handler for file selection
 ipcMain.on("debug-file-selection", (event, data) => {
   console.log("DEBUG - File Selection:", data);
-});
-
-// Handle reload file list request (force refresh)
-ipcMain.on("reload-file-list", (event, folderPath) => {
-  if (!folderPath) return;
-  
-  console.log(`Forcing reload of file list for ${folderPath}`);
-  directoryCache.clear(folderPath);
-  
-  // Request file list with force refresh flag
-  event.sender.send("file-processing-status", {
-    status: "processing",
-    message: "Reloading directory...",
-  });
-  
-  // Process the request directly using the same handler for request-file-list
-  try {
-    // Create data object with force refresh flag
-    const data = {
-      path: folderPath,
-      forceRefresh: true
-    };
-    
-    // Handle the request-file-list directly
-    handleRequestFileList(event, data);
-  } catch (err) {
-    console.error("Error reloading file list:", err);
-    event.sender.send("file-processing-status", {
-      status: "error",
-      message: `Error reloading directory: ${err.message}`,
-    });
-  }
-});
-
-// Function to cancel loading directory
-function cancelDirectoryLoading(window) {
-  isLoadingDirectory = false;
-  
-  if (loadingTimeoutId) {
-    clearTimeout(loadingTimeoutId);
-    loadingTimeoutId = null;
-  }
-  
-  // Check if window exists and has webContents before sending message
-  if (window && window.webContents && !window.isDestroyed()) {
-    window.webContents.send("file-processing-status", {
-      status: "error",
-      message: "Directory loading cancelled - try selecting a smaller directory",
-    });
-  } else {
-    console.log("Unable to send directory loading cancelled message - window not available");
-  }
-}
-
-// Handler for directory loading timeout
-function setupDirectoryLoadingTimeout(window, folderPath) {
-  // Clear any existing timeout
-  if (loadingTimeoutId) {
-    clearTimeout(loadingTimeoutId);
-  }
-  
-  // Set a new timeout
-  loadingTimeoutId = setTimeout(() => {
-    console.log(`Directory loading timed out after ${MAX_DIRECTORY_LOAD_TIME / 1000} seconds: ${folderPath}`);
-    
-    // Only attempt to cancel if we have a valid window reference
-    if (window && !window.isDestroyed()) {
-      cancelDirectoryLoading(window);
-    } else {
-      // Just clean up the loading state without window reference
-      isLoadingDirectory = false;
-      loadingTimeoutId = null;
-      console.log("Directory loading timed out but window is no longer available");
-    }
-  }, MAX_DIRECTORY_LOAD_TIME);
-}
-
-// Handle cancel directory loading request
-ipcMain.on("cancel-directory-loading", (event) => {
-  if (isLoadingDirectory) {
-    console.log("Received cancel directory loading request");
-    cancelDirectoryLoading(mainWindow);
-  }
-});
-
-// Add promisify for fs operations
-const readFile = promisify(fs.readFile);
-const writeFile = promisify(fs.writeFile);
-const unlink = promisify(fs.unlink);
-
-// Create a clear pattern organization system with three distinct categories:
-// 1. SYSTEM_EXCLUSIONS: Always excluded, not user-configurable (binary files, media, etc.)
-// 2. DEFAULT_USER_PATTERNS: Initial user-editable patterns, restored on reset
-// 3. Current user patterns: Stored in global_patterns.ignore or .repo_ignore files
-
-// Category 1: System-level exclusions (not user-editable)
-const SYSTEM_EXCLUSIONS = systemExclusions;
-
-// Category 2: Default user patterns (user-editable, used when resetting to defaults)
-const DEFAULT_USER_PATTERNS = defaultUserPatterns;
-
-// Function to get all patterns (system + user)
-function getAllPatterns(userPatterns) {
-  // Combine system exclusions with user patterns
-  // System exclusions always apply and come first
-  return [...SYSTEM_EXCLUSIONS, ...(userPatterns || [])];
-}
-
-// When loading ignore patterns, update the logic to clearly separate system from user patterns
-// Load ignore patterns from file
-ipcMain.handle('load-ignore-patterns', async (event, { folderPath, isGlobal }) => {
-  try {
-    if (isGlobal) {
-      // Load global patterns
-      const appDataPath = app.getPath('userData');
-      const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
-      
-      if (fs.existsSync(globalIgnorePath)) {
-        const patterns = await readFile(globalIgnorePath, 'utf8');
-        console.log(`Loaded global ignore patterns from ${globalIgnorePath}`);
-        return { 
-          success: true, 
-          patterns,
-          systemPatterns: SYSTEM_EXCLUSIONS // Include system patterns for reference
-        };
-      } else {
-        console.log('No global ignore patterns file found, returning default patterns');
-        // Return default patterns when the file doesn't exist
-        // Create the global patterns file with default patterns
-        try {
-          if (!fs.existsSync(appDataPath)) {
-            fs.mkdirSync(appDataPath, { recursive: true });
-          }
-          await writeFile(globalIgnorePath, DEFAULT_USER_PATTERNS);
-          console.log(`Created default global ignore patterns at ${globalIgnorePath}`);
-        } catch (error) {
-          console.error('Error creating default global patterns:', error);
-        }
-        return { 
-          success: true, 
-          patterns: DEFAULT_USER_PATTERNS,
-          systemPatterns: SYSTEM_EXCLUSIONS // Include system patterns for reference
-        };
-      }
-    } else {
-      // Load local patterns
-      if (!folderPath) {
-        return { success: false, error: 'No folder path provided', patterns: '' };
-      }
-      
-      const ignoreFilePath = path.join(folderPath, '.repo_ignore');
-      if (fs.existsSync(ignoreFilePath)) {
-        const patterns = await readFile(ignoreFilePath, 'utf8');
-        console.log(`Loaded local ignore patterns from ${ignoreFilePath}`);
-        return { 
-          success: true, 
-          patterns,
-          systemPatterns: SYSTEM_EXCLUSIONS // Include system patterns for reference
-        };
-      } else {
-        console.log(`No local ignore patterns file found at ${ignoreFilePath}`);
-        return { 
-          success: true, 
-          patterns: '',
-          systemPatterns: SYSTEM_EXCLUSIONS // Include system patterns for reference
-        };
-      }
-    }
-  } catch (error) {
-    console.error('Error loading ignore patterns:', error);
-    return { success: false, error: error.message, patterns: '' };
-  }
-});
-
-// Save ignore patterns to file
-ipcMain.handle('save-ignore-patterns', async (event, { patterns, isGlobal, folderPath }) => {
-  try {
-    const appDataPath = app.getPath('userData');
-    
-    // Determine which file to save to
-    const targetPath = isGlobal 
-      ? path.join(appDataPath, 'global_patterns.ignore')
-      : path.join(folderPath, '.repo_ignore');
-      
-    console.log(`Saving ignore patterns to ${targetPath}, isGlobal: ${isGlobal}`);
-    console.log(`Patterns to save: ${patterns}`);
-    
-    // Ensure directory exists for global patterns
-    if (isGlobal && !fs.existsSync(appDataPath)) {
-      fs.mkdirSync(appDataPath, { recursive: true });
-    }
-    
-    // Write the patterns to the file
-    await writeFile(targetPath, patterns);
-    
-    // Clear pattern cache to ensure new patterns are applied
-    if (isGlobal) {
-      // Clear all pattern caches for global changes
-      clearPatternCache();
-      console.log('Cleared all pattern caches due to global pattern change');
-    } else {
-      // Clear just this folder's pattern cache
-      clearPatternCache(folderPath);
-      console.log(`Cleared pattern cache for ${folderPath}`);
-    }
-    
-    // Clear cache to ensure files are reloaded with new patterns
-    if (directoryCache) {
-      if (isGlobal) {
-        // Clear all caches for global pattern changes
-        directoryCache.clearAll();
-        console.log('Cleared all directory caches due to global pattern change');
-      } else {
-        // Clear just this folder's cache
-        directoryCache.clear(folderPath);
-        console.log(`Cleared directory cache for ${folderPath}`);
-      }
-    }
-
-    // Notify the renderer about the pattern change
-    event.sender.send('ignore-patterns-saved', {
-      success: true,
-      isGlobal,
-      folderPath
-    });
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error saving ignore patterns:', error);
-    
-    // Also notify renderer about failure
-    event.sender.send('ignore-patterns-saved', {
-      success: false,
-      error: error.message
-    });
-    
-    return { success: false, error: error.message };
-  }
 });
 
 // Handle resetting patterns to defaults

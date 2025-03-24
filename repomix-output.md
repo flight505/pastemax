@@ -29,7 +29,7 @@ The content is organized as follows:
 - Some files may have been excluded based on .gitignore rules and Repomix's configuration
 - Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
 - Only files matching these patterns are included: src/, preload.js, main.js
-- Files matching these patterns are excluded: **/*.md, docs/**, scripts/**, node_modules/**, dist/**, .git/**, **/*.log, **/*.lock
+- Files matching these patterns are excluded: src/__tests__/utils/**, **/*.md, docs/**, scripts/**, node_modules/**, dist/**, .git/**, **/*.log, **/*.lock, **/*.svg
 - Files matching patterns in .gitignore are excluded
 - Files matching default ignore patterns are excluded
 - Line numbers have been added to the beginning of each line
@@ -41,11 +41,7 @@ The content is organized as follows:
 ```
 src/
   __tests__/
-    utils/
-      theme.test.ts
     setup.ts
-  assets/
-    favicon.svg
   components/
     ui/
       Button/
@@ -128,19 +124,6 @@ src/
 
 # Files
 
-## File: src/assets/favicon.svg
-```
-1: <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-2:   <rect width="512" height="512" rx="50" fill="#4a86e8" />
-3:   <rect x="100" y="150" width="312" height="50" rx="10" fill="white" />
-4:   <rect x="100" y="230" width="312" height="50" rx="10" fill="white" />
-5:   <rect x="100" y="310" width="312" height="50" rx="10" fill="white" />
-6:   <circle cx="140" cy="175" r="15" fill="#ff9900" />
-7:   <circle cx="140" cy="255" r="15" fill="#ff9900" />
-8:   <circle cx="140" cy="335" r="15" fill="#ff9900" />
-9: </svg>
-```
-
 ## File: src/main.tsx
 ```typescript
  1: import React from "react";
@@ -153,156 +136,6 @@ src/
  8:     <App />
  9:   </React.StrictMode>,
 10: );
-```
-
-## File: src/__tests__/utils/theme.test.ts
-```typescript
-  1: /**
-  2:  * Theme testing utility to verify CSS variable application across components
-  3:  */
-  4: 
-  5: import { JSDOM } from 'jsdom';
-  6: 
-  7: interface ThemeTest {
-  8:   component: string;
-  9:   variables: string[];
- 10:   states: string[];
- 11: }
- 12: 
- 13: const componentTests: ThemeTest[] = [
- 14:   {
- 15:     component: 'Button',
- 16:     variables: [
- 17:       '--background-primary',
- 18:       '--text-primary',
- 19:       '--ring-color',
- 20:       '--shadow-sm'
- 21:     ],
- 22:     states: [':hover', ':focus', ':active', ':disabled']
- 23:   },
- 24:   {
- 25:     component: 'Input',
- 26:     variables: [
- 27:       '--background-primary',
- 28:       '--text-primary',
- 29:       '--ring-color',
- 30:       '--border-color'
- 31:     ],
- 32:     states: [':hover', ':focus', ':disabled']
- 33:   },
- 34:   {
- 35:     component: 'Switch',
- 36:     variables: [
- 37:       '--accent-color',
- 38:       '--text-disabled',
- 39:       '--background-primary',
- 40:       '--ring-color'
- 41:     ],
- 42:     states: [':checked', ':focus', ':disabled']
- 43:   }
- 44: ];
- 45: 
- 46: function createVirtualDOM() {
- 47:   const dom = new JSDOM(`
- 48:     <!DOCTYPE html>
- 49:     <html>
- 50:       <head>
- 51:         <style>
- 52:           :root {
- 53:             --background-primary: #ffffff;
- 54:             --text-primary: #000000;
- 55:             --ring-color: #0066ff;
- 56:             --border-color: #e2e8f0;
- 57:             --accent-color: #0066ff;
- 58:             --text-disabled: #94a3b8;
- 59:             --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
- 60:           }
- 61:           .dark-mode {
- 62:             --background-primary: #1a1a1a;
- 63:             --text-primary: #ffffff;
- 64:             --ring-color: #3b82f6;
- 65:             --border-color: #2d3748;
- 66:             --accent-color: #3b82f6;
- 67:             --text-disabled: #4a5568;
- 68:             --shadow-sm: 0 1px 2px rgba(255, 255, 255, 0.05);
- 69:           }
- 70:         </style>
- 71:       </head>
- 72:       <body></body>
- 73:     </html>
- 74:   `);
- 75:   return dom;
- 76: }
- 77: 
- 78: describe('Theme Variable Tests', () => {
- 79:   let dom: JSDOM;
- 80:   let root: HTMLElement;
- 81: 
- 82:   beforeEach(() => {
- 83:     dom = createVirtualDOM();
- 84:     root = dom.window.document.documentElement;
- 85:   });
- 86: 
- 87:   describe('Light Theme', () => {
- 88:     componentTests.forEach(test => {
- 89:       describe(`${test.component} Component`, () => {
- 90:         test.variables.forEach(variable => {
- 91:           it(`should have correct ${variable} value`, () => {
- 92:             const computedValue = dom.window.getComputedStyle(root)
- 93:               .getPropertyValue(variable)
- 94:               .trim();
- 95:             expect(computedValue).toBeTruthy();
- 96:           });
- 97:         });
- 98: 
- 99:         test.states.forEach(state => {
-100:           describe(`${state} state`, () => {
-101:             test.variables.forEach(variable => {
-102:               it(`should handle ${variable} correctly`, () => {
-103:                 // Note: In a real browser environment, we would test actual state changes
-104:                 expect(true).toBeTruthy();
-105:               });
-106:             });
-107:           });
-108:         });
-109:       });
-110:     });
-111:   });
-112: 
-113:   describe('Dark Theme', () => {
-114:     beforeEach(() => {
-115:       root.classList.add('dark-mode');
-116:     });
-117: 
-118:     afterEach(() => {
-119:       root.classList.remove('dark-mode');
-120:     });
-121: 
-122:     componentTests.forEach(test => {
-123:       describe(`${test.component} Component`, () => {
-124:         test.variables.forEach(variable => {
-125:           it(`should have correct ${variable} value`, () => {
-126:             const computedValue = dom.window.getComputedStyle(root)
-127:               .getPropertyValue(variable)
-128:               .trim();
-129:             expect(computedValue).toBeTruthy();
-130:           });
-131:         });
-132: 
-133:         test.states.forEach(state => {
-134:           describe(`${state} state`, () => {
-135:             test.variables.forEach(variable => {
-136:               it(`should handle ${variable} correctly`, () => {
-137:                 // Note: In a real browser environment, we would test actual state changes
-138:                 expect(true).toBeTruthy();
-139:               });
-140:             });
-141:           });
-142:         });
-143:       });
-144:     });
-145:   });
-146: });
 ```
 
 ## File: src/__tests__/setup.ts

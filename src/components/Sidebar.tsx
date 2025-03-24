@@ -299,6 +299,7 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     // Return early if there are no files
     if (!allFiles || allFiles.length === 0) {
       setFileTree([]);
+      setIsTreeBuildingComplete(true); // Mark as complete even when empty
       return;
     }
     
@@ -306,6 +307,9 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     if (isBuildingTreeRef.current || isUpdatingExpandedNodesRef.current) {
       return;
     }
+
+    // Set building state at the start
+    setIsTreeBuildingComplete(false);
 
     // Debounce the tree building to prevent rapid UI updates
     const debounceId = setTimeout(() => {
@@ -317,54 +321,76 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
           
           // Only update if necessary by doing a shallow comparison
           setFileTree(prevTree => {
-            // Simple length check as first comparison
-            if (prevTree.length !== builtTree.length) {
+            try {
+              // Simple length check as first comparison
+              if (prevTree.length !== builtTree.length) {
+                return builtTree;
+              }
+              
+              // If same length, compare a sample of nodes
+              const hasChanged = prevTree.length === 0 || 
+                prevTree[0]?.id !== builtTree[0]?.id || 
+                prevTree[prevTree.length - 1]?.id !== builtTree[builtTree.length - 1]?.id;
+                
+              return hasChanged ? builtTree : prevTree;
+            } catch (error) {
+              console.error('Error comparing trees in setFileTree callback:', error);
+              // Return the new tree on error to ensure we don't get stuck
               return builtTree;
             }
-            
-            // If same length, compare a sample of nodes
-            const hasChanged = prevTree.length === 0 || 
-              prevTree[0]?.id !== builtTree[0]?.id || 
-              prevTree[prevTree.length - 1]?.id !== builtTree[builtTree.length - 1]?.id;
-              
-            return hasChanged ? builtTree : prevTree;
           });
-        }
-        
-        isBuildingTreeRef.current = false;
-        
-        // Only update expanded state after the tree has been built
-        // and when we're not already in the process of updating
-        const hasExpandedNodes = expandedNodes.size > 0;
-        if (hasExpandedNodes && !isUpdatingExpandedNodesRef.current) {
-          // Use setTimeout to ensure tree build finishes first
-          setTimeout(() => {
-            updateTreeWithExpandedState();
-          }, 0);
+
+          // Only update expanded state after the tree has been built
+          // and when we're not already in the process of updating
+          const hasExpandedNodes = expandedNodes.size > 0;
+          if (hasExpandedNodes && !isUpdatingExpandedNodesRef.current) {
+            // Use setTimeout to ensure tree build finishes first
+            setTimeout(() => {
+              try {
+                updateTreeWithExpandedState();
+              } catch (error) {
+                console.error('Error updating tree with expanded state:', error);
+                // Reset the flag even if there's an error
+                isUpdatingExpandedNodesRef.current = false;
+              }
+            }, 0);
+          }
         }
       } catch (error) {
-        console.error("Error building file tree:", error);
+        console.error('Error building file tree:', error);
+        // On error, reset the tree to empty to avoid inconsistent state
+        setFileTree([]);
+      } finally {
         isBuildingTreeRef.current = false;
+        setIsTreeBuildingComplete(true); // Mark as complete whether successful or not
       }
     }, DEBOUNCE_DELAY);
-    
+
+    // Cleanup function
     return () => {
       clearTimeout(debounceId);
+      // Reset flags on cleanup to avoid stuck states
+      isBuildingTreeRef.current = false;
+      isUpdatingExpandedNodesRef.current = false;
     };
   }, [allFiles, selectedFolder, fileTreeSortOrder, sortFileTreeNodes]);
 
   // Handle opening the ignore patterns modal
-  const handleOpenIgnorePatterns = (isGlobal = false) => {
-    setIgnoreGlobal(isGlobal);
-    
-    // Ensure we have patterns loaded
-    if (isGlobal) {
-      loadPatterns(true);
-    } else {
-      loadPatterns(false);
+  const handleOpenIgnorePatterns = async (isGlobal = false) => {
+    try {
+      setIgnoreGlobal(isGlobal);
+      
+      // Ensure we have patterns loaded
+      if (isGlobal) {
+        await loadPatterns(true);
+      } else {
+        await loadPatterns(false);
+      }
+    } catch (error) {
+      console.error('Error opening ignore patterns modal:', error);
+      // Reset modal state on error
+      setIgnoreModalOpen(false);
     }
-    
-    setIgnoreModalOpen(true);
   };
 
   // Load patterns based on global or local scope
