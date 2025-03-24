@@ -25,9 +25,9 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
 
-    "types": ["node"],
-    "typeRoots": ["./node_modules/@types", "./src/declarations.d.ts"]
+    "types": ["node", "electron"],
+    "typeRoots": ["./node_modules/@types", "./src/types", "./src/declarations.d.ts"]
   },
-  "include": ["src", "src/declarations.d.ts"],
+  "include": ["src", "src/declarations.d.ts", "src/types/**/*.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

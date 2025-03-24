@@ -87,6 +87,8 @@ function startElectron() {
       ...process.env,
       NODE_ENV: "development",
       ELECTRON_START_URL: `http://localhost:${vitePort}`,
+      ELECTRON_DEVELOPMENT: "true",
+      ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
     },
   });
 
