@@ -117,15 +117,17 @@ All items are broken into **one-story-point** tasks. This ensures a **competent 
   - [ ] Rescan folder; update the file tree.  
   - [ ] Show “Currently on branch: <branchName>” label somewhere in the UI.
 
-### **1.8 UI Integration with Standard Button**
-- [ ] **Dedicated “LoadRepoButton”**  
-  - [ ] In `ui/components/Button`, create or reuse a variant “LoadRepoButton.”  
-  - [ ] On click, open a small modal: 
-    - Text input for remote URL or local path
-    - Optional branch/commit input
-    - “Load” or “Cancel”
-  - [ ] If user picks “Local Folder” (system file dialog), check `.git`. If found, set `isGit: true`.
-  - [ ] If user typed a remote URL, call `cloneRemoteRepo` (above).
+### **1.8 UI Integration with Repository Handling**
+- [ ] **Repository Selection Integration**  
+  - [ ] Leverage existing "Select Folder" in FileTreeHeader for local repositories
+  - [ ] When local folder has `.git/`, automatically detect it and enable Git features  
+  - [ ] Add minimal UI for entering remote GitHub URLs when needed
+  - [ ] Use `isomorphic-git` for all Git operations to maintain pure JavaScript implementation
+- [ ] **Branch Handling UI**  
+  - [ ] Only show branch selector when a Git repository is detected
+  - [ ] Display current branch name in the UI
+  - [ ] Provide branch switching capability via dropdown
+  - [ ] Update file tree automatically when branch is changed
 
 ### **1.9 Testing & Validation**
 - [ ] **Local Repo**  
