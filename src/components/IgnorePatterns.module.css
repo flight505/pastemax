@@ -230,3 +230,94 @@
 }
 
 /* We'll override these with our Button component */
+
+.systemPatterns {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+
+.systemPatterns h3 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.systemPatternsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.systemPatternItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 0.15s;
+  user-select: none;
+}
+
+.systemPatternItem:hover {
+  background-color: var(--hover-color);
+}
+
+.toggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.toggleButton:hover {
+  background-color: var(--hover-color);
+  border-color: var(--accent-color);
+}
+
+.disabledPattern {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.previewContainer {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+
+.previewContainer h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.patternPreview {
+  font-family: monospace;
+  font-size: 13px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.previewLine {
+  padding: 2px 0;
+  color: var(--text-primary);
+}
+
+.previewLine.disabled {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}

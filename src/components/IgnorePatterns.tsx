@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, RefreshCw, ChevronDown, Trash2 } from "lucide-react";
+import { X, RefreshCw, ChevronDown, Trash2, Check, Square } from "lucide-react";
 import { Button } from "./ui";
 import styles from "./IgnorePatterns.module.css";
 
@@ -19,6 +19,8 @@ interface IgnorePatternsProps {
   clearIgnorePatterns: (folderPath: string) => Promise<void>;
   systemIgnorePatterns: string[];
   recentFolders: string[];
+  excludedGlobalPatterns: string[];
+  excludedLocalPatterns: string[];
 }
 
 const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
@@ -32,7 +34,9 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   resetIgnorePatterns,
   clearIgnorePatterns,
   systemIgnorePatterns,
-  recentFolders
+  recentFolders,
+  excludedGlobalPatterns,
+  excludedLocalPatterns
 }) => {
   // State for the active tab
   const [activeTab, setActiveTab] = useState<"global" | "local">("global");
@@ -40,6 +44,12 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   // State for the textarea values
   const [globalPatterns, setGlobalPatterns] = useState<string>(globalIgnorePatterns);
   const [localPatterns, setLocalPatterns] = useState<string>(localIgnorePatterns);
+  
+  // State for excluded system patterns
+  const [excludedSystemPatterns, setExcludedSystemPatterns] = useState<string[]>([]);
+  
+  // State for the merged preview
+  const [mergedPreview, setMergedPreview] = useState<string>("");
   
   // State for the selected folder
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(localFolderPath);
@@ -89,6 +99,25 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     }
   }, [processingStatus]);
   
+  // Effect to generate merged preview
+  useEffect(() => {
+    // Get active patterns based on current tab
+    const userPatterns = activeTab === "global" ? globalPatterns : localPatterns;
+    
+    // Filter system patterns (exclude disabled ones)
+    const activeSystemPatterns = systemIgnorePatterns.filter(
+      pattern => !excludedSystemPatterns.includes(pattern)
+    );
+    
+    // Combine patterns
+    const mergedLines = [
+      ...activeSystemPatterns,
+      ...userPatterns.split("\n").filter(line => line.trim() !== "")
+    ];
+    
+    setMergedPreview(mergedLines.join("\n"));
+  }, [activeTab, globalPatterns, localPatterns, systemIgnorePatterns, excludedSystemPatterns]);
+  
   // Function to handle tab change
   const handleTabChange = (isGlobal: boolean) => {
     setActiveTab(isGlobal ? "global" : "local");
@@ -111,10 +140,26 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     setFolderSelectOpen(false);
   };
   
+  // Function to handle system pattern toggling
+  const handleToggleSystemPattern = (pattern: string) => {
+    setExcludedSystemPatterns((prev) => {
+      if (prev.includes(pattern)) {
+        return prev.filter((p) => p !== pattern);
+      } else {
+        return [...prev, pattern];
+      }
+    });
+  };
+  
   // Functions to handle saving patterns
   const handleSaveGlobalPatterns = async () => {
     setApplyingPatterns(true);
-    await saveIgnorePatterns(globalPatterns, true);
+    const patternsWithDisabled = excludedSystemPatterns.length > 0
+      ? excludedSystemPatterns
+          .map(pattern => `# DISABLED: ${pattern}`)
+          .join('\n') + '\n\n' + globalPatterns
+      : globalPatterns;
+    await saveIgnorePatterns(patternsWithDisabled, true);
   };
   
   const handleSaveLocalPatterns = async () => {
@@ -291,14 +336,38 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
           
           {activeTab === "global" && (
             <div className={styles.systemPatterns}>
-              <h3>System Patterns (Always Applied)</h3>
+              <h3>System Patterns</h3>
               <div className={styles.systemPatternsList}>
-                {systemIgnorePatterns.map((pattern, index) => (
-                  <div key={index} className={styles.systemPattern}>{pattern}</div>
+                {systemIgnorePatterns.map((pattern) => (
+                  <label key={pattern} className={styles.systemPatternItem}>
+                    <button
+                      className={styles.toggleButton}
+                      onClick={() => handleToggleSystemPattern(pattern)}
+                      title={excludedSystemPatterns.includes(pattern) ? "Enable pattern" : "Disable pattern"}
+                    >
+                      {excludedSystemPatterns.includes(pattern) ? (
+                        <Square size={16} />
+                      ) : (
+                        <Check size={16} />
+                      )}
+                    </button>
+                    <span className={excludedSystemPatterns.includes(pattern) ? styles.disabledPattern : ''}>
+                      {pattern}
+                    </span>
+                  </label>
                 ))}
               </div>
             </div>
           )}
+
+          <div className={styles.previewContainer}>
+            <h4>Effective Patterns</h4>
+            <div className={styles.patternPreview}>
+              {mergedPreview.split('\n').map((line, index) => (
+                <div key={index} className={styles.previewLine}>{line}</div>
+              ))}
+            </div>
+          </div>
         </div>
         
         {/* Status Message */}

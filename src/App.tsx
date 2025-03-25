@@ -62,6 +62,11 @@ const DEFAULT_SYSTEM_PATTERNS = [
   "**/*.min.js", "**/*.min.css",
 ];
 
+interface IgnorePatternsState {
+  patterns: string;
+  excludedPatterns: string[];
+}
+
 const App = () => {
   // Load initial state from localStorage if available
   const savedFolder = localStorage.getItem(STORAGE_KEYS.SELECTED_FOLDER);
@@ -130,8 +135,8 @@ const App = () => {
   // NEW: State for file tree sorting and ignore patterns
   const [fileTreeSortOrder, setFileTreeSortOrder] = useState("name-ascending" as SortOrder);
   const [ignorePatterns, setIgnorePatterns] = useState("");
-  const [globalIgnorePatterns, setGlobalIgnorePatterns] = useState("");
-  const [localIgnorePatterns, setLocalIgnorePatterns] = useState("");
+  const [globalIgnorePatterns, setGlobalIgnorePatterns] = useState<IgnorePatternsState>({ patterns: '', excludedPatterns: [] });
+  const [localIgnorePatterns, setLocalIgnorePatterns] = useState<IgnorePatternsState>({ patterns: '', excludedPatterns: [] });
   const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>(DEFAULT_SYSTEM_PATTERNS);
 
   // Check if we're running in Electron or browser environment
@@ -595,7 +600,7 @@ const App = () => {
     });
   };
 
-  // Define loadIgnorePatterns with useCallback before it's used
+  // Update loadIgnorePatterns to handle excluded patterns
   const loadIgnorePatterns = useCallback(async (folderPath: string, isGlobal: boolean = false) => {
     if (!window.electron) {
       console.log("Not in Electron environment, skipping loadIgnorePatterns");
@@ -603,14 +608,14 @@ const App = () => {
     }
     
     // Prevent duplicate loading of patterns
-    if (isGlobal && globalIgnorePatterns !== "") {
+    if (isGlobal && globalIgnorePatterns.patterns !== "") {
       console.log("Global ignore patterns already loaded, skipping...");
-      return globalIgnorePatterns;
+      return globalIgnorePatterns.patterns;
     }
     
-    if (!isGlobal && folderPath === selectedFolder && localIgnorePatterns !== "") {
+    if (!isGlobal && folderPath === selectedFolder && localIgnorePatterns.patterns !== "") {
       console.log("Local ignore patterns already loaded for current folder, skipping...");
-      return localIgnorePatterns;
+      return localIgnorePatterns.patterns;
     }
     
     console.log(`Loading ${isGlobal ? 'global' : 'local'} ignore patterns${!isGlobal ? ` for ${folderPath}` : ''}`);
@@ -641,12 +646,17 @@ const App = () => {
         setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
       }
       
-      // Update pattern state
+      // Update pattern state with both patterns and excluded patterns
       if (isGlobal) {
-        setGlobalIgnorePatterns(patterns);
+        setGlobalIgnorePatterns({
+          patterns: patterns,
+          excludedPatterns: result.excludedPatterns || []
+        });
       } else if (folderPath === selectedFolder) {
-        // Only update local patterns if they're for the current folder
-        setLocalIgnorePatterns(patterns);
+        setLocalIgnorePatterns({
+          patterns: patterns,
+          excludedPatterns: result.excludedPatterns || []
+        });
       }
       
       return patterns;
@@ -655,14 +665,20 @@ const App = () => {
       // Return empty string for local patterns, defaults for global
       const defaultPatterns = isGlobal ? DEFAULT_SYSTEM_PATTERNS : '';
       if (isGlobal) {
-        setGlobalIgnorePatterns(defaultPatterns);
+        setGlobalIgnorePatterns({
+          patterns: defaultPatterns,
+          excludedPatterns: []
+        });
       } else if (folderPath === selectedFolder) {
-        setLocalIgnorePatterns(defaultPatterns);
+        setLocalIgnorePatterns({
+          patterns: defaultPatterns,
+          excludedPatterns: []
+        });
       }
       setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
       return defaultPatterns;
     }
-  }, [globalIgnorePatterns, localIgnorePatterns, selectedFolder]);
+  }, [globalIgnorePatterns.patterns, localIgnorePatterns.patterns, selectedFolder]);
 
   // Setup listener for ignore patterns loaded event
   useEffect(() => {
@@ -683,16 +699,19 @@ const App = () => {
   useEffect(() => {
     if (isElectron) {
       // Only load global patterns on startup if we haven't loaded them yet
-      if (globalIgnorePatterns === "") {
+      if (globalIgnorePatterns.patterns === "") {
         loadIgnorePatterns('', true).catch(error => {
           console.error('Error loading initial global patterns:', error);
           // Set defaults on error
-          setGlobalIgnorePatterns(DEFAULT_SYSTEM_PATTERNS.join('\n'));
+          setGlobalIgnorePatterns({
+            patterns: DEFAULT_SYSTEM_PATTERNS.join('\n'),
+            excludedPatterns: []
+          });
           setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
         });
       }
     }
-  }, [isElectron, globalIgnorePatterns, loadIgnorePatterns]);
+  }, [isElectron, globalIgnorePatterns.patterns, loadIgnorePatterns]);
 
   // Load local patterns when folder changes - with improved error handling
   useEffect(() => {
@@ -700,12 +719,15 @@ const App = () => {
       loadIgnorePatterns(selectedFolder, false).catch(error => {
         console.error('Error loading local patterns for new folder:', error);
         // Set empty patterns on error for local
-        setLocalIgnorePatterns('');
+        setLocalIgnorePatterns({
+          patterns: '',
+          excludedPatterns: []
+        });
       });
     }
   }, [isElectron, selectedFolder, loadIgnorePatterns]);
 
-  // Function to save ignore patterns
+  // Update saveIgnorePatterns to handle excluded patterns
   const saveIgnorePatterns = async (patterns: string, isGlobal: boolean, folderPath?: string) => {
     setProcessingStatus({
       status: "processing",
@@ -715,9 +737,15 @@ const App = () => {
     try {
       // Update state first to show immediate feedback in UI
       if (isGlobal) {
-        setGlobalIgnorePatterns(patterns);
+        setGlobalIgnorePatterns(prev => ({
+          ...prev,
+          patterns
+        }));
       } else if (folderPath) {
-        setLocalIgnorePatterns(patterns);
+        setLocalIgnorePatterns(prev => ({
+          ...prev,
+          patterns
+        }));
       }
 
       // Use async/await with the new invoke pattern
@@ -736,16 +764,11 @@ const App = () => {
         });
         
         // Only reload if absolutely necessary
-        // For local patterns, only reload if the folder being modified is the selected folder
         if (!isGlobal && folderPath === selectedFolder) {
-          // Use a small delay to allow UI to stabilize before reloading
           setTimeout(() => {
             reloadFolder();
           }, 300);
-        }
-        // For global patterns, only reload if we're viewing files (have a selected folder)
-        else if (isGlobal && selectedFolder) {
-          // Use a small delay to allow UI to stabilize before reloading
+        } else if (isGlobal && selectedFolder) {
           setTimeout(() => {
             reloadFolder();
           }, 300);
@@ -778,9 +801,15 @@ const App = () => {
     try {
       // Update state immediately for UI feedback
       if (isGlobal) {
-        setGlobalIgnorePatterns("");
+        setGlobalIgnorePatterns({
+          patterns: '',
+          excludedPatterns: []
+        });
       } else if (folderPath) {
-        setLocalIgnorePatterns("");
+        setLocalIgnorePatterns({
+          patterns: '',
+          excludedPatterns: []
+        });
       }
 
       // Use async/await with the new invoke pattern
@@ -794,9 +823,15 @@ const App = () => {
         
         // Update the local pattern state if applicable
         if (!isGlobal && folderPath) {
-          setLocalIgnorePatterns("");
+          setLocalIgnorePatterns({
+            patterns: '',
+            excludedPatterns: []
+          });
         } else if (isGlobal) {
-          setGlobalIgnorePatterns("");
+          setGlobalIgnorePatterns({
+            patterns: '',
+            excludedPatterns: []
+          });
         }
         
         setProcessingStatus({
@@ -939,7 +974,10 @@ const App = () => {
   useEffect(() => {
     if (selectedFolder) {
       // Reset local patterns state when folder changes
-      setLocalIgnorePatterns("");
+      setLocalIgnorePatterns({
+        patterns: '',
+        excludedPatterns: []
+      });
       console.log("Folder changed, clearing local patterns state");
     }
   }, [selectedFolder]);
@@ -953,7 +991,10 @@ const App = () => {
 
     try {
       // Update state immediately for UI feedback
-      setLocalIgnorePatterns("");
+      setLocalIgnorePatterns({
+        patterns: '',
+        excludedPatterns: []
+      });
       
       const result = await window.electron.ipcRenderer.invoke("clear-local-ignore-patterns", {
         folderPath
@@ -962,7 +1003,10 @@ const App = () => {
       if (result.success) {
         console.log("Successfully cleared local ignore patterns");
         
-        setLocalIgnorePatterns("");
+        setLocalIgnorePatterns({
+          patterns: '',
+          excludedPatterns: []
+        });
         
         setProcessingStatus({
           status: "complete",
