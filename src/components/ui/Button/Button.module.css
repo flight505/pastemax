@@ -153,9 +153,45 @@
   width: var(--button-height-lg);
 }
 
-/* Pill variant */
+/* Pill shape - just the border radius */
+.pillShaped {
+  border-radius: var(--radius-full);
+}
+
+/* Pill variant - tag/badge style button */
 .pill {
   border-radius: var(--radius-full);
+  background-color: var(--background-primary-dark);
+  color: white;
+  border: none;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  height: 24px;
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
+  transition: opacity 0.2s ease;
+}
+
+.pill:hover:not(:disabled) {
+  background-color: var(--background-primary-dark);
+  opacity: 0.9;
+}
+
+.pill:active:not(:disabled) {
+  background-color: var(--background-primary-dark);
+  opacity: 0.8;
+}
+
+/* Dark mode support for pill */
+:global(.dark-mode) .pill {
+  background-color: hsl(240, 5%, 84.9%);
+  color: var(--background-primary-dark);
+}
+
+:global(.dark-mode) .pill:hover:not(:disabled),
+:global(.dark-mode) .pill:active:not(:disabled) {
+  background-color: hsl(240, 5%, 84.9%);
 }
 
 /* Round variant - inherits from primary but with enhancements */
