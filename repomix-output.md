@@ -2513,6 +2513,281 @@ src/
 21: }
 ```
 
+## File: src/utils/pathUtils.ts
+```typescript
+  1: /**
+  2:  * Browser-compatible path utilities to replace Node.js path module
+  3:  */
+  4: 
+  5: import { FileTreeMode } from "../types/FileTypes";
+  6: 
+  7: /**
+  8:  * Normalizes a file path to use forward slashes regardless of operating system
+  9:  * This helps with path comparison across different platforms
+ 10:  * 
+ 11:  * @param filePath The file path to normalize
+ 12:  * @returns The normalized path with forward slashes
+ 13:  */
+ 14: export function normalizePath(filePath: string): string {
+ 15:   if (!filePath) return filePath;
+ 16:   
+ 17:   // Replace backslashes with forward slashes
+ 18:   return filePath.replace(/\\/g, '/');
+ 19: }
+ 20: 
+ 21: /**
+ 22:  * Detects the operating system
+ 23:  * 
+ 24:  * @returns The detected operating system ('windows', 'mac', 'linux', or 'unknown')
+ 25:  */
+ 26: export function detectOS(): 'windows' | 'mac' | 'linux' | 'unknown' {
+ 27:   if (typeof window !== 'undefined' && window.navigator) {
+ 28:     const platform = window.navigator.platform.toLowerCase();
+ 29:     
+ 30:     if (platform.includes('win')) {
+ 31:       return 'windows';
+ 32:     } else if (platform.includes('mac')) {
+ 33:       return 'mac';
+ 34:     } else if (platform.includes('linux')) {
+ 35:       return 'linux';
+ 36:     }
+ 37:   }
+ 38:   
+ 39:   return 'unknown';
+ 40: }
+ 41: 
+ 42: /**
+ 43:  * Compares two paths for equality, handling different OS path separators
+ 44:  * 
+ 45:  * @param path1 First path to compare
+ 46:  * @param path2 Second path to compare
+ 47:  * @returns True if the paths are equivalent, false otherwise
+ 48:  */
+ 49: export function arePathsEqual(path1: string, path2: string): boolean {
+ 50:   return normalizePath(path1) === normalizePath(path2);
+ 51: }
+ 52: 
+ 53: /**
+ 54:  * Extract the basename from a path string
+ 55:  * @param path The path to extract the basename from
+ 56:  * @returns The basename (last part of the path)
+ 57:  */
+ 58: export function basename(path: string | null | undefined): string {
+ 59:   if (!path) return "";
+ 60: 
+ 61:   // Ensure path is a string
+ 62:   const pathStr = String(path);
+ 63: 
+ 64:   // Handle both forward and backslashes
+ 65:   const normalizedPath = pathStr.replace(/\\/g, "/");
+ 66:   // Remove trailing slashes
+ 67:   const trimmedPath = normalizedPath.endsWith("/")
+ 68:     ? normalizedPath.slice(0, -1)
+ 69:     : normalizedPath;
+ 70:   // Get the last part after the final slash
+ 71:   const parts = trimmedPath.split("/");
+ 72:   return parts[parts.length - 1] || "";
+ 73: }
+ 74: 
+ 75: /**
+ 76:  * Extract the directory name from a path string
+ 77:  * @param path The path to extract the directory from
+ 78:  * @returns The directory (everything except the last part)
+ 79:  */
+ 80: export function dirname(path: string | null | undefined): string {
+ 81:   if (!path) return ".";
+ 82: 
+ 83:   // Ensure path is a string
+ 84:   const pathStr = String(path);
+ 85: 
+ 86:   // Handle both forward and backslashes
+ 87:   const normalizedPath = pathStr.replace(/\\/g, "/");
+ 88:   // Remove trailing slashes
+ 89:   const trimmedPath = normalizedPath.endsWith("/")
+ 90:     ? normalizedPath.slice(0, -1)
+ 91:     : normalizedPath;
+ 92:   // Get everything before the final slash
+ 93:   const lastSlashIndex = trimmedPath.lastIndexOf("/");
+ 94:   return lastSlashIndex === -1 ? "." : trimmedPath.slice(0, lastSlashIndex);
+ 95: }
+ 96: 
+ 97: /**
+ 98:  * Join path segments together
+ 99:  * @param segments The path segments to join
+100:  * @returns The joined path
+101:  */
+102: export function join(...segments: (string | null | undefined)[]): string {
+103:   return segments
+104:     .filter(Boolean)
+105:     .map((seg) => String(seg))
+106:     .join("/")
+107:     .replace(/\/+/g, "/"); // Replace multiple slashes with a single one
+108: }
+109: 
+110: /**
+111:  * Get the file extension
+112:  * @param path The path to get the extension from
+113:  * @returns The file extension including the dot
+114:  */
+115: export function extname(path: string | null | undefined): string {
+116:   if (!path) return "";
+117: 
+118:   const basenameValue = basename(path);
+119:   const dotIndex = basenameValue.lastIndexOf(".");
+120:   return dotIndex === -1 || dotIndex === 0 ? "" : basenameValue.slice(dotIndex);
+121: }
+122: 
+123: /**
+124:  * Generate an ASCII representation of the file tree for the selected files
+125:  * @param files Array of selected FileData objects
+126:  * @param rootPath The root directory path
+127:  * @param mode The FileTreeMode to use for generation
+128:  * @returns ASCII string representing the file tree
+129:  */
+130: export function generateAsciiFileTree(
+131:   files: { path: string }[], 
+132:   rootPath: string,
+133:   mode: FileTreeMode = "selected"
+134: ): string {
+135:   if (!files.length) return "No files selected.";
+136: 
+137:   // Normalize the root path for consistent path handling
+138:   const normalizedRoot = rootPath.replace(/\\/g, "/").replace(/\/$/, "");
+139:   
+140:   // Create a tree structure from the file paths
+141:   interface TreeNode {
+142:     name: string;
+143:     isFile: boolean;
+144:     children: Record<string, TreeNode>;
+145:     // Add a flag to identify if this node contains a selected file
+146:     hasSelectedFile?: boolean;
+147:   }
+148:   
+149:   const root: TreeNode = { 
+150:     name: basename(normalizedRoot), 
+151:     isFile: false, 
+152:     children: {},
+153:     hasSelectedFile: false
+154:   };
+155:   
+156:   // Insert a file path into the tree
+157:   const insertPath = (filePath: string, node: TreeNode, isSelected: boolean = true) => {
+158:     const normalizedPath = filePath.replace(/\\/g, "/");
+159:     if (!normalizedPath.startsWith(normalizedRoot)) return;
+160:     
+161:     const relativePath = normalizedPath.substring(normalizedRoot.length).replace(/^\//, "");
+162:     if (!relativePath) return;
+163:     
+164:     const pathParts = relativePath.split("/");
+165:     let currentNode = node;
+166:     
+167:     for (let i = 0; i < pathParts.length; i++) {
+168:       const part = pathParts[i];
+169:       const isFile = i === pathParts.length - 1;
+170:       
+171:       if (!currentNode.children[part]) {
+172:         currentNode.children[part] = {
+173:           name: part,
+174:           isFile,
+175:           children: {},
+176:           hasSelectedFile: isSelected && isFile
+177:         };
+178:       }
+179:       
+180:       // If this file is selected, mark this node and all parent nodes
+181:       if (isSelected && isFile && i === pathParts.length - 1) {
+182:         currentNode.children[part].hasSelectedFile = true;
+183:       }
+184:       
+185:       currentNode = currentNode.children[part];
+186:     }
+187:     
+188:     // Mark parent directories as having selected files
+189:     if (isSelected) {
+190:       let tempNode = node;
+191:       for (let i = 0; i < pathParts.length - 1; i++) {
+192:         const part = pathParts[i];
+193:         if (tempNode.children[part]) {
+194:           tempNode.children[part].hasSelectedFile = true;
+195:           tempNode = tempNode.children[part];
+196:         }
+197:       }
+198:     }
+199:   };
+200:   
+201:   // Insert files into the tree based on the mode
+202:   if (mode === "complete") {
+203:     // In complete mode, insert all files, marking the selected ones
+204:     files.forEach(file => {
+205:       // Determine if this file is among the selected files
+206:       // This requires a full list of files, where some might be selected and others not
+207:       const isSelected = "selected" in file ? Boolean(file.selected) : true;
+208:       insertPath(file.path, root, isSelected);
+209:     });
+210:   } else {
+211:     // In selected mode or selected-with-roots mode, all files we're given are selected
+212:     files.forEach(file => insertPath(file.path, root, true));
+213:   }
+214:   
+215:   // Generate ASCII representation
+216:   const generateAscii = (node: TreeNode, prefix = "", isLast = true, isRoot = true): string => {
+217:     // For selected-with-roots mode, only include nodes that have selected files
+218:     if (mode === "selected-with-roots" && !node.hasSelectedFile && !isRoot) {
+219:       return "";
+220:     }
+221:     
+222:     if (!isRoot) {
+223:       let result = prefix;
+224:       result += isLast ? "└── " : "├── ";
+225:       result += node.name;
+226:       
+227:       // In complete mode, mark selected files with a '*'
+228:       if (mode === "complete" && node.hasSelectedFile && node.isFile) {
+229:         result += " *";
+230:       }
+231:       
+232:       result += "\n";
+233:       prefix += isLast ? "    " : "│   ";
+234:       
+235:       const children = Object.values(node.children).sort((a, b) => {
+236:         // Sort by type (directories first) then by name
+237:         if (a.isFile !== b.isFile) {
+238:           return a.isFile ? 1 : -1;
+239:         }
+240:         return a.name.localeCompare(b.name);
+241:       });
+242:       
+243:       return result + children
+244:         .map((child, index) =>
+245:           generateAscii(child, prefix, index === children.length - 1, false)
+246:         )
+247:         .join("");
+248:     } else {
+249:       // Root node special handling
+250:       const children = Object.values(node.children).sort((a, b) => {
+251:         // Sort by type (directories first) then by name
+252:         if (a.isFile !== b.isFile) {
+253:           return a.isFile ? 1 : -1;
+254:         }
+255:         return a.name.localeCompare(b.name);
+256:       });
+257:       
+258:       return children
+259:         .map((child, index) => {
+260:           // For selected-with-roots mode, only include nodes that have selected files
+261:           if (mode === "selected-with-roots" && !child.hasSelectedFile) {
+262:             return "";
+263:           }
+264:           return generateAscii(child, prefix, index === children.length - 1, false);
+265:         })
+266:         .join("");
+267:     }
+268:   };
+269:   
+270:   return generateAscii(root);
+271: }
+```
+
 ## File: src/declarations.d.ts
 ```typescript
  1: // Type declarations for external modules
@@ -2991,281 +3266,6 @@ src/
 62:     </ThemeContext.Provider>
 63:   );
 64: };
-```
-
-## File: src/utils/pathUtils.ts
-```typescript
-  1: /**
-  2:  * Browser-compatible path utilities to replace Node.js path module
-  3:  */
-  4: 
-  5: import { FileTreeMode } from "../types/FileTypes";
-  6: 
-  7: /**
-  8:  * Normalizes a file path to use forward slashes regardless of operating system
-  9:  * This helps with path comparison across different platforms
- 10:  * 
- 11:  * @param filePath The file path to normalize
- 12:  * @returns The normalized path with forward slashes
- 13:  */
- 14: export function normalizePath(filePath: string): string {
- 15:   if (!filePath) return filePath;
- 16:   
- 17:   // Replace backslashes with forward slashes
- 18:   return filePath.replace(/\\/g, '/');
- 19: }
- 20: 
- 21: /**
- 22:  * Detects the operating system
- 23:  * 
- 24:  * @returns The detected operating system ('windows', 'mac', 'linux', or 'unknown')
- 25:  */
- 26: export function detectOS(): 'windows' | 'mac' | 'linux' | 'unknown' {
- 27:   if (typeof window !== 'undefined' && window.navigator) {
- 28:     const platform = window.navigator.platform.toLowerCase();
- 29:     
- 30:     if (platform.includes('win')) {
- 31:       return 'windows';
- 32:     } else if (platform.includes('mac')) {
- 33:       return 'mac';
- 34:     } else if (platform.includes('linux')) {
- 35:       return 'linux';
- 36:     }
- 37:   }
- 38:   
- 39:   return 'unknown';
- 40: }
- 41: 
- 42: /**
- 43:  * Compares two paths for equality, handling different OS path separators
- 44:  * 
- 45:  * @param path1 First path to compare
- 46:  * @param path2 Second path to compare
- 47:  * @returns True if the paths are equivalent, false otherwise
- 48:  */
- 49: export function arePathsEqual(path1: string, path2: string): boolean {
- 50:   return normalizePath(path1) === normalizePath(path2);
- 51: }
- 52: 
- 53: /**
- 54:  * Extract the basename from a path string
- 55:  * @param path The path to extract the basename from
- 56:  * @returns The basename (last part of the path)
- 57:  */
- 58: export function basename(path: string | null | undefined): string {
- 59:   if (!path) return "";
- 60: 
- 61:   // Ensure path is a string
- 62:   const pathStr = String(path);
- 63: 
- 64:   // Handle both forward and backslashes
- 65:   const normalizedPath = pathStr.replace(/\\/g, "/");
- 66:   // Remove trailing slashes
- 67:   const trimmedPath = normalizedPath.endsWith("/")
- 68:     ? normalizedPath.slice(0, -1)
- 69:     : normalizedPath;
- 70:   // Get the last part after the final slash
- 71:   const parts = trimmedPath.split("/");
- 72:   return parts[parts.length - 1] || "";
- 73: }
- 74: 
- 75: /**
- 76:  * Extract the directory name from a path string
- 77:  * @param path The path to extract the directory from
- 78:  * @returns The directory (everything except the last part)
- 79:  */
- 80: export function dirname(path: string | null | undefined): string {
- 81:   if (!path) return ".";
- 82: 
- 83:   // Ensure path is a string
- 84:   const pathStr = String(path);
- 85: 
- 86:   // Handle both forward and backslashes
- 87:   const normalizedPath = pathStr.replace(/\\/g, "/");
- 88:   // Remove trailing slashes
- 89:   const trimmedPath = normalizedPath.endsWith("/")
- 90:     ? normalizedPath.slice(0, -1)
- 91:     : normalizedPath;
- 92:   // Get everything before the final slash
- 93:   const lastSlashIndex = trimmedPath.lastIndexOf("/");
- 94:   return lastSlashIndex === -1 ? "." : trimmedPath.slice(0, lastSlashIndex);
- 95: }
- 96: 
- 97: /**
- 98:  * Join path segments together
- 99:  * @param segments The path segments to join
-100:  * @returns The joined path
-101:  */
-102: export function join(...segments: (string | null | undefined)[]): string {
-103:   return segments
-104:     .filter(Boolean)
-105:     .map((seg) => String(seg))
-106:     .join("/")
-107:     .replace(/\/+/g, "/"); // Replace multiple slashes with a single one
-108: }
-109: 
-110: /**
-111:  * Get the file extension
-112:  * @param path The path to get the extension from
-113:  * @returns The file extension including the dot
-114:  */
-115: export function extname(path: string | null | undefined): string {
-116:   if (!path) return "";
-117: 
-118:   const basenameValue = basename(path);
-119:   const dotIndex = basenameValue.lastIndexOf(".");
-120:   return dotIndex === -1 || dotIndex === 0 ? "" : basenameValue.slice(dotIndex);
-121: }
-122: 
-123: /**
-124:  * Generate an ASCII representation of the file tree for the selected files
-125:  * @param files Array of selected FileData objects
-126:  * @param rootPath The root directory path
-127:  * @param mode The FileTreeMode to use for generation
-128:  * @returns ASCII string representing the file tree
-129:  */
-130: export function generateAsciiFileTree(
-131:   files: { path: string }[], 
-132:   rootPath: string,
-133:   mode: FileTreeMode = "selected"
-134: ): string {
-135:   if (!files.length) return "No files selected.";
-136: 
-137:   // Normalize the root path for consistent path handling
-138:   const normalizedRoot = rootPath.replace(/\\/g, "/").replace(/\/$/, "");
-139:   
-140:   // Create a tree structure from the file paths
-141:   interface TreeNode {
-142:     name: string;
-143:     isFile: boolean;
-144:     children: Record<string, TreeNode>;
-145:     // Add a flag to identify if this node contains a selected file
-146:     hasSelectedFile?: boolean;
-147:   }
-148:   
-149:   const root: TreeNode = { 
-150:     name: basename(normalizedRoot), 
-151:     isFile: false, 
-152:     children: {},
-153:     hasSelectedFile: false
-154:   };
-155:   
-156:   // Insert a file path into the tree
-157:   const insertPath = (filePath: string, node: TreeNode, isSelected: boolean = true) => {
-158:     const normalizedPath = filePath.replace(/\\/g, "/");
-159:     if (!normalizedPath.startsWith(normalizedRoot)) return;
-160:     
-161:     const relativePath = normalizedPath.substring(normalizedRoot.length).replace(/^\//, "");
-162:     if (!relativePath) return;
-163:     
-164:     const pathParts = relativePath.split("/");
-165:     let currentNode = node;
-166:     
-167:     for (let i = 0; i < pathParts.length; i++) {
-168:       const part = pathParts[i];
-169:       const isFile = i === pathParts.length - 1;
-170:       
-171:       if (!currentNode.children[part]) {
-172:         currentNode.children[part] = {
-173:           name: part,
-174:           isFile,
-175:           children: {},
-176:           hasSelectedFile: isSelected && isFile
-177:         };
-178:       }
-179:       
-180:       // If this file is selected, mark this node and all parent nodes
-181:       if (isSelected && isFile && i === pathParts.length - 1) {
-182:         currentNode.children[part].hasSelectedFile = true;
-183:       }
-184:       
-185:       currentNode = currentNode.children[part];
-186:     }
-187:     
-188:     // Mark parent directories as having selected files
-189:     if (isSelected) {
-190:       let tempNode = node;
-191:       for (let i = 0; i < pathParts.length - 1; i++) {
-192:         const part = pathParts[i];
-193:         if (tempNode.children[part]) {
-194:           tempNode.children[part].hasSelectedFile = true;
-195:           tempNode = tempNode.children[part];
-196:         }
-197:       }
-198:     }
-199:   };
-200:   
-201:   // Insert files into the tree based on the mode
-202:   if (mode === "complete") {
-203:     // In complete mode, insert all files, marking the selected ones
-204:     files.forEach(file => {
-205:       // Determine if this file is among the selected files
-206:       // This requires a full list of files, where some might be selected and others not
-207:       const isSelected = "selected" in file ? Boolean(file.selected) : true;
-208:       insertPath(file.path, root, isSelected);
-209:     });
-210:   } else {
-211:     // In selected mode or selected-with-roots mode, all files we're given are selected
-212:     files.forEach(file => insertPath(file.path, root, true));
-213:   }
-214:   
-215:   // Generate ASCII representation
-216:   const generateAscii = (node: TreeNode, prefix = "", isLast = true, isRoot = true): string => {
-217:     // For selected-with-roots mode, only include nodes that have selected files
-218:     if (mode === "selected-with-roots" && !node.hasSelectedFile && !isRoot) {
-219:       return "";
-220:     }
-221:     
-222:     if (!isRoot) {
-223:       let result = prefix;
-224:       result += isLast ? "└── " : "├── ";
-225:       result += node.name;
-226:       
-227:       // In complete mode, mark selected files with a '*'
-228:       if (mode === "complete" && node.hasSelectedFile && node.isFile) {
-229:         result += " *";
-230:       }
-231:       
-232:       result += "\n";
-233:       prefix += isLast ? "    " : "│   ";
-234:       
-235:       const children = Object.values(node.children).sort((a, b) => {
-236:         // Sort by type (directories first) then by name
-237:         if (a.isFile !== b.isFile) {
-238:           return a.isFile ? 1 : -1;
-239:         }
-240:         return a.name.localeCompare(b.name);
-241:       });
-242:       
-243:       return result + children
-244:         .map((child, index) =>
-245:           generateAscii(child, prefix, index === children.length - 1, false)
-246:         )
-247:         .join("");
-248:     } else {
-249:       // Root node special handling
-250:       const children = Object.values(node.children).sort((a, b) => {
-251:         // Sort by type (directories first) then by name
-252:         if (a.isFile !== b.isFile) {
-253:           return a.isFile ? 1 : -1;
-254:         }
-255:         return a.name.localeCompare(b.name);
-256:       });
-257:       
-258:       return children
-259:         .map((child, index) => {
-260:           // For selected-with-roots mode, only include nodes that have selected files
-261:           if (mode === "selected-with-roots" && !child.hasSelectedFile) {
-262:             return "";
-263:           }
-264:           return generateAscii(child, prefix, index === children.length - 1, false);
-265:         })
-266:         .join("");
-267:     }
-268:   };
-269:   
-270:   return generateAscii(root);
-271: }
 ```
 
 ## File: src/react-app-env.d.ts
