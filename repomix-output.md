@@ -1574,6 +1574,58 @@ src/
 43: }
 ```
 
+## File: src/components/FileList.tsx
+```typescript
+ 1: import React from "react";
+ 2: import { FileListProps, FileData } from "../types/FileTypes";
+ 3: import FileCard from "./FileCard";
+ 4: import { arePathsEqual } from "../utils/pathUtils";
+ 5: import styles from "./FileList.module.css";
+ 6: 
+ 7: const FileList = ({
+ 8:   files,
+ 9:   selectedFiles,
+10:   toggleFileSelection,
+11: }: FileListProps) => {
+12:   // Only show files that are in the selectedFiles array and not binary/skipped
+13:   const displayableFiles = files.filter(
+14:     (file: FileData) =>
+15:       selectedFiles.some(selectedPath => arePathsEqual(selectedPath, file.path)) && 
+16:       !file.isBinary && 
+17:       !file.isSkipped,
+18:   );
+19: 
+20:   // Find the maximum token count for relative scaling
+21:   const maxTokenCount = displayableFiles.length > 0
+22:     ? Math.max(...displayableFiles.map(file => file.tokenCount))
+23:     : 5000; // Default if no files
+24: 
+25:   return (
+26:     <div className={styles.fileListContainer}>
+27:       {displayableFiles.length > 0 ? (
+28:         <div className={styles.fileList}>
+29:           {displayableFiles.map((file) => (
+30:             <FileCard
+31:               key={file.path}
+32:               file={file}
+33:               isSelected={true} // Always true since we're already filtering for selected files
+34:               toggleSelection={toggleFileSelection}
+35:               maxTokenCount={maxTokenCount}
+36:             />
+37:           ))}
+38:         </div>
+39:       ) : (
+40:         <div className={styles.fileListEmpty}>
+41:           No files selected. Select files from the sidebar to see them here.
+42:         </div>
+43:       )}
+44:     </div>
+45:   );
+46: };
+47: 
+48: export default FileList;
+```
+
 ## File: src/components/ThemeToggle.module.css
 ```css
  1: .themeSegmentedControl {
@@ -1719,6 +1771,45 @@ src/
 48: }
 ```
 
+## File: src/components/UserInstructions.tsx
+```typescript
+ 1: import React from "react";
+ 2: import styles from "./UserInstructions.module.css";
+ 3: 
+ 4: interface UserInstructionsProps {
+ 5:   instructions: string;
+ 6:   setInstructions: (value: string) => void;
+ 7: }
+ 8: 
+ 9: const UserInstructions = ({
+10:   instructions,
+11:   setInstructions,
+12: }: UserInstructionsProps): JSX.Element => {
+13:   return (
+14:     <>
+15:       <div className={styles.userInstructionsHeader}>
+16:         <label className="content-title" htmlFor="userInstructionsInput">
+17:           User Instructions
+18:         </label>
+19:       </div>
+20:       <div className={styles.userInstructionsContainer}>
+21:         <div className={styles.userInstructions}>
+22:           <textarea
+23:             id="userInstructionsInput"
+24:             value={instructions}
+25:             onChange={(e) => setInstructions(e.target.value)}
+26:             placeholder="Add instructions to pass to the LLM about how to transform the content..."
+27:             className={styles.textarea}
+28:           />
+29:         </div>
+30:       </div>
+31:     </>
+32:   );
+33: };
+34: 
+35: export default UserInstructions;
+```
+
 ## File: src/hooks/useTheme.ts
 ```typescript
  1: import { useContext } from "react";
@@ -1731,6 +1822,281 @@ src/
  8:   }
  9:   return context;
 10: };
+```
+
+## File: src/utils/pathUtils.ts
+```typescript
+  1: /**
+  2:  * Browser-compatible path utilities to replace Node.js path module
+  3:  */
+  4: 
+  5: import { FileTreeMode } from "../types/FileTypes";
+  6: 
+  7: /**
+  8:  * Normalizes a file path to use forward slashes regardless of operating system
+  9:  * This helps with path comparison across different platforms
+ 10:  * 
+ 11:  * @param filePath The file path to normalize
+ 12:  * @returns The normalized path with forward slashes
+ 13:  */
+ 14: export function normalizePath(filePath: string): string {
+ 15:   if (!filePath) return filePath;
+ 16:   
+ 17:   // Replace backslashes with forward slashes
+ 18:   return filePath.replace(/\\/g, '/');
+ 19: }
+ 20: 
+ 21: /**
+ 22:  * Detects the operating system
+ 23:  * 
+ 24:  * @returns The detected operating system ('windows', 'mac', 'linux', or 'unknown')
+ 25:  */
+ 26: export function detectOS(): 'windows' | 'mac' | 'linux' | 'unknown' {
+ 27:   if (typeof window !== 'undefined' && window.navigator) {
+ 28:     const platform = window.navigator.platform.toLowerCase();
+ 29:     
+ 30:     if (platform.includes('win')) {
+ 31:       return 'windows';
+ 32:     } else if (platform.includes('mac')) {
+ 33:       return 'mac';
+ 34:     } else if (platform.includes('linux')) {
+ 35:       return 'linux';
+ 36:     }
+ 37:   }
+ 38:   
+ 39:   return 'unknown';
+ 40: }
+ 41: 
+ 42: /**
+ 43:  * Compares two paths for equality, handling different OS path separators
+ 44:  * 
+ 45:  * @param path1 First path to compare
+ 46:  * @param path2 Second path to compare
+ 47:  * @returns True if the paths are equivalent, false otherwise
+ 48:  */
+ 49: export function arePathsEqual(path1: string, path2: string): boolean {
+ 50:   return normalizePath(path1) === normalizePath(path2);
+ 51: }
+ 52: 
+ 53: /**
+ 54:  * Extract the basename from a path string
+ 55:  * @param path The path to extract the basename from
+ 56:  * @returns The basename (last part of the path)
+ 57:  */
+ 58: export function basename(path: string | null | undefined): string {
+ 59:   if (!path) return "";
+ 60: 
+ 61:   // Ensure path is a string
+ 62:   const pathStr = String(path);
+ 63: 
+ 64:   // Handle both forward and backslashes
+ 65:   const normalizedPath = pathStr.replace(/\\/g, "/");
+ 66:   // Remove trailing slashes
+ 67:   const trimmedPath = normalizedPath.endsWith("/")
+ 68:     ? normalizedPath.slice(0, -1)
+ 69:     : normalizedPath;
+ 70:   // Get the last part after the final slash
+ 71:   const parts = trimmedPath.split("/");
+ 72:   return parts[parts.length - 1] || "";
+ 73: }
+ 74: 
+ 75: /**
+ 76:  * Extract the directory name from a path string
+ 77:  * @param path The path to extract the directory from
+ 78:  * @returns The directory (everything except the last part)
+ 79:  */
+ 80: export function dirname(path: string | null | undefined): string {
+ 81:   if (!path) return ".";
+ 82: 
+ 83:   // Ensure path is a string
+ 84:   const pathStr = String(path);
+ 85: 
+ 86:   // Handle both forward and backslashes
+ 87:   const normalizedPath = pathStr.replace(/\\/g, "/");
+ 88:   // Remove trailing slashes
+ 89:   const trimmedPath = normalizedPath.endsWith("/")
+ 90:     ? normalizedPath.slice(0, -1)
+ 91:     : normalizedPath;
+ 92:   // Get everything before the final slash
+ 93:   const lastSlashIndex = trimmedPath.lastIndexOf("/");
+ 94:   return lastSlashIndex === -1 ? "." : trimmedPath.slice(0, lastSlashIndex);
+ 95: }
+ 96: 
+ 97: /**
+ 98:  * Join path segments together
+ 99:  * @param segments The path segments to join
+100:  * @returns The joined path
+101:  */
+102: export function join(...segments: (string | null | undefined)[]): string {
+103:   return segments
+104:     .filter(Boolean)
+105:     .map((seg) => String(seg))
+106:     .join("/")
+107:     .replace(/\/+/g, "/"); // Replace multiple slashes with a single one
+108: }
+109: 
+110: /**
+111:  * Get the file extension
+112:  * @param path The path to get the extension from
+113:  * @returns The file extension including the dot
+114:  */
+115: export function extname(path: string | null | undefined): string {
+116:   if (!path) return "";
+117: 
+118:   const basenameValue = basename(path);
+119:   const dotIndex = basenameValue.lastIndexOf(".");
+120:   return dotIndex === -1 || dotIndex === 0 ? "" : basenameValue.slice(dotIndex);
+121: }
+122: 
+123: /**
+124:  * Generate an ASCII representation of the file tree for the selected files
+125:  * @param files Array of selected FileData objects
+126:  * @param rootPath The root directory path
+127:  * @param mode The FileTreeMode to use for generation
+128:  * @returns ASCII string representing the file tree
+129:  */
+130: export function generateAsciiFileTree(
+131:   files: { path: string }[], 
+132:   rootPath: string,
+133:   mode: FileTreeMode = "selected"
+134: ): string {
+135:   if (!files.length) return "No files selected.";
+136: 
+137:   // Normalize the root path for consistent path handling
+138:   const normalizedRoot = rootPath.replace(/\\/g, "/").replace(/\/$/, "");
+139:   
+140:   // Create a tree structure from the file paths
+141:   interface TreeNode {
+142:     name: string;
+143:     isFile: boolean;
+144:     children: Record<string, TreeNode>;
+145:     // Add a flag to identify if this node contains a selected file
+146:     hasSelectedFile?: boolean;
+147:   }
+148:   
+149:   const root: TreeNode = { 
+150:     name: basename(normalizedRoot), 
+151:     isFile: false, 
+152:     children: {},
+153:     hasSelectedFile: false
+154:   };
+155:   
+156:   // Insert a file path into the tree
+157:   const insertPath = (filePath: string, node: TreeNode, isSelected: boolean = true) => {
+158:     const normalizedPath = filePath.replace(/\\/g, "/");
+159:     if (!normalizedPath.startsWith(normalizedRoot)) return;
+160:     
+161:     const relativePath = normalizedPath.substring(normalizedRoot.length).replace(/^\//, "");
+162:     if (!relativePath) return;
+163:     
+164:     const pathParts = relativePath.split("/");
+165:     let currentNode = node;
+166:     
+167:     for (let i = 0; i < pathParts.length; i++) {
+168:       const part = pathParts[i];
+169:       const isFile = i === pathParts.length - 1;
+170:       
+171:       if (!currentNode.children[part]) {
+172:         currentNode.children[part] = {
+173:           name: part,
+174:           isFile,
+175:           children: {},
+176:           hasSelectedFile: isSelected && isFile
+177:         };
+178:       }
+179:       
+180:       // If this file is selected, mark this node and all parent nodes
+181:       if (isSelected && isFile && i === pathParts.length - 1) {
+182:         currentNode.children[part].hasSelectedFile = true;
+183:       }
+184:       
+185:       currentNode = currentNode.children[part];
+186:     }
+187:     
+188:     // Mark parent directories as having selected files
+189:     if (isSelected) {
+190:       let tempNode = node;
+191:       for (let i = 0; i < pathParts.length - 1; i++) {
+192:         const part = pathParts[i];
+193:         if (tempNode.children[part]) {
+194:           tempNode.children[part].hasSelectedFile = true;
+195:           tempNode = tempNode.children[part];
+196:         }
+197:       }
+198:     }
+199:   };
+200:   
+201:   // Insert files into the tree based on the mode
+202:   if (mode === "complete") {
+203:     // In complete mode, insert all files, marking the selected ones
+204:     files.forEach(file => {
+205:       // Determine if this file is among the selected files
+206:       // This requires a full list of files, where some might be selected and others not
+207:       const isSelected = "selected" in file ? Boolean(file.selected) : true;
+208:       insertPath(file.path, root, isSelected);
+209:     });
+210:   } else {
+211:     // In selected mode or selected-with-roots mode, all files we're given are selected
+212:     files.forEach(file => insertPath(file.path, root, true));
+213:   }
+214:   
+215:   // Generate ASCII representation
+216:   const generateAscii = (node: TreeNode, prefix = "", isLast = true, isRoot = true): string => {
+217:     // For selected-with-roots mode, only include nodes that have selected files
+218:     if (mode === "selected-with-roots" && !node.hasSelectedFile && !isRoot) {
+219:       return "";
+220:     }
+221:     
+222:     if (!isRoot) {
+223:       let result = prefix;
+224:       result += isLast ? "└── " : "├── ";
+225:       result += node.name;
+226:       
+227:       // In complete mode, mark selected files with a '*'
+228:       if (mode === "complete" && node.hasSelectedFile && node.isFile) {
+229:         result += " *";
+230:       }
+231:       
+232:       result += "\n";
+233:       prefix += isLast ? "    " : "│   ";
+234:       
+235:       const children = Object.values(node.children).sort((a, b) => {
+236:         // Sort by type (directories first) then by name
+237:         if (a.isFile !== b.isFile) {
+238:           return a.isFile ? 1 : -1;
+239:         }
+240:         return a.name.localeCompare(b.name);
+241:       });
+242:       
+243:       return result + children
+244:         .map((child, index) =>
+245:           generateAscii(child, prefix, index === children.length - 1, false)
+246:         )
+247:         .join("");
+248:     } else {
+249:       // Root node special handling
+250:       const children = Object.values(node.children).sort((a, b) => {
+251:         // Sort by type (directories first) then by name
+252:         if (a.isFile !== b.isFile) {
+253:           return a.isFile ? 1 : -1;
+254:         }
+255:         return a.name.localeCompare(b.name);
+256:       });
+257:       
+258:       return children
+259:         .map((child, index) => {
+260:           // For selected-with-roots mode, only include nodes that have selected files
+261:           if (mode === "selected-with-roots" && !child.hasSelectedFile) {
+262:             return "";
+263:           }
+264:           return generateAscii(child, prefix, index === children.length - 1, false);
+265:         })
+266:         .join("");
+267:     }
+268:   };
+269:   
+270:   return generateAscii(root);
+271: }
 ```
 
 ## File: src/components/ui/Button/index.ts
@@ -2205,58 +2571,6 @@ src/
 114: export default FileCard;
 ```
 
-## File: src/components/FileList.tsx
-```typescript
- 1: import React from "react";
- 2: import { FileListProps, FileData } from "../types/FileTypes";
- 3: import FileCard from "./FileCard";
- 4: import { arePathsEqual } from "../utils/pathUtils";
- 5: import styles from "./FileList.module.css";
- 6: 
- 7: const FileList = ({
- 8:   files,
- 9:   selectedFiles,
-10:   toggleFileSelection,
-11: }: FileListProps) => {
-12:   // Only show files that are in the selectedFiles array and not binary/skipped
-13:   const displayableFiles = files.filter(
-14:     (file: FileData) =>
-15:       selectedFiles.some(selectedPath => arePathsEqual(selectedPath, file.path)) && 
-16:       !file.isBinary && 
-17:       !file.isSkipped,
-18:   );
-19: 
-20:   // Find the maximum token count for relative scaling
-21:   const maxTokenCount = displayableFiles.length > 0
-22:     ? Math.max(...displayableFiles.map(file => file.tokenCount))
-23:     : 5000; // Default if no files
-24: 
-25:   return (
-26:     <div className={styles.fileListContainer}>
-27:       {displayableFiles.length > 0 ? (
-28:         <div className={styles.fileList}>
-29:           {displayableFiles.map((file) => (
-30:             <FileCard
-31:               key={file.path}
-32:               file={file}
-33:               isSelected={true} // Always true since we're already filtering for selected files
-34:               toggleSelection={toggleFileSelection}
-35:               maxTokenCount={maxTokenCount}
-36:             />
-37:           ))}
-38:         </div>
-39:       ) : (
-40:         <div className={styles.fileListEmpty}>
-41:           No files selected. Select files from the sidebar to see them here.
-42:         </div>
-43:       )}
-44:     </div>
-45:   );
-46: };
-47: 
-48: export default FileList;
-```
-
 ## File: src/components/SearchBar.module.css
 ```css
  1: .searchBarWrapper {
@@ -2449,45 +2763,6 @@ src/
 112: }
 ```
 
-## File: src/components/UserInstructions.tsx
-```typescript
- 1: import React from "react";
- 2: import styles from "./UserInstructions.module.css";
- 3: 
- 4: interface UserInstructionsProps {
- 5:   instructions: string;
- 6:   setInstructions: (value: string) => void;
- 7: }
- 8: 
- 9: const UserInstructions = ({
-10:   instructions,
-11:   setInstructions,
-12: }: UserInstructionsProps): JSX.Element => {
-13:   return (
-14:     <>
-15:       <div className={styles.userInstructionsHeader}>
-16:         <label className="content-title" htmlFor="userInstructionsInput">
-17:           User Instructions
-18:         </label>
-19:       </div>
-20:       <div className={styles.userInstructionsContainer}>
-21:         <div className={styles.userInstructions}>
-22:           <textarea
-23:             id="userInstructionsInput"
-24:             value={instructions}
-25:             onChange={(e) => setInstructions(e.target.value)}
-26:             placeholder="Add instructions to pass to the LLM about how to transform the content..."
-27:             className={styles.textarea}
-28:           />
-29:         </div>
-30:       </div>
-31:     </>
-32:   );
-33: };
-34: 
-35: export default UserInstructions;
-```
-
 ## File: src/utils/cn.ts
 ```typescript
  1: /**
@@ -2511,281 +2786,6 @@ src/
 19:     .join(' ')
 20:     .trim();
 21: }
-```
-
-## File: src/utils/pathUtils.ts
-```typescript
-  1: /**
-  2:  * Browser-compatible path utilities to replace Node.js path module
-  3:  */
-  4: 
-  5: import { FileTreeMode } from "../types/FileTypes";
-  6: 
-  7: /**
-  8:  * Normalizes a file path to use forward slashes regardless of operating system
-  9:  * This helps with path comparison across different platforms
- 10:  * 
- 11:  * @param filePath The file path to normalize
- 12:  * @returns The normalized path with forward slashes
- 13:  */
- 14: export function normalizePath(filePath: string): string {
- 15:   if (!filePath) return filePath;
- 16:   
- 17:   // Replace backslashes with forward slashes
- 18:   return filePath.replace(/\\/g, '/');
- 19: }
- 20: 
- 21: /**
- 22:  * Detects the operating system
- 23:  * 
- 24:  * @returns The detected operating system ('windows', 'mac', 'linux', or 'unknown')
- 25:  */
- 26: export function detectOS(): 'windows' | 'mac' | 'linux' | 'unknown' {
- 27:   if (typeof window !== 'undefined' && window.navigator) {
- 28:     const platform = window.navigator.platform.toLowerCase();
- 29:     
- 30:     if (platform.includes('win')) {
- 31:       return 'windows';
- 32:     } else if (platform.includes('mac')) {
- 33:       return 'mac';
- 34:     } else if (platform.includes('linux')) {
- 35:       return 'linux';
- 36:     }
- 37:   }
- 38:   
- 39:   return 'unknown';
- 40: }
- 41: 
- 42: /**
- 43:  * Compares two paths for equality, handling different OS path separators
- 44:  * 
- 45:  * @param path1 First path to compare
- 46:  * @param path2 Second path to compare
- 47:  * @returns True if the paths are equivalent, false otherwise
- 48:  */
- 49: export function arePathsEqual(path1: string, path2: string): boolean {
- 50:   return normalizePath(path1) === normalizePath(path2);
- 51: }
- 52: 
- 53: /**
- 54:  * Extract the basename from a path string
- 55:  * @param path The path to extract the basename from
- 56:  * @returns The basename (last part of the path)
- 57:  */
- 58: export function basename(path: string | null | undefined): string {
- 59:   if (!path) return "";
- 60: 
- 61:   // Ensure path is a string
- 62:   const pathStr = String(path);
- 63: 
- 64:   // Handle both forward and backslashes
- 65:   const normalizedPath = pathStr.replace(/\\/g, "/");
- 66:   // Remove trailing slashes
- 67:   const trimmedPath = normalizedPath.endsWith("/")
- 68:     ? normalizedPath.slice(0, -1)
- 69:     : normalizedPath;
- 70:   // Get the last part after the final slash
- 71:   const parts = trimmedPath.split("/");
- 72:   return parts[parts.length - 1] || "";
- 73: }
- 74: 
- 75: /**
- 76:  * Extract the directory name from a path string
- 77:  * @param path The path to extract the directory from
- 78:  * @returns The directory (everything except the last part)
- 79:  */
- 80: export function dirname(path: string | null | undefined): string {
- 81:   if (!path) return ".";
- 82: 
- 83:   // Ensure path is a string
- 84:   const pathStr = String(path);
- 85: 
- 86:   // Handle both forward and backslashes
- 87:   const normalizedPath = pathStr.replace(/\\/g, "/");
- 88:   // Remove trailing slashes
- 89:   const trimmedPath = normalizedPath.endsWith("/")
- 90:     ? normalizedPath.slice(0, -1)
- 91:     : normalizedPath;
- 92:   // Get everything before the final slash
- 93:   const lastSlashIndex = trimmedPath.lastIndexOf("/");
- 94:   return lastSlashIndex === -1 ? "." : trimmedPath.slice(0, lastSlashIndex);
- 95: }
- 96: 
- 97: /**
- 98:  * Join path segments together
- 99:  * @param segments The path segments to join
-100:  * @returns The joined path
-101:  */
-102: export function join(...segments: (string | null | undefined)[]): string {
-103:   return segments
-104:     .filter(Boolean)
-105:     .map((seg) => String(seg))
-106:     .join("/")
-107:     .replace(/\/+/g, "/"); // Replace multiple slashes with a single one
-108: }
-109: 
-110: /**
-111:  * Get the file extension
-112:  * @param path The path to get the extension from
-113:  * @returns The file extension including the dot
-114:  */
-115: export function extname(path: string | null | undefined): string {
-116:   if (!path) return "";
-117: 
-118:   const basenameValue = basename(path);
-119:   const dotIndex = basenameValue.lastIndexOf(".");
-120:   return dotIndex === -1 || dotIndex === 0 ? "" : basenameValue.slice(dotIndex);
-121: }
-122: 
-123: /**
-124:  * Generate an ASCII representation of the file tree for the selected files
-125:  * @param files Array of selected FileData objects
-126:  * @param rootPath The root directory path
-127:  * @param mode The FileTreeMode to use for generation
-128:  * @returns ASCII string representing the file tree
-129:  */
-130: export function generateAsciiFileTree(
-131:   files: { path: string }[], 
-132:   rootPath: string,
-133:   mode: FileTreeMode = "selected"
-134: ): string {
-135:   if (!files.length) return "No files selected.";
-136: 
-137:   // Normalize the root path for consistent path handling
-138:   const normalizedRoot = rootPath.replace(/\\/g, "/").replace(/\/$/, "");
-139:   
-140:   // Create a tree structure from the file paths
-141:   interface TreeNode {
-142:     name: string;
-143:     isFile: boolean;
-144:     children: Record<string, TreeNode>;
-145:     // Add a flag to identify if this node contains a selected file
-146:     hasSelectedFile?: boolean;
-147:   }
-148:   
-149:   const root: TreeNode = { 
-150:     name: basename(normalizedRoot), 
-151:     isFile: false, 
-152:     children: {},
-153:     hasSelectedFile: false
-154:   };
-155:   
-156:   // Insert a file path into the tree
-157:   const insertPath = (filePath: string, node: TreeNode, isSelected: boolean = true) => {
-158:     const normalizedPath = filePath.replace(/\\/g, "/");
-159:     if (!normalizedPath.startsWith(normalizedRoot)) return;
-160:     
-161:     const relativePath = normalizedPath.substring(normalizedRoot.length).replace(/^\//, "");
-162:     if (!relativePath) return;
-163:     
-164:     const pathParts = relativePath.split("/");
-165:     let currentNode = node;
-166:     
-167:     for (let i = 0; i < pathParts.length; i++) {
-168:       const part = pathParts[i];
-169:       const isFile = i === pathParts.length - 1;
-170:       
-171:       if (!currentNode.children[part]) {
-172:         currentNode.children[part] = {
-173:           name: part,
-174:           isFile,
-175:           children: {},
-176:           hasSelectedFile: isSelected && isFile
-177:         };
-178:       }
-179:       
-180:       // If this file is selected, mark this node and all parent nodes
-181:       if (isSelected && isFile && i === pathParts.length - 1) {
-182:         currentNode.children[part].hasSelectedFile = true;
-183:       }
-184:       
-185:       currentNode = currentNode.children[part];
-186:     }
-187:     
-188:     // Mark parent directories as having selected files
-189:     if (isSelected) {
-190:       let tempNode = node;
-191:       for (let i = 0; i < pathParts.length - 1; i++) {
-192:         const part = pathParts[i];
-193:         if (tempNode.children[part]) {
-194:           tempNode.children[part].hasSelectedFile = true;
-195:           tempNode = tempNode.children[part];
-196:         }
-197:       }
-198:     }
-199:   };
-200:   
-201:   // Insert files into the tree based on the mode
-202:   if (mode === "complete") {
-203:     // In complete mode, insert all files, marking the selected ones
-204:     files.forEach(file => {
-205:       // Determine if this file is among the selected files
-206:       // This requires a full list of files, where some might be selected and others not
-207:       const isSelected = "selected" in file ? Boolean(file.selected) : true;
-208:       insertPath(file.path, root, isSelected);
-209:     });
-210:   } else {
-211:     // In selected mode or selected-with-roots mode, all files we're given are selected
-212:     files.forEach(file => insertPath(file.path, root, true));
-213:   }
-214:   
-215:   // Generate ASCII representation
-216:   const generateAscii = (node: TreeNode, prefix = "", isLast = true, isRoot = true): string => {
-217:     // For selected-with-roots mode, only include nodes that have selected files
-218:     if (mode === "selected-with-roots" && !node.hasSelectedFile && !isRoot) {
-219:       return "";
-220:     }
-221:     
-222:     if (!isRoot) {
-223:       let result = prefix;
-224:       result += isLast ? "└── " : "├── ";
-225:       result += node.name;
-226:       
-227:       // In complete mode, mark selected files with a '*'
-228:       if (mode === "complete" && node.hasSelectedFile && node.isFile) {
-229:         result += " *";
-230:       }
-231:       
-232:       result += "\n";
-233:       prefix += isLast ? "    " : "│   ";
-234:       
-235:       const children = Object.values(node.children).sort((a, b) => {
-236:         // Sort by type (directories first) then by name
-237:         if (a.isFile !== b.isFile) {
-238:           return a.isFile ? 1 : -1;
-239:         }
-240:         return a.name.localeCompare(b.name);
-241:       });
-242:       
-243:       return result + children
-244:         .map((child, index) =>
-245:           generateAscii(child, prefix, index === children.length - 1, false)
-246:         )
-247:         .join("");
-248:     } else {
-249:       // Root node special handling
-250:       const children = Object.values(node.children).sort((a, b) => {
-251:         // Sort by type (directories first) then by name
-252:         if (a.isFile !== b.isFile) {
-253:           return a.isFile ? 1 : -1;
-254:         }
-255:         return a.name.localeCompare(b.name);
-256:       });
-257:       
-258:       return children
-259:         .map((child, index) => {
-260:           // For selected-with-roots mode, only include nodes that have selected files
-261:           if (mode === "selected-with-roots" && !child.hasSelectedFile) {
-262:             return "";
-263:           }
-264:           return generateAscii(child, prefix, index === children.length - 1, false);
-265:         })
-266:         .join("");
-267:     }
-268:   };
-269:   
-270:   return generateAscii(root);
-271: }
 ```
 
 ## File: src/declarations.d.ts
@@ -2842,333 +2842,6 @@ src/
 50:   export type ChangeEvent<T = Element> = React.ChangeEvent<T>;
 51:   export type ReactElement = React.ReactElement;
 52: }
-```
-
-## File: src/components/IgnorePatterns.module.css
-```css
-  1: .modal {
-  2:   position: fixed;
-  3:   top: 0;
-  4:   left: 0;
-  5:   width: 100%;
-  6:   height: 100%;
-  7:   background-color: rgba(0, 0, 0, 0.5);
-  8:   display: flex;
-  9:   justify-content: center;
- 10:   align-items: center;
- 11:   z-index: var(--z-index-modal);
- 12: }
- 13: 
- 14: .content {
- 15:   background-color: var(--background-primary);
- 16:   border-radius: var(--radius);
- 17:   width: 90%;
- 18:   max-width: 700px;
- 19:   max-height: 90vh;
- 20:   padding: 24px;
- 21:   box-shadow: var(--shadow-lg);
- 22:   overflow-y: auto;
- 23: }
- 24: 
- 25: .header {
- 26:   display: flex;
- 27:   justify-content: space-between;
- 28:   align-items: center;
- 29:   margin-bottom: 16px;
- 30: }
- 31: 
- 32: .header h2 {
- 33:   margin: 0;
- 34:   font-size: 1.5rem;
- 35:   color: var(--text-primary);
- 36: }
- 37: 
- 38: .description {
- 39:   margin-bottom: 16px;
- 40:   font-size: 0.9rem;
- 41:   color: var(--text-secondary);
- 42:   line-height: 1.4;
- 43: }
- 44: 
- 45: .scopeSelector {
- 46:   display: flex;
- 47:   margin-bottom: 12px;
- 48:   border-bottom: 1px solid var(--border-color);
- 49:   padding: 0 4px;
- 50:   gap: 1px;
- 51: }
- 52: 
- 53: .scopeBtn {
- 54:   flex: 1;
- 55:   border-radius: var(--radius) var(--radius) 0 0 !important;
- 56:   font-size: 0.95rem !important;
- 57:   padding: 10px 15px !important;
- 58:   transition: all 0.15s ease-out;
- 59: }
- 60: 
- 61: .scopeBtn:first-child {
- 62:   border-top-right-radius: 0 !important;
- 63: }
- 64: 
- 65: .scopeBtn:last-child {
- 66:   border-top-left-radius: 0 !important;
- 67: }
- 68: 
- 69: .scopeBtn:hover {
- 70:   background-color: var(--hover-color);
- 71:   opacity: 0.9;
- 72: }
- 73: 
- 74: .scopeBtn.active {
- 75:   font-weight: 500 !important;
- 76:   position: relative;
- 77: }
- 78: 
- 79: .scopeBtn.active::after {
- 80:   content: "";
- 81:   position: absolute;
- 82:   bottom: -1px;
- 83:   left: 0;
- 84:   width: 100%;
- 85:   height: 2px;
- 86:   background-color: var(--accent-color);
- 87: }
- 88: 
- 89: .scopeDescription {
- 90:   margin-bottom: 16px;
- 91:   font-size: 0.85rem;
- 92:   color: var(--text-secondary);
- 93:   padding: 0 8px;
- 94: }
- 95: 
- 96: .folderSelector {
- 97:   margin-bottom: 16px;
- 98: }
- 99: 
-100: .folderSelector label {
-101:   display: block;
-102:   margin-bottom: 6px;
-103:   font-size: 0.9rem;
-104:   font-weight: 500;
-105:   color: var(--text-primary);
-106: }
-107: 
-108: .customSelect {
-109:   position: relative;
-110:   width: 100%;
-111:   cursor: pointer;
-112: }
-113: 
-114: .selectedValue {
-115:   display: flex;
-116:   justify-content: space-between;
-117:   align-items: center;
-118:   padding: 10px 12px;
-119:   background-color: var(--background-secondary);
-120:   border: 1px solid var(--border-color);
-121:   border-radius: var(--radius);
-122:   font-size: 0.9rem;
-123:   transition: border-color 0.2s;
-124: }
-125: 
-126: .selectedValue:hover {
-127:   border-color: var(--accent-color);
-128: }
-129: 
-130: .chevron {
-131:   transition: transform 0.2s;
-132: }
-133: 
-134: .chevron.open {
-135:   transform: rotate(180deg);
-136: }
-137: 
-138: .optionsContainer {
-139:   position: absolute;
-140:   top: 100%;
-141:   left: 0;
-142:   right: 0;
-143:   background-color: var(--background-primary);
-144:   border: 1px solid var(--border-color);
-145:   border-radius: var(--radius);
-146:   box-shadow: var(--shadow-md);
-147:   z-index: var(--z-index-dropdown);
-148:   max-height: 200px;
-149:   overflow-y: auto;
-150: }
-151: 
-152: .option {
-153:   padding: 8px 12px;
-154:   font-size: 0.9rem;
-155:   cursor: pointer;
-156: }
-157: 
-158: .option:hover {
-159:   background-color: var(--hover-color);
-160: }
-161: 
-162: .pathDisplay {
-163:   margin-top: 4px;
-164:   font-size: 0.8rem;
-165:   color: var(--text-secondary);
-166:   font-family: monospace;
-167: }
-168: 
-169: .patternsSection {
-170:   margin-bottom: 20px;
-171: }
-172: 
-173: .patternsInput {
-174:   width: 100%;
-175:   height: 200px;
-176:   font-family: monospace;
-177:   font-size: 14px;
-178:   padding: 12px;
-179:   background-color: var(--background-primary);
-180:   color: var(--text-primary);
-181:   border: 1px solid var(--border-color);
-182:   border-radius: var(--radius);
-183:   resize: vertical;
-184: }
-185: 
-186: .patternsInput:focus {
-187:   outline: none;
-188:   border-color: var(--accent-color);
-189:   box-shadow: 0 0 0 1px var(--accent-color);
-190: }
-191: 
-192: .patternComment {
-193:   color: var(--text-secondary);
-194: }
-195: 
-196: .patternsHelp {
-197:   margin-top: 8px;
-198:   font-size: 0.8rem;
-199:   color: var(--text-secondary);
-200: }
-201: 
-202: .patternsHelp p {
-203:   margin: 4px 0;
-204: }
-205: 
-206: .modalStatus {
-207:   margin-bottom: 16px;
-208:   min-height: 20px;
-209: }
-210: 
-211: .unsaved {
-212:   color: var(--warning-color);
-213:   font-size: 0.85rem;
-214: }
-215: 
-216: .modalActions {
-217:   display: flex;
-218:   justify-content: center;
-219:   gap: 12px;
-220:   margin-top: 24px;
-221:   padding: 0 12px;
-222: }
-223: 
-224: .modalActions button {
-225:   min-width: 100px;
-226: }
-227: 
-228: .destructiveIcon {
-229:   color: var(--error-color);
-230: }
-231: 
-232: /* We'll override these with our Button component */
-233: 
-234: .systemPatterns {
-235:   margin-top: 16px;
-236:   padding: 12px;
-237:   background-color: var(--background-secondary);
-238:   border: 1px solid var(--border-color);
-239:   border-radius: var(--radius);
-240: }
-241: 
-242: .systemPatterns h3 {
-243:   margin: 0 0 12px 0;
-244:   font-size: 1rem;
-245:   color: var(--text-primary);
-246: }
-247: 
-248: .systemPatternsList {
-249:   display: flex;
-250:   flex-direction: column;
-251:   gap: 8px;
-252:   max-height: 200px;
-253:   overflow-y: auto;
-254: }
-255: 
-256: .systemPatternItem {
-257:   display: flex;
-258:   align-items: center;
-259:   gap: 8px;
-260:   padding: 4px 8px;
-261:   border-radius: var(--radius);
-262:   cursor: pointer;
-263:   transition: background-color 0.15s;
-264:   user-select: none;
-265: }
-266: 
-267: .systemPatternItem:hover {
-268:   background-color: var(--hover-color);
-269: }
-270: 
-271: .toggleButton {
-272:   display: flex;
-273:   align-items: center;
-274:   justify-content: center;
-275:   padding: 4px;
-276:   background: none;
-277:   border: 1px solid var(--border-color);
-278:   border-radius: var(--radius);
-279:   color: var(--text-primary);
-280:   cursor: pointer;
-281:   transition: all 0.15s;
-282: }
-283: 
-284: .toggleButton:hover {
-285:   background-color: var(--hover-color);
-286:   border-color: var(--accent-color);
-287: }
-288: 
-289: .disabledPattern {
-290:   color: var(--text-secondary);
-291:   text-decoration: line-through;
-292: }
-293: 
-294: .previewContainer {
-295:   margin-top: 16px;
-296:   padding: 12px;
-297:   background-color: var(--background-secondary);
-298:   border: 1px solid var(--border-color);
-299:   border-radius: var(--radius);
-300: }
-301: 
-302: .previewContainer h4 {
-303:   margin: 0 0 12px 0;
-304:   font-size: 0.9rem;
-305:   color: var(--text-primary);
-306: }
-307: 
-308: .patternPreview {
-309:   font-family: monospace;
-310:   font-size: 13px;
-311:   max-height: 150px;
-312:   overflow-y: auto;
-313: }
-314: 
-315: .previewLine {
-316:   padding: 2px 0;
-317:   color: var(--text-primary);
-318: }
-319: 
-320: .previewLine.disabled {
-321:   color: var(--text-secondary);
-322:   text-decoration: line-through;
-323: }
 ```
 
 ## File: src/components/Sidebar.module.css
@@ -3893,13 +3566,480 @@ src/
 7: export * from './Dropdown';
 ```
 
+## File: src/components/IgnorePatterns.module.css
+```css
+  1: .modal {
+  2:   position: fixed;
+  3:   top: 0;
+  4:   left: 0;
+  5:   width: 100%;
+  6:   height: 100%;
+  7:   background-color: rgba(0, 0, 0, 0.5);
+  8:   display: flex;
+  9:   justify-content: center;
+ 10:   align-items: center;
+ 11:   z-index: var(--z-index-modal);
+ 12:   backdrop-filter: blur(4px);
+ 13:   animation: fadeIn 0.2s ease-out;
+ 14: }
+ 15: 
+ 16: .content {
+ 17:   background-color: var(--background-primary);
+ 18:   border-radius: var(--radius-lg);
+ 19:   width: 90%;
+ 20:   max-width: 700px;
+ 21:   max-height: 85vh;
+ 22:   padding: 1.5rem;
+ 23:   box-shadow: var(--shadow-lg);
+ 24:   overflow-y: auto;
+ 25:   animation: slideUp 0.2s ease-out;
+ 26: }
+ 27: 
+ 28: .header {
+ 29:   display: flex;
+ 30:   justify-content: space-between;
+ 31:   align-items: center;
+ 32:   margin-bottom: 16px;
+ 33: }
+ 34: 
+ 35: .header h2 {
+ 36:   margin: 0;
+ 37:   font-size: 1.5rem;
+ 38:   color: var(--text-primary);
+ 39: }
+ 40: 
+ 41: .description {
+ 42:   margin-bottom: 16px;
+ 43:   font-size: 0.9rem;
+ 44:   color: var(--text-secondary);
+ 45:   line-height: 1.4;
+ 46: }
+ 47: 
+ 48: .scopeSelector {
+ 49:   display: flex;
+ 50:   margin-bottom: 12px;
+ 51:   border-bottom: 1px solid var(--border-color);
+ 52:   padding: 0 4px;
+ 53:   gap: 1px;
+ 54: }
+ 55: 
+ 56: .scopeBtn {
+ 57:   flex: 1;
+ 58:   border-radius: var(--radius) var(--radius) 0 0 !important;
+ 59:   font-size: 0.95rem !important;
+ 60:   padding: 10px 15px !important;
+ 61:   transition: all 0.15s ease-out;
+ 62: }
+ 63: 
+ 64: .scopeBtn:first-child {
+ 65:   border-top-right-radius: 0 !important;
+ 66: }
+ 67: 
+ 68: .scopeBtn:last-child {
+ 69:   border-top-left-radius: 0 !important;
+ 70: }
+ 71: 
+ 72: .scopeBtn:hover {
+ 73:   background-color: var(--hover-color);
+ 74:   opacity: 0.9;
+ 75: }
+ 76: 
+ 77: .scopeBtn.active {
+ 78:   font-weight: 500 !important;
+ 79:   position: relative;
+ 80: }
+ 81: 
+ 82: .scopeBtn.active::after {
+ 83:   content: "";
+ 84:   position: absolute;
+ 85:   bottom: -1px;
+ 86:   left: 0;
+ 87:   width: 100%;
+ 88:   height: 2px;
+ 89:   background-color: var(--accent-color);
+ 90: }
+ 91: 
+ 92: .scopeDescription {
+ 93:   margin-bottom: 16px;
+ 94:   font-size: 0.85rem;
+ 95:   color: var(--text-secondary);
+ 96:   padding: 0 8px;
+ 97: }
+ 98: 
+ 99: .folderSelector {
+100:   margin-bottom: 16px;
+101: }
+102: 
+103: .folderSelector label {
+104:   display: block;
+105:   margin-bottom: 6px;
+106:   font-size: 0.9rem;
+107:   font-weight: 500;
+108:   color: var(--text-primary);
+109: }
+110: 
+111: .customSelect {
+112:   position: relative;
+113:   width: 100%;
+114:   cursor: pointer;
+115: }
+116: 
+117: .selectedValue {
+118:   display: flex;
+119:   justify-content: space-between;
+120:   align-items: center;
+121:   padding: 10px 12px;
+122:   background-color: var(--background-secondary);
+123:   border: 1px solid var(--border-color);
+124:   border-radius: var(--radius);
+125:   font-size: 0.9rem;
+126:   transition: border-color 0.2s;
+127: }
+128: 
+129: .selectedValue:hover {
+130:   border-color: var(--accent-color);
+131: }
+132: 
+133: .chevron {
+134:   transition: transform 0.2s;
+135: }
+136: 
+137: .chevron.open {
+138:   transform: rotate(180deg);
+139: }
+140: 
+141: .optionsContainer {
+142:   position: absolute;
+143:   top: 100%;
+144:   left: 0;
+145:   right: 0;
+146:   background-color: var(--background-primary);
+147:   border: 1px solid var(--border-color);
+148:   border-radius: var(--radius);
+149:   box-shadow: var(--shadow-md);
+150:   z-index: var(--z-index-dropdown);
+151:   max-height: 200px;
+152:   overflow-y: auto;
+153: }
+154: 
+155: .option {
+156:   padding: 8px 12px;
+157:   font-size: 0.9rem;
+158:   cursor: pointer;
+159: }
+160: 
+161: .option:hover {
+162:   background-color: var(--hover-color);
+163: }
+164: 
+165: .pathDisplay {
+166:   margin-top: 4px;
+167:   font-size: 0.8rem;
+168:   color: var(--text-secondary);
+169:   font-family: monospace;
+170: }
+171: 
+172: .patternsSection {
+173:   margin-bottom: 20px;
+174: }
+175: 
+176: .patternsInput {
+177:   width: 100%;
+178:   height: 200px;
+179:   font-family: monospace;
+180:   font-size: 14px;
+181:   padding: 12px;
+182:   background-color: var(--background-primary);
+183:   color: var(--text-primary);
+184:   border: 1px solid var(--border-color);
+185:   border-radius: var(--radius);
+186:   resize: vertical;
+187: }
+188: 
+189: .patternsInput:focus {
+190:   outline: none;
+191:   border-color: var(--accent-color);
+192:   box-shadow: 0 0 0 1px var(--accent-color);
+193: }
+194: 
+195: .patternComment {
+196:   color: var(--text-secondary);
+197: }
+198: 
+199: .patternsHelp {
+200:   margin-top: 8px;
+201:   font-size: 0.8rem;
+202:   color: var(--text-secondary);
+203: }
+204: 
+205: .patternsHelp p {
+206:   margin: 4px 0;
+207: }
+208: 
+209: .modalStatus {
+210:   margin-bottom: 16px;
+211:   min-height: 20px;
+212: }
+213: 
+214: .unsaved {
+215:   color: var(--warning-color);
+216:   font-size: 0.85rem;
+217: }
+218: 
+219: .modalActions {
+220:   display: flex;
+221:   justify-content: center;
+222:   gap: 12px;
+223:   margin-top: 24px;
+224:   padding: 0 12px;
+225: }
+226: 
+227: .modalActions button {
+228:   min-width: 100px;
+229: }
+230: 
+231: .destructiveIcon {
+232:   color: var(--error-color);
+233: }
+234: 
+235: /* We'll override these with our Button component */
+236: 
+237: .systemPatterns {
+238:   margin-top: 16px;
+239:   padding: 12px;
+240:   background-color: var(--background-secondary);
+241:   border: 1px solid var(--border-color);
+242:   border-radius: var(--radius);
+243: }
+244: 
+245: .systemPatterns h3 {
+246:   margin: 0 0 12px 0;
+247:   font-size: 1rem;
+248:   color: var(--text-primary);
+249: }
+250: 
+251: .systemPatternsList {
+252:   display: flex;
+253:   flex-direction: column;
+254:   gap: 8px;
+255:   max-height: 200px;
+256:   overflow-y: auto;
+257: }
+258: 
+259: .systemPatternItem {
+260:   display: flex;
+261:   justify-content: space-between;
+262:   align-items: center;
+263:   padding: 4px 8px;
+264:   font-family: monospace;
+265:   font-size: 13px;
+266:   transition: background-color 0.15s ease;
+267:   border-radius: var(--radius);
+268: }
+269: 
+270: .systemPatternItem:hover {
+271:   background-color: var(--hover-color);
+272: }
+273: 
+274: .toggleButton {
+275:   display: flex;
+276:   align-items: center;
+277:   justify-content: center;
+278:   padding: 4px;
+279:   background: none;
+280:   border: 1px solid var(--border-color);
+281:   border-radius: var(--radius);
+282:   color: var(--text-primary);
+283:   cursor: pointer;
+284:   transition: all 0.15s;
+285: }
+286: 
+287: .toggleButton:hover {
+288:   background-color: var(--hover-color);
+289:   border-color: var(--accent-color);
+290: }
+291: 
+292: .disabledPattern {
+293:   color: var(--text-secondary);
+294:   text-decoration: line-through;
+295: }
+296: 
+297: .previewContainer {
+298:   background-color: var(--background-secondary);
+299:   border: 1px solid var(--border-color);
+300:   border-radius: var(--radius);
+301:   padding: 12px;
+302:   max-height: 150px;
+303:   overflow-y: auto;
+304:   margin-top: 16px;
+305:   font-family: monospace;
+306:   font-size: 13px;
+307: }
+308: 
+309: .previewHeader {
+310:   display: flex;
+311:   justify-content: space-between;
+312:   align-items: center;
+313:   margin-bottom: 8px;
+314:   font-weight: 500;
+315:   font-size: 14px;
+316: }
+317: 
+318: .previewLine {
+319:   padding: 2px 0;
+320: }
+321: 
+322: .previewSystem {
+323:   color: var(--accent-color);
+324: }
+325: 
+326: .previewGlobal {
+327:   color: var(--text-primary);
+328: }
+329: 
+330: .previewLocal {
+331:   color: var(--success-color);
+332: }
+333: 
+334: .previewBadge {
+335:   display: inline-block;
+336:   font-size: 10px;
+337:   padding: 1px 4px;
+338:   border-radius: 4px;
+339:   margin-left: 8px;
+340:   background-color: var(--background-secondary);
+341:   color: var(--text-secondary);
+342: }
+343: 
+344: .notification {
+345:   position: fixed;
+346:   bottom: 20px;
+347:   right: 20px;
+348:   padding: 12px 16px;
+349:   border-radius: var(--radius);
+350:   background-color: var(--background-primary);
+351:   color: var(--text-primary);
+352:   box-shadow: var(--shadow-md);
+353:   transform: translateY(100%);
+354:   opacity: 0;
+355:   transition: transform 0.3s ease, opacity 0.3s ease;
+356:   z-index: var(--z-index-modal);
+357: }
+358: 
+359: .notification.visible {
+360:   transform: translateY(0);
+361:   opacity: 1;
+362: }
+363: 
+364: .notification.success {
+365:   border-left: 4px solid var(--success-color);
+366: }
+367: 
+368: .notification.error {
+369:   border-left: 4px solid var(--error-color);
+370: }
+371: 
+372: @keyframes slideIn {
+373:   from {
+374:     transform: scaleX(0);
+375:   }
+376:   to {
+377:     transform: scaleX(1);
+378:   }
+379: }
+380: 
+381: @keyframes fadeIn {
+382:   from {
+383:     opacity: 0;
+384:   }
+385:   to {
+386:     opacity: 1;
+387:   }
+388: }
+389: 
+390: @keyframes slideUp {
+391:   from {
+392:     opacity: 0;
+393:     transform: translateY(10px);
+394:   }
+395:   to {
+396:     opacity: 1;
+397:     transform: translateY(0);
+398:   }
+399: }
+400: 
+401: @keyframes togglePulse {
+402:   0% { transform: scale(1); }
+403:   50% { transform: scale(1.05); }
+404:   100% { transform: scale(1); }
+405: }
+406: 
+407: .patternCategory {
+408:   margin-bottom: 8px;
+409:   border: 1px solid var(--border-color);
+410:   border-radius: var(--radius);
+411:   overflow: hidden;
+412: }
+413: 
+414: .categoryHeader {
+415:   display: flex;
+416:   justify-content: space-between;
+417:   align-items: center;
+418:   padding: 10px 12px;
+419:   background-color: var(--background-secondary);
+420:   cursor: pointer;
+421:   transition: background-color 0.15s ease;
+422: }
+423: 
+424: .categoryHeader:hover {
+425:   background-color: var(--hover-color);
+426: }
+427: 
+428: .categoryTitle {
+429:   font-weight: 500;
+430:   font-size: 14px;
+431:   color: var(--text-primary);
+432: }
+433: 
+434: .categoryMeta {
+435:   display: flex;
+436:   align-items: center;
+437:   gap: 8px;
+438: }
+439: 
+440: .categoryCount {
+441:   font-size: 12px;
+442:   color: var(--text-secondary);
+443: }
+444: 
+445: .chevronRotated {
+446:   transform: rotate(180deg);
+447: }
+448: 
+449: .categoryItems {
+450:   padding: 8px 12px;
+451:   max-height: 0;
+452:   overflow: hidden;
+453:   transition: max-height 0.3s ease, padding 0.3s ease;
+454: }
+455: 
+456: .categoryExpanded .categoryItems {
+457:   max-height: 1000px;
+458:   padding: 8px 12px;
+459: }
+460: 
+461: .smallerSwitch {
+462:   transform: scale(0.9);
+463: }
+```
+
 ## File: src/components/ui/Button/Button.tsx
 ```typescript
  1: import React from 'react';
  2: import { cn } from '../../../utils/cn';
  3: import styles from './Button.module.css';
  4: 
- 5: export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'round' | 'icon';
+ 5: export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'round' | 'icon' | 'pill';
  6: export type ButtonSize = 'sm' | 'md' | 'lg';
  7: 
  8: export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -3934,7 +4074,7 @@ src/
 37:   
 38:   /**
 39:    * If true, button will have fully rounded corners (pill shape)
-40:    * Note: Round variant will always be pill-shaped regardless of this prop
+40:    * Note: This is different from the 'pill' variant which has specific styling
 41:    * @default false
 42:    */
 43:   pill?: boolean;
@@ -3947,51 +4087,50 @@ src/
 50: 
 51: /**
 52:  * Primary UI component for user interaction.
-53:  * Supports multiple variants (primary, secondary, ghost, destructive, round) and sizes.
+53:  * Supports multiple variants (primary, secondary, ghost, destructive, round, pill, icon) and sizes.
 54:  * Round variant is always pill-shaped and inherits primary colors with enhanced styling.
-55:  */
-56: export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-57:   (
-58:     {
-59:       className,
-60:       variant = 'primary',
-61:       size = 'md',
-62:       startIcon,
-63:       endIcon,
-64:       iconOnly = false,
-65:       pill = false,
-66:       children,
-67:       ...props
-68:     },
-69:     ref
-70:   ) => {
-71:     // Force pill shape for round variant
-72:     const isPill = variant === 'round' ? true : pill;
-73:     
-74:     return (
-75:       <button
-76:         className={cn(
-77:           styles.button,
-78:           // Round variant inherits primary colors but adds its own enhancements
-79:           styles[variant === 'round' ? 'primary' : variant],
+55:  * Pill variant is a compact, high-contrast tag-like button (similar to the Platform badge in the reference).
+56:  */
+57: export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+58:   (
+59:     {
+60:       className,
+61:       variant = 'primary',
+62:       size = 'md',
+63:       startIcon,
+64:       endIcon,
+65:       iconOnly = false,
+66:       pill = false,
+67:       children,
+68:       ...props
+69:     },
+70:     ref
+71:   ) => {
+72:     // Force pill shape for round variant and pill variant
+73:     const isPillShaped = variant === 'round' || variant === 'pill' || pill;
+74:     
+75:     return (
+76:       <button
+77:         className={cn(
+78:           styles.button,
+79:           styles[variant],
 80:           styles[size],
 81:           iconOnly && styles.iconOnly,
-82:           isPill && styles.pill,
-83:           variant === 'round' && styles.round,
-84:           className
-85:         )}
-86:         ref={ref}
-87:         {...props}
-88:       >
-89:         {startIcon && <span className={styles.startIcon}>{startIcon}</span>}
-90:         {children}
-91:         {endIcon && <span className={styles.endIcon}>{endIcon}</span>}
-92:       </button>
-93:     );
-94:   }
-95: );
-96: 
-97: Button.displayName = 'Button';
+82:           isPillShaped && !variant.includes('pill') && styles.pillShaped, // Apply pill shape but not pill styling
+83:           className
+84:         )}
+85:         ref={ref}
+86:         {...props}
+87:       >
+88:         {startIcon && <span className={styles.startIcon}>{startIcon}</span>}
+89:         {children}
+90:         {endIcon && <span className={styles.endIcon}>{endIcon}</span>}
+91:       </button>
+92:     );
+93:   }
+94: );
+95: 
+96: Button.displayName = 'Button';
 ```
 
 ## File: src/components/ThemeToggle.tsx
@@ -4044,277 +4183,6 @@ src/
 46: };
 47: 
 48: export default ThemeToggle;
-```
-
-## File: src/components/ui/Button/Button.module.css
-```css
-  1: .button {
-  2:   display: inline-flex;
-  3:   align-items: center;
-  4:   justify-content: center;
-  5:   cursor: pointer;
-  6:   font-family: inherit;
-  7:   font-size: 13px;
-  8:   gap: 8px;
-  9:   padding: 0 12px;
- 10:   border-radius: 6px;
- 11:   transition: all 0.15s ease;
- 12:   white-space: nowrap;
- 13:   font-weight: 500;
- 14:   height: 32px;
- 15:   background-color: var(--background-primary);
- 16:   color: var(--text-primary);
- 17:   border: 1px solid var(--border-color);
- 18: }
- 19: 
- 20: .button:hover:not(:disabled) {
- 21:   background-color: var(--hover-color);
- 22: }
- 23: 
- 24: .button:active:not(:disabled) {
- 25:   background-color: var(--secondary-button-active);
- 26: }
- 27: 
- 28: .button:disabled {
- 29:   opacity: 0.5;
- 30:   cursor: not-allowed;
- 31: }
- 32: 
- 33: /* Variants */
- 34: .ghost {
- 35:   background-color: transparent;
- 36:   border: 1px solid var(--border-color);
- 37:   color: var(--text-primary);
- 38: }
- 39: 
- 40: .ghost:hover:not(:disabled) {
- 41:   background-color: var(--hover-color);
- 42: }
- 43: 
- 44: .ghost:active:not(:disabled) {
- 45:   background-color: var(--secondary-button-active);
- 46: }
- 47: 
- 48: .secondary {
- 49:   background-color: transparent;
- 50:   border: 1px solid var(--border-color);
- 51:   color: var(--text-primary);
- 52: }
- 53: 
- 54: .secondary:hover:not(:disabled) {
- 55:   background-color: var(--hover-color);
- 56: }
- 57: 
- 58: .secondary:active:not(:disabled) {
- 59:   background-color: var(--secondary-button-active);
- 60: }
- 61: 
- 62: /* Icon styles */
- 63: .startIcon {
- 64:   margin-right: 4px;
- 65:   display: flex;
- 66:   align-items: center;
- 67: }
- 68: 
- 69: .endIcon {
- 70:   margin-left: 4px;
- 71:   display: flex;
- 72:   align-items: center;
- 73: }
- 74: 
- 75: /* Variants */
- 76: .primary {
- 77:   background-color: var(--primary-button-background);
- 78:   color: var(--primary-button-text);
- 79:   border: 1px solid var(--primary-button-border);
- 80: }
- 81: 
- 82: .primary:hover:not(:disabled) {
- 83:   background-color: var(--primary-button-hover);
- 84:   border-color: var(--primary-button-border);
- 85: }
- 86: 
- 87: .primary:active:not(:disabled) {
- 88:   background-color: var(--primary-button-active);
- 89:   border-color: var(--primary-button-border);
- 90: }
- 91: 
- 92: .destructive {
- 93:   background-color: var(--error-color);
- 94:   color: white;
- 95:   border: 1px solid var(--error-color);
- 96: }
- 97: 
- 98: .destructive:hover:not(:disabled) {
- 99:   opacity: 0.9;
-100: }
-101: 
-102: .destructive:active:not(:disabled) {
-103:   opacity: 0.8;
-104: }
-105: 
-106: /* Sizes */
-107: .sm {
-108:   font-size: 12px;
-109:   padding: 0 12px;
-110:   height: var(--button-height-sm);
-111: }
-112: 
-113: .md {
-114:   font-size: 14px;
-115:   padding: 0 16px;
-116:   height: var(--button-height-md);
-117: }
-118: 
-119: .lg {
-120:   font-size: 16px;
-121:   padding: 0 20px;
-122:   height: var(--button-height-lg);
-123: }
-124: 
-125: /* Icon styles */
-126: .startIcon {
-127:   margin-right: 4px;
-128:   display: flex;
-129:   align-items: center;
-130: }
-131: 
-132: .endIcon {
-133:   margin-left: 4px;
-134:   display: flex;
-135:   align-items: center;
-136: }
-137: 
-138: .iconOnly {
-139:   padding: 0;
-140:   aspect-ratio: 1/1;
-141:   justify-content: center;
-142: }
-143: 
-144: .iconOnly.sm {
-145:   width: var(--button-height-sm);
-146: }
-147: 
-148: .iconOnly.md {
-149:   width: var(--button-height-md);
-150: }
-151: 
-152: .iconOnly.lg {
-153:   width: var(--button-height-lg);
-154: }
-155: 
-156: /* Pill variant */
-157: .pill {
-158:   border-radius: var(--radius-full);
-159: }
-160: 
-161: /* Round variant - inherits from primary but with enhancements */
-162: .round {
-163:   background-color: var(--primary-button-background);
-164:   color: var(--primary-button-text);
-165:   border-color: var(--primary-button-background);
-166:   padding: 0 20px;
-167:   border-width: 1.5px;
-168:   font-weight: 600;
-169:   letter-spacing: 0.01em;
-170: }
-171: 
-172: .round:hover:not(:disabled) {
-173:   background-color: var(--primary-button-hover);
-174:   border-color: var(--primary-button-hover);
-175:   box-shadow: var(--shadow-sm);
-176: }
-177: 
-178: .round:active:not(:disabled) {
-179:   background-color: var(--primary-button-active);
-180:   border-color: var(--primary-button-active);
-181: }
-182: 
-183: .round.iconOnly {
-184:   padding: 0;
-185:   width: var(--button-height-md);
-186:   height: var(--button-height-md);
-187: }
-188: 
-189: .round.sm.iconOnly {
-190:   width: var(--button-height-sm);
-191:   height: var(--button-height-sm);
-192: }
-193: 
-194: .round.lg.iconOnly {
-195:   width: var(--button-height-lg);
-196:   height: var(--button-height-lg);
-197: }
-198: 
-199: /* Adjust icon spacing for round variant */
-200: .round .startIcon {
-201:   margin-right: 8px;
-202: }
-203: 
-204: .round .endIcon {
-205:   margin-left: 8px;
-206: }
-207: 
-208: .round.iconOnly .startIcon,
-209: .round.iconOnly .endIcon {
-210:   margin: 0;
-211: }
-212: 
-213: /* Icon variant - for icon-only buttons without background effects */
-214: .icon {
-215:   background-color: transparent;
-216:   border: none;
-217:   color: var(--icon-color);
-218:   padding: 0;
-219:   transition: transform 0.2s ease, color 0.2s ease;
-220: }
-221: 
-222: .icon:hover:not(:disabled) {
-223:   background-color: transparent;
-224:   color: var(--text-primary);
-225:   opacity: 0.8;
-226:   transform: scale(1.1);
-227: }
-228: 
-229: .icon:active:not(:disabled) {
-230:   background-color: transparent;
-231:   opacity: 0.9;
-232:   transform: scale(1.05);
-233: }
-```
-
-## File: src/components/FileTreeHeader.module.css
-```css
- 1: .fileTreeHeader {
- 2:   display: flex;
- 3:   align-items: center;
- 4:   gap: 0.5rem;
- 5:   padding: 0.5rem;
- 6:   background: var(--background-secondary);
- 7:   border-bottom: 1px solid var(--border-color);
- 8:   height: 52px;
- 9:   justify-content: center;
-10: }
-11: 
-12: .fileTreeBtn:focus-visible {
-13:   outline: 2px solid var(--focus-ring);
-14:   outline-offset: -1px;
-15: }
-16: 
-17: .dropdownContainer {
-18:   position: relative;
-19:   display: inline-flex;
-20:   align-items: center;
-21:   height: 32px;
-22: }
-23: 
-24: .excludedFilesCount {
-25:   padding: 0.5rem;
-26:   font-size: 0.875rem;
-27:   color: var(--text-secondary);
-28:   background: var(--bg-secondary);
-29:   border-bottom: 1px solid var(--border-color);
-30: }
 ```
 
 ## File: src/components/TreeItem.tsx
@@ -4505,6 +4373,40 @@ src/
 184: export default TreeItem;
 ```
 
+## File: src/components/FileTreeHeader.module.css
+```css
+ 1: .fileTreeHeader {
+ 2:   display: flex;
+ 3:   align-items: center;
+ 4:   gap: 0.5rem;
+ 5:   padding: 0.5rem;
+ 6:   background: var(--background-secondary);
+ 7:   border-bottom: 1px solid var(--border-color);
+ 8:   height: 52px;
+ 9:   justify-content: center;
+10: }
+11: 
+12: .fileTreeBtn:focus-visible {
+13:   outline: 2px solid var(--focus-ring);
+14:   outline-offset: -1px;
+15: }
+16: 
+17: .dropdownContainer {
+18:   position: relative;
+19:   display: inline-flex;
+20:   align-items: center;
+21:   height: 32px;
+22: }
+23: 
+24: .excludedFilesCount {
+25:   padding: 0.5rem;
+26:   font-size: 0.875rem;
+27:   color: var(--text-secondary);
+28:   background: var(--bg-secondary);
+29:   border-bottom: 1px solid var(--border-color);
+30: }
+```
+
 ## File: src/types/FileTypes.ts
 ```typescript
  1: export interface FileData {
@@ -4598,6 +4500,279 @@ src/
 89:   pattern: string;
 90:   isGlobal: boolean;
 91: }
+```
+
+## File: src/components/ui/Button/Button.module.css
+```css
+  1: .button {
+  2:   display: inline-flex;
+  3:   align-items: center;
+  4:   justify-content: center;
+  5:   cursor: pointer;
+  6:   font-family: inherit;
+  7:   font-size: 13px;
+  8:   gap: 8px;
+  9:   padding: 0 12px;
+ 10:   border-radius: 6px;
+ 11:   transition: all 0.15s ease;
+ 12:   white-space: nowrap;
+ 13:   font-weight: 500;
+ 14:   height: 32px;
+ 15:   background-color: var(--background-primary);
+ 16:   color: var(--text-primary);
+ 17:   border: 1px solid var(--border-color);
+ 18: }
+ 19: 
+ 20: .button:hover:not(:disabled) {
+ 21:   background-color: var(--hover-color);
+ 22: }
+ 23: 
+ 24: .button:active:not(:disabled) {
+ 25:   background-color: var(--secondary-button-active);
+ 26: }
+ 27: 
+ 28: .button:disabled {
+ 29:   opacity: 0.5;
+ 30:   cursor: not-allowed;
+ 31: }
+ 32: 
+ 33: /* Variants */
+ 34: .ghost {
+ 35:   background-color: transparent;
+ 36:   border: 1px solid var(--border-color);
+ 37:   color: var(--text-primary);
+ 38: }
+ 39: 
+ 40: .ghost:hover:not(:disabled) {
+ 41:   background-color: var(--hover-color);
+ 42: }
+ 43: 
+ 44: .ghost:active:not(:disabled) {
+ 45:   background-color: var(--secondary-button-active);
+ 46: }
+ 47: 
+ 48: .secondary {
+ 49:   background-color: transparent;
+ 50:   border: 1px solid var(--border-color);
+ 51:   color: var(--text-primary);
+ 52: }
+ 53: 
+ 54: .secondary:hover:not(:disabled) {
+ 55:   background-color: var(--hover-color);
+ 56: }
+ 57: 
+ 58: .secondary:active:not(:disabled) {
+ 59:   background-color: var(--secondary-button-active);
+ 60: }
+ 61: 
+ 62: /* Icon styles */
+ 63: .startIcon {
+ 64:   margin-right: 4px;
+ 65:   display: flex;
+ 66:   align-items: center;
+ 67: }
+ 68: 
+ 69: .endIcon {
+ 70:   margin-left: 4px;
+ 71:   display: flex;
+ 72:   align-items: center;
+ 73: }
+ 74: 
+ 75: /* Variants */
+ 76: .primary {
+ 77:   background-color: var(--primary-button-background);
+ 78:   color: var(--primary-button-text);
+ 79:   border: 1px solid var(--primary-button-border);
+ 80: }
+ 81: 
+ 82: .primary:hover:not(:disabled) {
+ 83:   background-color: var(--primary-button-hover);
+ 84:   border-color: var(--primary-button-border);
+ 85: }
+ 86: 
+ 87: .primary:active:not(:disabled) {
+ 88:   background-color: var(--primary-button-active);
+ 89:   border-color: var(--primary-button-border);
+ 90: }
+ 91: 
+ 92: .destructive {
+ 93:   background-color: var(--error-color);
+ 94:   color: white;
+ 95:   border: 1px solid var(--error-color);
+ 96: }
+ 97: 
+ 98: .destructive:hover:not(:disabled) {
+ 99:   opacity: 0.9;
+100: }
+101: 
+102: .destructive:active:not(:disabled) {
+103:   opacity: 0.8;
+104: }
+105: 
+106: /* Sizes */
+107: .sm {
+108:   font-size: 12px;
+109:   padding: 0 12px;
+110:   height: var(--button-height-sm);
+111: }
+112: 
+113: .md {
+114:   font-size: 14px;
+115:   padding: 0 16px;
+116:   height: var(--button-height-md);
+117: }
+118: 
+119: .lg {
+120:   font-size: 16px;
+121:   padding: 0 20px;
+122:   height: var(--button-height-lg);
+123: }
+124: 
+125: /* Icon styles */
+126: .startIcon {
+127:   margin-right: 4px;
+128:   display: flex;
+129:   align-items: center;
+130: }
+131: 
+132: .endIcon {
+133:   margin-left: 4px;
+134:   display: flex;
+135:   align-items: center;
+136: }
+137: 
+138: .iconOnly {
+139:   padding: 0;
+140:   aspect-ratio: 1/1;
+141:   justify-content: center;
+142: }
+143: 
+144: .iconOnly.sm {
+145:   width: var(--button-height-sm);
+146: }
+147: 
+148: .iconOnly.md {
+149:   width: var(--button-height-md);
+150: }
+151: 
+152: .iconOnly.lg {
+153:   width: var(--button-height-lg);
+154: }
+155: 
+156: /* Pill shape - just the border radius */
+157: .pillShaped {
+158:   border-radius: var(--radius-full);
+159: }
+160: 
+161: /* Pill variant - tag/badge style button */
+162: .pill {
+163:   border-radius: var(--radius-full);
+164:   background-color: var(--background-primary-dark);
+165:   color: white;
+166:   border: none;
+167:   padding: 0 12px;
+168:   font-size: 12px;
+169:   font-weight: 500;
+170:   height: 24px;
+171:   letter-spacing: 0.01em;
+172:   text-transform: capitalize;
+173:   transition: opacity 0.2s ease;
+174: }
+175: 
+176: .pill:hover:not(:disabled) {
+177:   background-color: var(--background-primary-dark);
+178:   opacity: 0.9;
+179: }
+180: 
+181: .pill:active:not(:disabled) {
+182:   background-color: var(--background-primary-dark);
+183:   opacity: 0.8;
+184: }
+185: 
+186: /* Dark mode support for pill */
+187: :global(.dark-mode) .pill {
+188:   background-color: hsl(240, 5%, 84.9%);
+189:   color: var(--background-primary-dark);
+190: }
+191: 
+192: :global(.dark-mode) .pill:hover:not(:disabled),
+193: :global(.dark-mode) .pill:active:not(:disabled) {
+194:   background-color: hsl(240, 5%, 84.9%);
+195: }
+196: 
+197: /* Round variant - inherits from primary but with enhancements */
+198: .round {
+199:   background-color: var(--primary-button-background);
+200:   color: var(--primary-button-text);
+201:   border-color: var(--primary-button-background);
+202:   padding: 0 20px;
+203:   border-width: 1.5px;
+204:   font-weight: 600;
+205:   letter-spacing: 0.01em;
+206: }
+207: 
+208: .round:hover:not(:disabled) {
+209:   background-color: var(--primary-button-hover);
+210:   border-color: var(--primary-button-hover);
+211:   box-shadow: var(--shadow-sm);
+212: }
+213: 
+214: .round:active:not(:disabled) {
+215:   background-color: var(--primary-button-active);
+216:   border-color: var(--primary-button-active);
+217: }
+218: 
+219: .round.iconOnly {
+220:   padding: 0;
+221:   width: var(--button-height-md);
+222:   height: var(--button-height-md);
+223: }
+224: 
+225: .round.sm.iconOnly {
+226:   width: var(--button-height-sm);
+227:   height: var(--button-height-sm);
+228: }
+229: 
+230: .round.lg.iconOnly {
+231:   width: var(--button-height-lg);
+232:   height: var(--button-height-lg);
+233: }
+234: 
+235: /* Adjust icon spacing for round variant */
+236: .round .startIcon {
+237:   margin-right: 8px;
+238: }
+239: 
+240: .round .endIcon {
+241:   margin-left: 8px;
+242: }
+243: 
+244: .round.iconOnly .startIcon,
+245: .round.iconOnly .endIcon {
+246:   margin: 0;
+247: }
+248: 
+249: /* Icon variant - for icon-only buttons without background effects */
+250: .icon {
+251:   background-color: transparent;
+252:   border: none;
+253:   color: var(--icon-color);
+254:   padding: 0;
+255:   transition: transform 0.2s ease, color 0.2s ease;
+256: }
+257: 
+258: .icon:hover:not(:disabled) {
+259:   background-color: transparent;
+260:   color: var(--text-primary);
+261:   opacity: 0.8;
+262:   transform: scale(1.1);
+263: }
+264: 
+265: .icon:active:not(:disabled) {
+266:   background-color: transparent;
+267:   opacity: 0.9;
+268:   transform: scale(1.05);
+269: }
 ```
 
 ## File: src/App.module.css
@@ -4869,443 +5044,6 @@ src/
 265:     transform: translateY(0);
 266:   }
 267: }
-```
-
-## File: src/components/IgnorePatterns.tsx
-```typescript
-  1: import React, { useState, useEffect, useRef } from 'react';
-  2: import { X, RefreshCw, ChevronDown, Trash2, Check, Square } from "lucide-react";
-  3: import { Button } from "./ui";
-  4: import styles from "./IgnorePatterns.module.css";
-  5: 
-  6: // Props interface
-  7: interface IgnorePatternsProps {
-  8:   isOpen: boolean;
-  9:   onClose: () => void;
- 10:   globalIgnorePatterns: string;
- 11:   localIgnorePatterns: string;
- 12:   localFolderPath?: string;
- 13:   processingStatus?: {
- 14:     status: "idle" | "processing" | "complete" | "error";
- 15:     message: string;
- 16:   };
- 17:   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath?: string) => Promise<void>;
- 18:   resetIgnorePatterns: (isGlobal: boolean, folderPath?: string) => Promise<void>;
- 19:   clearIgnorePatterns: (folderPath: string) => Promise<void>;
- 20:   systemIgnorePatterns: string[];
- 21:   recentFolders: string[];
- 22:   excludedGlobalPatterns: string[];
- 23:   excludedLocalPatterns: string[];
- 24: }
- 25: 
- 26: const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
- 27:   isOpen,
- 28:   onClose,
- 29:   globalIgnorePatterns,
- 30:   localIgnorePatterns,
- 31:   localFolderPath,
- 32:   processingStatus = { status: "idle", message: "" },
- 33:   saveIgnorePatterns,
- 34:   resetIgnorePatterns,
- 35:   clearIgnorePatterns,
- 36:   systemIgnorePatterns,
- 37:   recentFolders,
- 38:   excludedGlobalPatterns,
- 39:   excludedLocalPatterns
- 40: }) => {
- 41:   // State for the active tab
- 42:   const [activeTab, setActiveTab] = useState<"global" | "local">("global");
- 43:   
- 44:   // State for the textarea values
- 45:   const [globalPatterns, setGlobalPatterns] = useState<string>(globalIgnorePatterns);
- 46:   const [localPatterns, setLocalPatterns] = useState<string>(localIgnorePatterns);
- 47:   
- 48:   // State for excluded system patterns
- 49:   const [excludedSystemPatterns, setExcludedSystemPatterns] = useState<string[]>([]);
- 50:   
- 51:   // State for the merged preview
- 52:   const [mergedPreview, setMergedPreview] = useState<string>("");
- 53:   
- 54:   // State for the selected folder
- 55:   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(localFolderPath);
- 56:   
- 57:   // State for pattern application status
- 58:   const [applyingPatterns, setApplyingPatterns] = useState<boolean>(false);
- 59:   const [folderSelectOpen, setFolderSelectOpen] = useState(false);
- 60:   
- 61:   // Ref for the textarea to focus it
- 62:   const textareaRef = useRef<HTMLTextAreaElement>(null);
- 63:   
- 64:   // Effect to initialize the components with the props
- 65:   useEffect(() => {
- 66:     if (isOpen) {
- 67:       setGlobalPatterns(globalIgnorePatterns);
- 68:       setLocalPatterns(localIgnorePatterns);
- 69:       setSelectedFolder(localFolderPath);
- 70:       
- 71:       // Reset the pattern application status
- 72:       setApplyingPatterns(false);
- 73:     }
- 74:   }, [isOpen, globalIgnorePatterns, localIgnorePatterns, localFolderPath]);
- 75:   
- 76:   // Effect to update local patterns when selectedFolder changes
- 77:   useEffect(() => {
- 78:     if (selectedFolder === localFolderPath) {
- 79:       setLocalPatterns(localIgnorePatterns);
- 80:     } else {
- 81:       // Reset local patterns when a different folder is selected
- 82:       setLocalPatterns('');
- 83:     }
- 84:   }, [selectedFolder, localFolderPath, localIgnorePatterns]);
- 85:   
- 86:   // Effect to update UI based on processing status
- 87:   useEffect(() => {
- 88:     if (!processingStatus) {
- 89:       return; // Exit early if processingStatus is undefined or null
- 90:     }
- 91:     
- 92:     if (processingStatus.status === 'processing') {
- 93:       setApplyingPatterns(true);
- 94:     } else if (processingStatus.status === 'complete' || processingStatus.status === 'error') {
- 95:       // Delay resetting to allow for visual feedback
- 96:       setTimeout(() => {
- 97:         setApplyingPatterns(false);
- 98:       }, 500);
- 99:     }
-100:   }, [processingStatus]);
-101:   
-102:   // Effect to generate merged preview
-103:   useEffect(() => {
-104:     // Get active patterns based on current tab
-105:     const userPatterns = activeTab === "global" ? globalPatterns : localPatterns;
-106:     
-107:     // Filter system patterns (exclude disabled ones)
-108:     const activeSystemPatterns = systemIgnorePatterns.filter(
-109:       pattern => !excludedSystemPatterns.includes(pattern)
-110:     );
-111:     
-112:     // Combine patterns
-113:     const mergedLines = [
-114:       ...activeSystemPatterns,
-115:       ...userPatterns.split("\n").filter(line => line.trim() !== "")
-116:     ];
-117:     
-118:     setMergedPreview(mergedLines.join("\n"));
-119:   }, [activeTab, globalPatterns, localPatterns, systemIgnorePatterns, excludedSystemPatterns]);
-120:   
-121:   // Function to handle tab change
-122:   const handleTabChange = (isGlobal: boolean) => {
-123:     setActiveTab(isGlobal ? "global" : "local");
-124:   };
-125:   
-126:   // Function to handle textarea change
-127:   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-128:     const { value } = e.target;
-129:     
-130:     if (activeTab === 'global') {
-131:       setGlobalPatterns(value);
-132:     } else {
-133:       setLocalPatterns(value);
-134:     }
-135:   };
-136:   
-137:   // Function to handle folder selection
-138:   const handleFolderChange = (folderPath: string) => {
-139:     setSelectedFolder(folderPath);
-140:     setFolderSelectOpen(false);
-141:   };
-142:   
-143:   // Function to handle system pattern toggling
-144:   const handleToggleSystemPattern = (pattern: string) => {
-145:     setExcludedSystemPatterns((prev) => {
-146:       if (prev.includes(pattern)) {
-147:         return prev.filter((p) => p !== pattern);
-148:       } else {
-149:         return [...prev, pattern];
-150:       }
-151:     });
-152:   };
-153:   
-154:   // Functions to handle saving patterns
-155:   const handleSaveGlobalPatterns = async () => {
-156:     setApplyingPatterns(true);
-157:     const patternsWithDisabled = excludedSystemPatterns.length > 0
-158:       ? excludedSystemPatterns
-159:           .map(pattern => `# DISABLED: ${pattern}`)
-160:           .join('\n') + '\n\n' + globalPatterns
-161:       : globalPatterns;
-162:     await saveIgnorePatterns(patternsWithDisabled, true);
-163:   };
-164:   
-165:   const handleSaveLocalPatterns = async () => {
-166:     if (selectedFolder) {
-167:       setApplyingPatterns(true);
-168:       await saveIgnorePatterns(localPatterns, false, selectedFolder);
-169:     }
-170:   };
-171:   
-172:   // Functions to handle resetting patterns
-173:   const handleResetGlobalPatterns = async () => {
-174:     setApplyingPatterns(true);
-175:     await resetIgnorePatterns(true);
-176:   };
-177:   
-178:   const handleResetLocalPatterns = async () => {
-179:     if (selectedFolder) {
-180:       setApplyingPatterns(true);
-181:       await resetIgnorePatterns(false, selectedFolder);
-182:     }
-183:   };
-184:   
-185:   // Function to handle clearing patterns
-186:   const handleClearLocalPatterns = async () => {
-187:     if (selectedFolder) {
-188:       setApplyingPatterns(true);
-189:       await clearIgnorePatterns(selectedFolder);
-190:     }
-191:   };
-192:   
-193:   // Function to handle keyboard events
-194:   const handleKeyDown = (e: React.KeyboardEvent) => {
-195:     // Save on Ctrl+S / Cmd+S
-196:     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-197:       e.preventDefault();
-198:       
-199:       if (activeTab === 'global') {
-200:         handleSaveGlobalPatterns();
-201:       } else if (selectedFolder) {
-202:         handleSaveLocalPatterns();
-203:       }
-204:     }
-205:     
-206:     // Close on Escape
-207:     if (e.key === 'Escape') {
-208:       onClose();
-209:     }
-210:   };
-211:   
-212:   // If the modal is not open, don't render anything
-213:   if (!isOpen) {
-214:     return null;
-215:   }
-216:   
-217:   // Function to render the processing status message
-218:   const renderStatusMessage = () => {
-219:     if (!processingStatus || processingStatus.status === 'idle') {
-220:       return null;
-221:     }
-222:     
-223:     let statusClass = styles.statusMessage;
-224:     
-225:     switch (processingStatus.status) {
-226:       case 'processing':
-227:         statusClass += ` ${styles.processing}`;
-228:         break;
-229:       case 'complete':
-230:         statusClass += ` ${styles.complete}`;
-231:         break;
-232:       case 'error':
-233:         statusClass += ` ${styles.error}`;
-234:         break;
-235:       default:
-236:         statusClass += ` ${styles.idle}`;
-237:     }
-238:     
-239:     return (
-240:       <div className={statusClass}>
-241:         {processingStatus.message}
-242:       </div>
-243:     );
-244:   };
-245:   
-246:   return (
-247:     <div className={styles.modal}>
-248:       <div className={styles.content}>
-249:         <div className={styles.header}>
-250:           <h2>
-251:             Ignore Patterns
-252:             {applyingPatterns && <span className={styles.applying}>(Applying changes...)</span>}
-253:           </h2>
-254:           <Button 
-255:             variant="secondary" 
-256:             size="sm" 
-257:             iconOnly
-258:             onClick={onClose}
-259:             startIcon={<X size={16} />}
-260:             title="Close"
-261:             disabled={applyingPatterns}
-262:           />
-263:         </div>
-264:         
-265:         <div className={styles.description}>
-266:           Edit ignore patterns. Global patterns apply to all folders, while local patterns apply only to the selected folder.
-267:         </div>
-268:         
-269:         <div className={styles.scopeSelector}>
-270:           <Button 
-271:             variant={activeTab === "local" ? "secondary" : "ghost"}
-272:             className={`${styles.scopeBtn} ${activeTab === "local" ? styles.active : ""}`}
-273:             onClick={() => handleTabChange(false)}
-274:             disabled={applyingPatterns}
-275:           >
-276:             Local Folder
-277:           </Button>
-278:           <Button 
-279:             variant={activeTab === "global" ? "secondary" : "ghost"}
-280:             className={`${styles.scopeBtn} ${activeTab === "global" ? styles.active : ""}`}
-281:             onClick={() => handleTabChange(true)}
-282:             disabled={applyingPatterns}
-283:           >
-284:             Global Defaults
-285:           </Button>
-286:         </div>
-287:         
-288:         <div className={styles.scopeDescription}>
-289:           {activeTab === "global" 
-290:             ? "Global patterns apply to all folders. One pattern per line. Use * as wildcard." 
-291:             : "Local patterns apply only to the selected folder. One pattern per line. Use * as wildcard."}
-292:         </div>
-293:         
-294:         {activeTab === "local" && (
-295:           <div className={styles.folderSelector}>
-296:             <label>Select Folder</label>
-297:             <div className={styles.customSelect} onClick={() => !applyingPatterns && setFolderSelectOpen(!folderSelectOpen)}>
-298:               <div className={styles.selectedValue}>
-299:                 {selectedFolder || 'Select a folder'}
-300:                 <ChevronDown size={16} className={`${styles.chevron} ${folderSelectOpen ? styles.open : ''}`} />
-301:               </div>
-302:               {folderSelectOpen && (
-303:                 <div className={styles.optionsContainer}>
-304:                   {recentFolders.length > 0 ? (
-305:                     recentFolders.map((folder, index) => (
-306:                       <div 
-307:                         key={index} 
-308:                         className={styles.option} 
-309:                         onClick={() => handleFolderChange(folder)}
-310:                       >
-311:                         {folder}
-312:                       </div>
-313:                     ))
-314:                   ) : (
-315:                     <div className={styles.option}>{selectedFolder || 'No folders available'}</div>
-316:                   )}
-317:                 </div>
-318:               )}
-319:             </div>
-320:             <div className={styles.pathDisplay}>
-321:               {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'No folder selected'}
-322:             </div>
-323:           </div>
-324:         )}
-325:         
-326:         <div className={styles.patternsSection}>
-327:           <textarea 
-328:             ref={textareaRef}
-329:             className={styles.patternsInput}
-330:             value={activeTab === "global" ? globalPatterns : localPatterns}
-331:             onChange={handleTextareaChange}
-332:             onKeyDown={handleKeyDown}
-333:             placeholder="Enter ignore patterns, one per line..."
-334:             disabled={applyingPatterns || (activeTab === "local" && !selectedFolder)}
-335:           />
-336:           
-337:           {activeTab === "global" && (
-338:             <div className={styles.systemPatterns}>
-339:               <h3>System Patterns</h3>
-340:               <div className={styles.systemPatternsList}>
-341:                 {systemIgnorePatterns.map((pattern) => (
-342:                   <label key={pattern} className={styles.systemPatternItem}>
-343:                     <button
-344:                       className={styles.toggleButton}
-345:                       onClick={() => handleToggleSystemPattern(pattern)}
-346:                       title={excludedSystemPatterns.includes(pattern) ? "Enable pattern" : "Disable pattern"}
-347:                     >
-348:                       {excludedSystemPatterns.includes(pattern) ? (
-349:                         <Square size={16} />
-350:                       ) : (
-351:                         <Check size={16} />
-352:                       )}
-353:                     </button>
-354:                     <span className={excludedSystemPatterns.includes(pattern) ? styles.disabledPattern : ''}>
-355:                       {pattern}
-356:                     </span>
-357:                   </label>
-358:                 ))}
-359:               </div>
-360:             </div>
-361:           )}
-362: 
-363:           <div className={styles.previewContainer}>
-364:             <h4>Effective Patterns</h4>
-365:             <div className={styles.patternPreview}>
-366:               {mergedPreview.split('\n').map((line, index) => (
-367:                 <div key={index} className={styles.previewLine}>{line}</div>
-368:               ))}
-369:             </div>
-370:           </div>
-371:         </div>
-372:         
-373:         {/* Status Message */}
-374:         {renderStatusMessage()}
-375:         
-376:         <div className={styles.modalActions}>
-377:           {activeTab === "global" ? (
-378:             <>
-379:               <Button 
-380:                 variant="primary" 
-381:                 onClick={handleSaveGlobalPatterns}
-382:                 disabled={applyingPatterns}
-383:               >
-384:                 Save Global Patterns
-385:               </Button>
-386:               <Button 
-387:                 variant="secondary" 
-388:                 onClick={handleResetGlobalPatterns}
-389:                 disabled={applyingPatterns}
-390:               >
-391:                 Reset to Defaults
-392:               </Button>
-393:             </>
-394:           ) : (
-395:             <>
-396:               <Button 
-397:                 variant="primary" 
-398:                 onClick={handleSaveLocalPatterns}
-399:                 disabled={!selectedFolder || applyingPatterns}
-400:               >
-401:                 Save Local Patterns
-402:               </Button>
-403:               <Button 
-404:                 variant="secondary" 
-405:                 onClick={handleResetLocalPatterns}
-406:                 disabled={!selectedFolder || applyingPatterns}
-407:               >
-408:                 Reset to Defaults
-409:               </Button>
-410:               <Button 
-411:                 variant="destructive" 
-412:                 onClick={handleClearLocalPatterns}
-413:                 disabled={!selectedFolder || applyingPatterns}
-414:               >
-415:                 Clear All Patterns
-416:               </Button>
-417:             </>
-418:           )}
-419:           
-420:           <Button 
-421:             variant="ghost"
-422:             onClick={onClose}
-423:             disabled={applyingPatterns}
-424:           >
-425:             Cancel
-426:           </Button>
-427:         </div>
-428:       </div>
-429:     </div>
-430:   );
-431: };
-432: 
-433: export default IgnorePatterns;
 ```
 
 ## File: src/components/ControlContainer.tsx
@@ -5621,6 +5359,519 @@ src/
 172: };
 173: 
 174: export default FileTreeHeader;
+```
+
+## File: src/components/IgnorePatterns.tsx
+```typescript
+  1: import React, { useState, useEffect, useRef } from 'react';
+  2: import { X, RefreshCw, ChevronDown, Trash2, Check } from "lucide-react";
+  3: import { Button, Switch } from "./ui";
+  4: import styles from "./IgnorePatterns.module.css";
+  5: 
+  6: // Props interface
+  7: interface IgnorePatternsProps {
+  8:   isOpen: boolean;
+  9:   onClose: () => void;
+ 10:   globalIgnorePatterns: string;
+ 11:   localIgnorePatterns: string;
+ 12:   localFolderPath?: string;
+ 13:   processingStatus?: {
+ 14:     status: "idle" | "processing" | "complete" | "error";
+ 15:     message: string;
+ 16:   };
+ 17:   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath?: string) => Promise<void>;
+ 18:   resetIgnorePatterns: (isGlobal: boolean, folderPath?: string) => Promise<void>;
+ 19:   clearIgnorePatterns: (folderPath: string) => Promise<void>;
+ 20:   systemIgnorePatterns: string[];
+ 21:   recentFolders: string[];
+ 22:   excludedSystemPatterns?: string[];
+ 23:   setExcludedSystemPatterns?: (patterns: string[]) => void;
+ 24:   systemPatternCategories?: Record<string, string[]>;
+ 25: }
+ 26: 
+ 27: const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
+ 28:   isOpen,
+ 29:   onClose,
+ 30:   globalIgnorePatterns,
+ 31:   localIgnorePatterns,
+ 32:   localFolderPath,
+ 33:   processingStatus = { status: "idle", message: "" },
+ 34:   saveIgnorePatterns,
+ 35:   resetIgnorePatterns,
+ 36:   clearIgnorePatterns,
+ 37:   systemIgnorePatterns,
+ 38:   recentFolders,
+ 39:   excludedSystemPatterns = [],
+ 40:   setExcludedSystemPatterns,
+ 41:   systemPatternCategories = {
+ 42:     versionControl: ["**/.git/**", "**/.svn/**"],
+ 43:     buildFiles: ["**/dist/**", "**/build/**"],
+ 44:     mediaFiles: ["**/*.png", "**/*.jpg", "**/*.jpeg"],
+ 45:     documentation: ["**/*.pdf", "**/*.doc"],
+ 46:     dependencies: ["**/node_modules/**", "**/__pycache__/**"]
+ 47:   }
+ 48: }) => {
+ 49:   // State for the active tab
+ 50:   const [activeTab, setActiveTab] = useState<"global" | "local">("global");
+ 51:   
+ 52:   // State for the textarea values
+ 53:   const [globalPatterns, setGlobalPatterns] = useState<string>(globalIgnorePatterns);
+ 54:   const [localPatterns, setLocalPatterns] = useState<string>(localIgnorePatterns);
+ 55:   
+ 56:   // State for expanded categories
+ 57:   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
+ 58:     Object.keys(systemPatternCategories).reduce((acc, category) => ({
+ 59:       ...acc,
+ 60:       [category]: true
+ 61:     }), {})
+ 62:   );
+ 63:   
+ 64:   // State for the merged preview
+ 65:   const [mergedPreview, setMergedPreview] = useState<string>("");
+ 66:   
+ 67:   // State for the selected folder
+ 68:   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(localFolderPath);
+ 69:   
+ 70:   // State for pattern application status
+ 71:   const [applyingPatterns, setApplyingPatterns] = useState<boolean>(false);
+ 72:   const [folderSelectOpen, setFolderSelectOpen] = useState(false);
+ 73:   
+ 74:   // Ref for the textarea to focus it
+ 75:   const textareaRef = useRef<HTMLTextAreaElement>(null);
+ 76:   
+ 77:   // Effect to initialize the components with the props
+ 78:   useEffect(() => {
+ 79:     if (isOpen) {
+ 80:       setGlobalPatterns(globalIgnorePatterns);
+ 81:       setLocalPatterns(localIgnorePatterns);
+ 82:       setSelectedFolder(localFolderPath);
+ 83:       
+ 84:       // Reset the pattern application status
+ 85:       setApplyingPatterns(false);
+ 86:     }
+ 87:   }, [isOpen, globalIgnorePatterns, localIgnorePatterns, localFolderPath]);
+ 88:   
+ 89:   // Effect to update local patterns when selectedFolder changes
+ 90:   useEffect(() => {
+ 91:     if (selectedFolder === localFolderPath) {
+ 92:       setLocalPatterns(localIgnorePatterns);
+ 93:     } else {
+ 94:       // Reset local patterns when a different folder is selected
+ 95:       setLocalPatterns('');
+ 96:     }
+ 97:   }, [selectedFolder, localFolderPath, localIgnorePatterns]);
+ 98:   
+ 99:   // Effect to update UI based on processing status
+100:   useEffect(() => {
+101:     if (!processingStatus) {
+102:       return; // Exit early if processingStatus is undefined or null
+103:     }
+104:     
+105:     if (processingStatus.status === 'processing') {
+106:       setApplyingPatterns(true);
+107:     } else if (processingStatus.status === 'complete' || processingStatus.status === 'error') {
+108:       // Delay resetting to allow for visual feedback
+109:       setTimeout(() => {
+110:         setApplyingPatterns(false);
+111:       }, 500);
+112:     }
+113:   }, [processingStatus]);
+114:   
+115:   // Effect to generate merged preview
+116:   useEffect(() => {
+117:     // Get active patterns based on current tab
+118:     const userPatterns = activeTab === "global" ? globalPatterns : localPatterns;
+119:     
+120:     // Filter system patterns (exclude disabled ones)
+121:     const activeSystemPatterns = systemIgnorePatterns.filter(
+122:       pattern => !excludedSystemPatterns.includes(pattern)
+123:     );
+124:     
+125:     // Combine patterns
+126:     const mergedLines = [
+127:       ...activeSystemPatterns,
+128:       ...userPatterns.split("\n").filter(line => line.trim() !== "")
+129:     ];
+130:     
+131:     setMergedPreview(mergedLines.join("\n"));
+132:   }, [activeTab, globalPatterns, localPatterns, systemIgnorePatterns, excludedSystemPatterns]);
+133:   
+134:   // Function to handle tab change
+135:   const handleTabChange = (isGlobal: boolean) => {
+136:     setActiveTab(isGlobal ? "global" : "local");
+137:   };
+138:   
+139:   // Function to handle textarea change
+140:   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+141:     const { value } = e.target;
+142:     
+143:     if (activeTab === 'global') {
+144:       setGlobalPatterns(value);
+145:     } else {
+146:       setLocalPatterns(value);
+147:     }
+148:   };
+149:   
+150:   // Function to handle folder selection
+151:   const handleFolderChange = (folderPath: string) => {
+152:     setSelectedFolder(folderPath);
+153:     setFolderSelectOpen(false);
+154:   };
+155:   
+156:   // Function to toggle category expansion
+157:   const toggleCategory = (category: string) => {
+158:     setExpandedCategories(prev => ({
+159:       ...prev,
+160:       [category]: !prev[category]
+161:     }));
+162:   };
+163:   
+164:   // Function to handle system pattern toggling with visual feedback
+165:   const handleToggleSystemPattern = (pattern: string) => {
+166:     // Add visual feedback animation when toggling
+167:     const patternElement = document.querySelector(`[data-pattern="${pattern}"]`);
+168:     if (patternElement) {
+169:       patternElement.classList.add(styles.patternToggled);
+170:       setTimeout(() => {
+171:         patternElement.classList.remove(styles.patternToggled);
+172:       }, 300);
+173:     }
+174:     
+175:     setExcludedSystemPatterns(prev => {
+176:       if (prev.includes(pattern)) {
+177:         return prev.filter(p => p !== pattern);
+178:       } else {
+179:         return [...prev, pattern];
+180:       }
+181:     });
+182:   };
+183:   
+184:   // Functions to handle saving patterns
+185:   const handleSaveGlobalPatterns = async () => {
+186:     setApplyingPatterns(true);
+187:     const patternsWithDisabled = excludedSystemPatterns.length > 0
+188:       ? excludedSystemPatterns
+189:           .map(pattern => `# DISABLED: ${pattern}`)
+190:           .join('\n') + '\n\n' + globalPatterns
+191:       : globalPatterns;
+192:     await saveIgnorePatterns(patternsWithDisabled, true);
+193:   };
+194:   
+195:   const handleSaveLocalPatterns = async () => {
+196:     if (selectedFolder) {
+197:       setApplyingPatterns(true);
+198:       await saveIgnorePatterns(localPatterns, false, selectedFolder);
+199:     }
+200:   };
+201:   
+202:   // Functions to handle resetting patterns
+203:   const handleResetGlobalPatterns = async () => {
+204:     setApplyingPatterns(true);
+205:     await resetIgnorePatterns(true);
+206:   };
+207:   
+208:   const handleResetLocalPatterns = async () => {
+209:     if (selectedFolder) {
+210:       setApplyingPatterns(true);
+211:       await resetIgnorePatterns(false, selectedFolder);
+212:     }
+213:   };
+214:   
+215:   // Function to handle clearing patterns
+216:   const handleClearLocalPatterns = async () => {
+217:     if (selectedFolder) {
+218:       setApplyingPatterns(true);
+219:       await clearIgnorePatterns(selectedFolder);
+220:     }
+221:   };
+222:   
+223:   // Function to handle keyboard events
+224:   const handleKeyDown = (e: React.KeyboardEvent) => {
+225:     // Save on Ctrl+S / Cmd+S
+226:     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+227:       e.preventDefault();
+228:       
+229:       if (activeTab === 'global') {
+230:         handleSaveGlobalPatterns();
+231:       } else if (selectedFolder) {
+232:         handleSaveLocalPatterns();
+233:       }
+234:     }
+235:     
+236:     // Close on Escape
+237:     if (e.key === 'Escape') {
+238:       onClose();
+239:     }
+240:   };
+241:   
+242:   // If the modal is not open, don't render anything
+243:   if (!isOpen) {
+244:     return null;
+245:   }
+246:   
+247:   // Function to render the processing status message
+248:   const renderStatusMessage = () => {
+249:     if (!processingStatus || processingStatus.status === 'idle') {
+250:       return null;
+251:     }
+252:     
+253:     let statusClass = styles.statusMessage;
+254:     
+255:     switch (processingStatus.status) {
+256:       case 'processing':
+257:         statusClass += ` ${styles.processing}`;
+258:         break;
+259:       case 'complete':
+260:         statusClass += ` ${styles.complete}`;
+261:         break;
+262:       case 'error':
+263:         statusClass += ` ${styles.error}`;
+264:         break;
+265:       default:
+266:         statusClass += ` ${styles.idle}`;
+267:     }
+268:     
+269:     return (
+270:       <div className={statusClass}>
+271:         {processingStatus.message}
+272:       </div>
+273:     );
+274:   };
+275:   
+276:   return (
+277:     <div className={styles.modal}>
+278:       <div className={styles.content}>
+279:         <div className={styles.header}>
+280:           <h2>
+281:             Ignore Patterns
+282:             {applyingPatterns && <span className={styles.applying}>(Applying...)</span>}
+283:           </h2>
+284:           <Button 
+285:             variant="ghost" 
+286:             size="sm" 
+287:             onClick={onClose}
+288:             startIcon={<X size={16} />}
+289:             title="Close"
+290:             disabled={applyingPatterns}
+291:           />
+292:         </div>
+293:         
+294:         <div className={styles.description}>
+295:           Edit ignore patterns. Global patterns apply to all folders, while local patterns apply only to the selected folder.
+296:         </div>
+297:         
+298:         <div className={styles.scopeSelector}>
+299:           <Button 
+300:             variant={activeTab === "local" ? "secondary" : "ghost"}
+301:             className={`${styles.scopeBtn} ${activeTab === "local" ? styles.active : ""}`}
+302:             onClick={() => handleTabChange(false)}
+303:             disabled={applyingPatterns}
+304:           >
+305:             Local Folder
+306:           </Button>
+307:           <Button 
+308:             variant={activeTab === "global" ? "secondary" : "ghost"}
+309:             className={`${styles.scopeBtn} ${activeTab === "global" ? styles.active : ""}`}
+310:             onClick={() => handleTabChange(true)}
+311:             disabled={applyingPatterns}
+312:           >
+313:             Global Defaults
+314:           </Button>
+315:         </div>
+316:         
+317:         {activeTab === "global" && (
+318:           <div className={styles.systemPatternsSection}>
+319:             <h3 className={styles.sectionTitle}>System Patterns</h3>
+320:             
+321:             {Object.entries(systemPatternCategories).map(([category, patterns]) => (
+322:               <div 
+323:                 key={category}
+324:                 className={`${styles.patternCategory} ${expandedCategories[category] ? styles.categoryExpanded : ''}`}
+325:               >
+326:                 <div 
+327:                   className={styles.categoryHeader} 
+328:                   onClick={() => toggleCategory(category)}
+329:                 >
+330:                   <div className={styles.categoryTitle}>
+331:                     {category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+332:                   </div>
+333:                   <div className={styles.categoryMeta}>
+334:                     <span className={styles.categoryCount}>
+335:                       {patterns.filter(p => !excludedSystemPatterns.includes(p)).length}/{patterns.length}
+336:                     </span>
+337:                     <ChevronDown 
+338:                       size={16} 
+339:                       className={`${styles.chevron} ${expandedCategories[category] ? styles.chevronRotated : ''}`} 
+340:                     />
+341:                   </div>
+342:                 </div>
+343:                 
+344:                 {expandedCategories[category] && (
+345:                   <div className={styles.categoryItems}>
+346:                     {patterns.map(pattern => (
+347:                       <div 
+348:                         key={pattern} 
+349:                         className={styles.systemPatternItem}
+350:                         data-pattern={pattern}
+351:                       >
+352:                         <span className={styles.patternText}>{pattern}</span>
+353:                         <Switch
+354:                           checked={!excludedSystemPatterns.includes(pattern)}
+355:                           onChange={() => handleToggleSystemPattern(pattern)}
+356:                           className={styles.smallerSwitch}
+357:                         />
+358:                       </div>
+359:                     ))}
+360:                   </div>
+361:                 )}
+362:               </div>
+363:             ))}
+364:           </div>
+365:         )}
+366:         
+367:         <div className={styles.patternEntrySection}>
+368:           <h3 className={styles.sectionTitle}>
+369:             {activeTab === "global" ? "Global Custom Patterns" : "Local Custom Patterns"}
+370:           </h3>
+371:           
+372:           {activeTab === "local" && (
+373:             <div className={styles.folderSelector}>
+374:               <label>Select Folder</label>
+375:               <div className={styles.customSelect} onClick={() => !applyingPatterns && setFolderSelectOpen(!folderSelectOpen)}>
+376:                 <div className={styles.selectedValue}>
+377:                   {selectedFolder || 'Select a folder'}
+378:                   <ChevronDown size={16} className={`${styles.chevron} ${folderSelectOpen ? styles.open : ''}`} />
+379:                 </div>
+380:                 {folderSelectOpen && (
+381:                   <div className={styles.optionsContainer}>
+382:                     {recentFolders.length > 0 ? (
+383:                       recentFolders.map((folder, index) => (
+384:                         <div 
+385:                           key={index} 
+386:                           className={styles.option} 
+387:                           onClick={() => handleFolderChange(folder)}
+388:                         >
+389:                           {folder}
+390:                         </div>
+391:                       ))
+392:                     ) : (
+393:                       <div className={styles.option}>{selectedFolder || 'No folders available'}</div>
+394:                     )}
+395:                   </div>
+396:                 )}
+397:               </div>
+398:               <div className={styles.pathDisplay}>
+399:                 {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'No folder selected'}
+400:               </div>
+401:             </div>
+402:           )}
+403:           
+404:           <textarea 
+405:             ref={textareaRef}
+406:             className={styles.patternsInput}
+407:             value={activeTab === "global" ? globalPatterns : localPatterns}
+408:             onChange={handleTextareaChange}
+409:             onKeyDown={handleKeyDown}
+410:             placeholder="Enter ignore patterns, one per line..."
+411:             disabled={applyingPatterns || (activeTab === "local" && !selectedFolder)}
+412:           />
+413:         </div>
+414:         
+415:         <div className={styles.previewSection}>
+416:           <div className={styles.previewContainer}>
+417:             <div className={styles.previewHeader}>
+418:               <span>Effective Patterns</span>
+419:               <span className={styles.patternCount}>
+420:                 {mergedPreview.split('\n').filter(line => line.trim()).length} patterns active
+421:               </span>
+422:             </div>
+423:             {mergedPreview.split('\n').map((line, index) => {
+424:               if (!line.trim()) return null;
+425:               
+426:               const isSystemPattern = systemIgnorePatterns.includes(line);
+427:               const isGlobalPattern = globalPatterns.includes(line);
+428:               const isLocalPattern = !isSystemPattern && !isGlobalPattern;
+429:               
+430:               return (
+431:                 <div 
+432:                   key={index} 
+433:                   className={`${styles.previewLine} ${
+434:                     isSystemPattern ? styles.previewSystem : 
+435:                     isGlobalPattern ? styles.previewGlobal : 
+436:                     styles.previewLocal
+437:                   }`}
+438:                 >
+439:                   {line}
+440:                   <span className={styles.previewBadge}>
+441:                     {isSystemPattern ? 'system' : isGlobalPattern ? 'global' : 'local'}
+442:                   </span>
+443:                 </div>
+444:               );
+445:             })}
+446:           </div>
+447:         </div>
+448:         
+449:         {/* Status Message */}
+450:         {renderStatusMessage()}
+451:         
+452:         <div className={styles.modalActions}>
+453:           {activeTab === "global" ? (
+454:             <>
+455:               <Button 
+456:                 variant="primary" 
+457:                 onClick={handleSaveGlobalPatterns}
+458:                 disabled={applyingPatterns}
+459:               >
+460:                 Save Global Patterns
+461:               </Button>
+462:               <Button 
+463:                 variant="secondary" 
+464:                 onClick={handleResetGlobalPatterns}
+465:                 disabled={applyingPatterns}
+466:               >
+467:                 Reset to Defaults
+468:               </Button>
+469:             </>
+470:           ) : (
+471:             <>
+472:               <Button 
+473:                 variant="primary" 
+474:                 onClick={handleSaveLocalPatterns}
+475:                 disabled={!selectedFolder || applyingPatterns}
+476:               >
+477:                 Save Local Patterns
+478:               </Button>
+479:               <Button 
+480:                 variant="secondary" 
+481:                 onClick={handleResetLocalPatterns}
+482:                 disabled={!selectedFolder || applyingPatterns}
+483:               >
+484:                 Reset to Defaults
+485:               </Button>
+486:               <Button 
+487:                 variant="destructive" 
+488:                 onClick={handleClearLocalPatterns}
+489:                 disabled={!selectedFolder || applyingPatterns}
+490:               >
+491:                 Clear All Patterns
+492:               </Button>
+493:             </>
+494:           )}
+495:           
+496:           <Button 
+497:             variant="ghost"
+498:             onClick={onClose}
+499:             disabled={applyingPatterns}
+500:           >
+501:             Cancel
+502:           </Button>
+503:         </div>
+504:       </div>
+505:     </div>
+506:   );
+507: };
+508: 
+509: export default IgnorePatterns;
 ```
 
 ## File: src/styles/index.css
@@ -6424,12 +6675,19 @@ src/
 648:         }}
 649:         systemIgnorePatterns={systemIgnorePatterns}
 650:         recentFolders={getAvailableFolders()}
-651:       />
-652:     </div>
-653:   );
-654: };
-655: 
-656: export default Sidebar;
+651:         systemPatternCategories={{
+652:           versionControl: ["**/.git/**", "**/.svn/**", "**/.hg/**"],
+653:           buildFiles: ["**/dist/**", "**/build/**", "**/.output/**"],
+654:           mediaFiles: ["**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif"],
+655:           documentation: ["**/*.pdf", "**/*.doc", "**/*.docx"],
+656:           dependencies: ["**/node_modules/**", "**/__pycache__/**", "**/venv/**"]
+657:         }}
+658:       />
+659:     </div>
+660:   );
+661: };
+662: 
+663: export default Sidebar;
 ```
 
 ## File: src/App.tsx
@@ -6503,1175 +6761,1246 @@ src/
   67:   excludedPatterns: string[];
   68: }
   69: 
-  70: const App = () => {
-  71:   // Load initial state from localStorage if available
-  72:   const savedFolder = localStorage.getItem(STORAGE_KEYS.SELECTED_FOLDER);
-  73:   const savedFiles = localStorage.getItem(STORAGE_KEYS.SELECTED_FILES);
-  74:   const savedSortOrder = localStorage.getItem(STORAGE_KEYS.SORT_ORDER);
-  75:   const savedSearchTerm = localStorage.getItem(STORAGE_KEYS.SEARCH_TERM);
-  76:   const savedExpandedNodes = localStorage.getItem(STORAGE_KEYS.EXPANDED_NODES);
-  77:   const savedShowInstructions = localStorage.getItem('pastemax-show-instructions');
-  78: 
-  79:   // State for user interface controls
-  80:   const [showUserInstructions, setShowUserInstructions] = useState(savedShowInstructions !== 'false');
-  81:   const [fileTreeMode, setFileTreeMode] = useState<FileTreeMode>('complete');
-  82: 
-  83:   // Initialize expanded nodes from localStorage if available
-  84:   const initialExpandedNodes = useMemo(() => {
-  85:     const map = new Map<string, boolean>();
-  86:     if (savedExpandedNodes) {
-  87:       try {
-  88:         const parsedNodes = JSON.parse(savedExpandedNodes);
-  89:         
-  90:         // Handle array format [key, value][]
-  91:         if (Array.isArray(parsedNodes)) {
-  92:           parsedNodes.forEach(([key, value]) => {
-  93:             if (typeof key === 'string' && typeof value === 'boolean') {
-  94:               map.set(key, value);
-  95:             }
-  96:           });
-  97:         }
-  98:         // Handle object format {key: value}
-  99:         else if (typeof parsedNodes === 'object' && parsedNodes !== null) {
- 100:           Object.entries(parsedNodes).forEach(([key, value]) => {
- 101:             if (typeof value === 'boolean') {
- 102:               map.set(key, value);
- 103:             }
- 104:           });
- 105:         }
- 106:       } catch (error) {
- 107:         console.error("Error parsing saved expanded nodes:", error);
- 108:       }
- 109:     }
- 110:     return map;
- 111:   }, [savedExpandedNodes]);
- 112: 
- 113:   const [selectedFolder, setSelectedFolder] = useState(
- 114:     savedFolder as string | null
- 115:   );
- 116:   const [allFiles, setAllFiles] = useState([] as FileData[]);
- 117:   const [selectedFiles, setSelectedFiles] = useState(
- 118:     savedFiles ? JSON.parse(savedFiles) : ([] as string[])
- 119:   );
- 120:   const [sortOrder, setSortOrder] = useState(savedSortOrder || "tokens-descending");
- 121:   const [searchTerm, setSearchTerm] = useState(savedSearchTerm || "");
- 122:   const [expandedNodes, setExpandedNodes] = useState<Map<string, boolean>>(initialExpandedNodes);
- 123:   const [displayedFiles, setDisplayedFiles] = useState([] as FileData[]);
- 124:   const [processingStatus, setProcessingStatus] = useState({
- 125:     status: "idle",
- 126:     message: "",
- 127:   } as {
- 128:     status: "idle" | "processing" | "complete" | "error";
- 129:     message: string;
- 130:   });
- 131: 
- 132:   // NEW: State for user instructions
- 133:   const [userInstructions, setUserInstructions] = useState("");
- 134: 
- 135:   // NEW: State for file tree sorting and ignore patterns
- 136:   const [fileTreeSortOrder, setFileTreeSortOrder] = useState("name-ascending" as SortOrder);
- 137:   const [ignorePatterns, setIgnorePatterns] = useState("");
- 138:   const [globalIgnorePatterns, setGlobalIgnorePatterns] = useState<IgnorePatternsState>({ patterns: '', excludedPatterns: [] });
- 139:   const [localIgnorePatterns, setLocalIgnorePatterns] = useState<IgnorePatternsState>({ patterns: '', excludedPatterns: [] });
- 140:   const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>(DEFAULT_SYSTEM_PATTERNS);
- 141: 
- 142:   // Check if we're running in Electron or browser environment
- 143:   const isElectron = window.electron !== undefined;
- 144: 
- 145:   // Load expanded nodes state from localStorage
- 146:   useEffect(() => {
- 147:     const savedExpandedNodes = localStorage.getItem(
- 148:       STORAGE_KEYS.EXPANDED_NODES
- 149:     );
- 150:     if (savedExpandedNodes) {
- 151:       try {
- 152:         const parsedNodes = JSON.parse(savedExpandedNodes);
- 153:         
- 154:         // Check if it's an object that needs to be converted to entries
- 155:         if (parsedNodes && typeof parsedNodes === 'object' && !Array.isArray(parsedNodes)) {
- 156:           // Convert object to array of entries
- 157:           const entries = Object.entries(parsedNodes).map(([key, value]) => [key, Boolean(value)]) as [string, boolean][];
- 158:           setExpandedNodes(new Map(entries));
- 159:         } else if (Array.isArray(parsedNodes)) {
- 160:           // It's already in the format of [key, value] pairs
- 161:           const typedEntries = parsedNodes.map(([key, value]) => [key, Boolean(value)]) as [string, boolean][];
- 162:           setExpandedNodes(new Map(typedEntries));
- 163:         } else {
- 164:           // Reset to empty Map if format is not recognized
- 165:           setExpandedNodes(new Map());
- 166:         }
- 167:       } catch (error) {
- 168:         console.error("Error parsing saved expanded nodes:", error);
- 169:         // Reset to empty Map on error
- 170:         setExpandedNodes(new Map());
- 171:       }
- 172:     }
- 173:   }, []);
- 174: 
- 175:   // Persist selected folder when it changes
- 176:   useEffect(() => {
- 177:     if (selectedFolder) {
- 178:       localStorage.setItem(STORAGE_KEYS.SELECTED_FOLDER, selectedFolder);
- 179:     } else {
- 180:       localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
- 181:     }
- 182:   }, [selectedFolder]);
- 183: 
- 184:   // Persist selected files when they change
- 185:   useEffect(() => {
- 186:     localStorage.setItem(
- 187:       STORAGE_KEYS.SELECTED_FILES,
- 188:       JSON.stringify(selectedFiles)
- 189:     );
- 190:   }, [selectedFiles]);
- 191: 
- 192:   // Persist sort order when it changes
- 193:   useEffect(() => {
- 194:     localStorage.setItem(STORAGE_KEYS.SORT_ORDER, sortOrder);
- 195:   }, [sortOrder]);
- 196: 
- 197:   // Persist search term when it changes
- 198:   useEffect(() => {
- 199:     localStorage.setItem(STORAGE_KEYS.SEARCH_TERM, searchTerm);
- 200:   }, [searchTerm]);
+  70: // System pattern categories
+  71: const SYSTEM_PATTERN_CATEGORIES = {
+  72:   versionControl: [
+  73:     "**/.git/**",
+  74:     "**/.svn/**",
+  75:     "**/.hg/**",
+  76:     "**/.cvs/**"
+  77:   ],
+  78:   buildFiles: [
+  79:     "**/dist/**",
+  80:     "**/build/**",
+  81:     "**/.output/**"
+  82:   ],
+  83:   mediaFiles: [
+  84:     "**/*.png",
+  85:     "**/*.jpg",
+  86:     "**/*.jpeg",
+  87:     "**/*.gif",
+  88:     "**/*.webp",
+  89:     "**/*.svg",
+  90:     "**/*.mp4",
+  91:     "**/*.mp3",
+  92:     "**/*.flac",
+  93:     "**/*.wav"
+  94:   ],
+  95:   documentation: [
+  96:     "**/*.pdf",
+  97:     "**/*.doc",
+  98:     "**/*.docx",
+  99:     "**/*.xls",
+ 100:     "**/*.xlsx"
+ 101:   ],
+ 102:   dependencies: [
+ 103:     "**/node_modules/**",
+ 104:     "**/__pycache__/**",
+ 105:     "**/venv/**",
+ 106:     "**/vendor/**"
+ 107:   ]
+ 108: };
+ 109: 
+ 110: // Parse ignore patterns content to extract disabled patterns and user patterns
+ 111: const parseIgnorePatternsContent = (content: string) => {
+ 112:   const lines = content.split('\n');
+ 113:   const excludedPatterns: string[] = [];
+ 114:   const userPatterns: string[] = [];
+ 115:   
+ 116:   let inDisabledSection = true;
+ 117:   
+ 118:   lines.forEach(line => {
+ 119:     const trimmed = line.trim();
+ 120:     if (trimmed.startsWith('# DISABLED:')) {
+ 121:       const pattern = trimmed.substring('# DISABLED:'.length).trim();
+ 122:       if (pattern) {
+ 123:         excludedPatterns.push(pattern);
+ 124:       }
+ 125:     } else if (trimmed === '') {
+ 126:       // Empty line could separate disabled section from user patterns
+ 127:       inDisabledSection = false;
+ 128:     } else {
+ 129:       inDisabledSection = false;
+ 130:       userPatterns.push(line);
+ 131:     }
+ 132:   });
+ 133:   
+ 134:   return {
+ 135:     excludedPatterns,
+ 136:     userPatterns: userPatterns.join('\n')
+ 137:   };
+ 138: };
+ 139: 
+ 140: const App = () => {
+ 141:   // Load initial state from localStorage if available
+ 142:   const savedFolder = localStorage.getItem(STORAGE_KEYS.SELECTED_FOLDER);
+ 143:   const savedFiles = localStorage.getItem(STORAGE_KEYS.SELECTED_FILES);
+ 144:   const savedSortOrder = localStorage.getItem(STORAGE_KEYS.SORT_ORDER);
+ 145:   const savedSearchTerm = localStorage.getItem(STORAGE_KEYS.SEARCH_TERM);
+ 146:   const savedExpandedNodes = localStorage.getItem(STORAGE_KEYS.EXPANDED_NODES);
+ 147:   const savedShowInstructions = localStorage.getItem('pastemax-show-instructions');
+ 148: 
+ 149:   // State for user interface controls
+ 150:   const [showUserInstructions, setShowUserInstructions] = useState(savedShowInstructions !== 'false');
+ 151:   const [fileTreeMode, setFileTreeMode] = useState<FileTreeMode>('complete');
+ 152: 
+ 153:   // Initialize expanded nodes from localStorage if available
+ 154:   const initialExpandedNodes = useMemo(() => {
+ 155:     const map = new Map<string, boolean>();
+ 156:     if (savedExpandedNodes) {
+ 157:       try {
+ 158:         const parsedNodes = JSON.parse(savedExpandedNodes);
+ 159:         
+ 160:         // Handle array format [key, value][]
+ 161:         if (Array.isArray(parsedNodes)) {
+ 162:           parsedNodes.forEach(([key, value]) => {
+ 163:             if (typeof key === 'string' && typeof value === 'boolean') {
+ 164:               map.set(key, value);
+ 165:             }
+ 166:           });
+ 167:         }
+ 168:         // Handle object format {key: value}
+ 169:         else if (typeof parsedNodes === 'object' && parsedNodes !== null) {
+ 170:           Object.entries(parsedNodes).forEach(([key, value]) => {
+ 171:             if (typeof value === 'boolean') {
+ 172:               map.set(key, value);
+ 173:             }
+ 174:           });
+ 175:         }
+ 176:       } catch (error) {
+ 177:         console.error("Error parsing saved expanded nodes:", error);
+ 178:       }
+ 179:     }
+ 180:     return map;
+ 181:   }, [savedExpandedNodes]);
+ 182: 
+ 183:   const [selectedFolder, setSelectedFolder] = useState(
+ 184:     savedFolder as string | null
+ 185:   );
+ 186:   const [allFiles, setAllFiles] = useState([] as FileData[]);
+ 187:   const [selectedFiles, setSelectedFiles] = useState(
+ 188:     savedFiles ? JSON.parse(savedFiles) : ([] as string[])
+ 189:   );
+ 190:   const [sortOrder, setSortOrder] = useState(savedSortOrder || "tokens-descending");
+ 191:   const [searchTerm, setSearchTerm] = useState(savedSearchTerm || "");
+ 192:   const [expandedNodes, setExpandedNodes] = useState<Map<string, boolean>>(initialExpandedNodes);
+ 193:   const [displayedFiles, setDisplayedFiles] = useState([] as FileData[]);
+ 194:   const [processingStatus, setProcessingStatus] = useState({
+ 195:     status: "idle",
+ 196:     message: "",
+ 197:   } as {
+ 198:     status: "idle" | "processing" | "complete" | "error";
+ 199:     message: string;
+ 200:   });
  201: 
- 202:   // Load initial data from saved folder
- 203:   useEffect(() => {
- 204:     if (!isElectron || !selectedFolder) return;
- 205: 
- 206:     // Use a flag in sessionStorage to ensure we only load data once per session
- 207:     const hasLoadedInitialData = sessionStorage.getItem("hasLoadedInitialData");
- 208:     if (hasLoadedInitialData === "true") return;
- 209: 
- 210:     console.log("Loading saved folder on startup:", selectedFolder);
- 211:     setProcessingStatus({
- 212:       status: "processing",
- 213:       message: "Loading files from previously selected folder...",
- 214:     });
- 215:     window.electron.ipcRenderer.send("request-file-list", selectedFolder);
- 216: 
- 217:     // Mark that we've loaded the initial data
- 218:     sessionStorage.setItem("hasLoadedInitialData", "true");
- 219:   }, [isElectron, selectedFolder]);
- 220: 
- 221:   // Listen for folder selection from main process
- 222:   useEffect(() => {
- 223:     if (!isElectron) {
- 224:       console.warn("Not running in Electron environment");
- 225:       return;
- 226:     }
- 227: 
- 228:     const handleFolderSelected = (folderPath: string) => {
- 229:       // Check if folderPath is valid string
- 230:       if (typeof folderPath === "string") {
- 231:         console.log("Folder selected:", folderPath);
- 232:         setSelectedFolder(folderPath);
- 233:         // We'll select all files after they're loaded
- 234:         setSelectedFiles([]);
- 235:         setProcessingStatus({
- 236:           status: "processing",
- 237:           message: "Requesting file list...",
- 238:         });
- 239:         window.electron.ipcRenderer.send("request-file-list", folderPath);
- 240:       } else {
- 241:         console.error("Invalid folder path received:", folderPath);
- 242:         setProcessingStatus({
- 243:           status: "error",
- 244:           message: "Invalid folder path received",
- 245:         });
- 246:       }
- 247:     };
- 248: 
- 249:     const handleFileListData = (files: FileData[]) => {
- 250:       console.log("Received file list data:", files.length, "files");
- 251:       
- 252:       // Check if this is the app directory - special case
- 253:       if (files.length === 1 && files[0].isAppDirectory) {
- 254:         console.log("Detected app directory selection");
- 255:         setAllFiles([]);
- 256:         setSelectedFiles([]);
- 257:         setDisplayedFiles([]);
- 258:         setProcessingStatus({
- 259:           status: "error",
- 260:           message: "Please select a project directory instead of the PasteMax application directory",
- 261:         });
- 262:         return;
- 263:       }
- 264:       
- 265:       setAllFiles(files);
- 266:       setProcessingStatus({
- 267:         status: "complete",
- 268:         message: `Loaded ${files.length} files`,
- 269:       });
- 270: 
- 271:       // Apply filters and sort to the new files
- 272:       applyFiltersAndSort(files, sortOrder, searchTerm);
- 273: 
- 274:       // Select only files that are not binary, not skipped, and not excluded by default
- 275:       const selectablePaths = files
- 276:         .filter(
- 277:           (file: FileData) =>
- 278:             !file.isBinary && !file.isSkipped && !file.excludedByDefault // Respect the excludedByDefault flag
- 279:         )
- 280:         .map((file: FileData) => file.path);
- 281: 
- 282:       setSelectedFiles(selectablePaths);
- 283:     };
- 284: 
- 285:     const handleProcessingStatus = (status: {
- 286:       status: "idle" | "processing" | "complete" | "error";
- 287:       message: string;
- 288:     }) => {
- 289:       console.log("Processing status:", status);
- 290:       setProcessingStatus(status);
- 291:     };
- 292: 
- 293:     window.electron.ipcRenderer.on("folder-selected", handleFolderSelected);
- 294:     window.electron.ipcRenderer.on("file-list-data", handleFileListData);
- 295:     window.electron.ipcRenderer.on(
- 296:       "file-processing-status",
- 297:       handleProcessingStatus
- 298:     );
- 299: 
- 300:     return () => {
- 301:       window.electron.ipcRenderer.removeListener(
- 302:         "folder-selected",
- 303:         handleFolderSelected
- 304:       );
- 305:       window.electron.ipcRenderer.removeListener(
- 306:         "file-list-data",
- 307:         handleFileListData
- 308:       );
- 309:       window.electron.ipcRenderer.removeListener(
- 310:         "file-processing-status",
- 311:         handleProcessingStatus
- 312:       );
- 313:     };
- 314:   }, [isElectron, sortOrder, searchTerm]);
- 315: 
- 316:   // Add ESC key handler for directory loading
- 317:   useEffect(() => {
- 318:     const handleEscKey = (e: KeyboardEvent) => {
- 319:       if (e.key === "Escape" && processingStatus.status === "processing") {
- 320:         console.log("ESC pressed - cancelling directory loading");
- 321:         window.electron.ipcRenderer.send("cancel-directory-loading");
- 322:       }
- 323:     };
- 324: 
- 325:     // Only add the event listener when processing
- 326:     if (processingStatus.status === "processing") {
- 327:       window.addEventListener("keydown", handleEscKey);
- 328:       return () => window.removeEventListener("keydown", handleEscKey);
- 329:     }
- 330:   }, [processingStatus.status]);
- 331: 
- 332:   const openFolder = () => {
- 333:     if (isElectron) {
- 334:       console.log("Opening folder dialog");
- 335:       setProcessingStatus({ status: "idle", message: "Select a folder..." });
- 336:       window.electron.ipcRenderer.send("open-folder");
- 337:     } else {
- 338:       console.warn("Folder selection not available in browser");
- 339:     }
- 340:   };
- 341: 
- 342:   // Apply filters and sorting to files
- 343:   const applyFiltersAndSort = (
- 344:     files: FileData[],
- 345:     sort: string,
- 346:     filter: string
- 347:   ) => {
- 348:     let filtered = files;
- 349: 
- 350:     // Apply filter
- 351:     if (filter) {
- 352:       const lowerFilter = filter.toLowerCase();
- 353:       filtered = files.filter(
- 354:         (file) =>
- 355:           file.name.toLowerCase().includes(lowerFilter) ||
- 356:           file.path.toLowerCase().includes(lowerFilter)
- 357:       );
- 358:     }
- 359: 
- 360:     // Apply sort
- 361:     const [sortKey, sortDir] = sort.split("-");
- 362:     const sorted = [...filtered].sort((a, b) => {
- 363:       let comparison = 0;
- 364: 
- 365:       switch (sortKey) {
- 366:         case "name":
- 367:           comparison = a.name.localeCompare(b.name);
- 368:           break;
- 369:         case "tokens":
- 370:           // Ensure we have valid numbers for comparison
- 371:           const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
- 372:           const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
- 373:           comparison = aTokens - bTokens;
- 374:           break;
- 375:         case "date":
- 376:           const aDate = a.lastModified || 0;
- 377:           const bDate = b.lastModified || 0;
- 378:           comparison = aDate - bDate;
- 379:           break;
- 380:         default:
- 381:           comparison = a.name.localeCompare(b.name);
- 382:       }
- 383: 
- 384:       return sortDir === "ascending" ? comparison : -comparison;
- 385:     });
- 386: 
- 387:     setDisplayedFiles(sorted);
- 388:   };
- 389: 
- 390:   // Toggle file selection
- 391:   const toggleFileSelection = (filePath: string) => {
- 392:     // Normalize the incoming file path to handle cross-platform issues
- 393:     const normalizedPath = normalizePath(filePath);
- 394:     
- 395:     setSelectedFiles((prevSelected: string[]) => {
- 396:       // Check if the file is already selected
- 397:       const isSelected = prevSelected.some((path: string) => arePathsEqual(path, normalizedPath));
- 398:       
- 399:       if (isSelected) {
- 400:         // Remove the file from selected files
- 401:         const newSelection = prevSelected.filter((path: string) => !arePathsEqual(path, normalizedPath));
- 402:         return newSelection;
- 403:       } else {
- 404:         // Add the file to selected files
- 405:         const newSelection = [...prevSelected, normalizedPath];
- 406:         return newSelection;
- 407:       }
- 408:     });
- 409:   };
- 410: 
- 411:   // Select all files that are not excluded or binary
- 412:   const selectAllFiles = () => {
- 413:     const filesToSelect = allFiles
- 414:       .filter(file => !file.excluded && !file.isBinary && !file.isSkipped)
- 415:       .map(file => file.path);
- 416:     
- 417:     // Update selected files state
- 418:     setSelectedFiles(prevSelected => {
- 419:       // Create a Set of currently selected files for faster lookup
- 420:       const currentlySelected = new Set(prevSelected);
- 421:       
- 422:       // Add all files that aren't already selected
- 423:       filesToSelect.forEach(path => {
- 424:         if (!currentlySelected.has(path)) {
- 425:           currentlySelected.add(path);
- 426:         }
- 427:       });
- 428:       
- 429:       return Array.from(currentlySelected);
- 430:     });
- 431:   };
- 432: 
- 433:   // Deselect all files
- 434:   const deselectAllFiles = () => {
- 435:     setSelectedFiles([]);
- 436:   };
- 437: 
- 438:   // Toggle folder selection with proper handling of nested structures
- 439:   const toggleFolderSelection = (folderPath: string, isSelected: boolean) => {
- 440:     if (!folderPath) {
- 441:       console.warn("toggleFolderSelection called with empty path");
- 442:       return;
- 443:     }
- 444:     
- 445:     setSelectedFiles(prev => {
- 446:       // Create a Set for better performance
- 447:       const newSelection = new Set(prev);
- 448:       
- 449:       // Find all files under this folder
- 450:       const filesInFolder = allFiles.filter(file => {
- 451:         const normalizedFilePath = normalizePath(file.path);
- 452:         const normalizedFolderPath = normalizePath(folderPath);
- 453:         
- 454:         return normalizedFilePath.startsWith(normalizedFolderPath) && 
- 455:           !file.excluded && 
- 456:           !file.isBinary && 
- 457:           !file.isSkipped;
- 458:       });
- 459:       
- 460:       // Update selection based on isSelected flag
- 461:       filesInFolder.forEach(file => {
- 462:         if (isSelected) {
- 463:           newSelection.add(file.path);
- 464:         } else {
- 465:           newSelection.delete(file.path);
- 466:         }
- 467:       });
+ 202:   // NEW: State for user instructions
+ 203:   const [userInstructions, setUserInstructions] = useState("");
+ 204: 
+ 205:   // NEW: State for file tree sorting and ignore patterns
+ 206:   const [fileTreeSortOrder, setFileTreeSortOrder] = useState("name-ascending" as SortOrder);
+ 207:   const [ignorePatterns, setIgnorePatterns] = useState("");
+ 208:   const [globalIgnorePatterns, setGlobalIgnorePatterns] = useState<IgnorePatternsState>({ patterns: '', excludedPatterns: [] });
+ 209:   const [localIgnorePatterns, setLocalIgnorePatterns] = useState<IgnorePatternsState>({ patterns: '', excludedPatterns: [] });
+ 210:   const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>(DEFAULT_SYSTEM_PATTERNS);
+ 211: 
+ 212:   // Check if we're running in Electron or browser environment
+ 213:   const isElectron = window.electron !== undefined;
+ 214: 
+ 215:   // Load expanded nodes state from localStorage
+ 216:   useEffect(() => {
+ 217:     const savedExpandedNodes = localStorage.getItem(
+ 218:       STORAGE_KEYS.EXPANDED_NODES
+ 219:     );
+ 220:     if (savedExpandedNodes) {
+ 221:       try {
+ 222:         const parsedNodes = JSON.parse(savedExpandedNodes);
+ 223:         
+ 224:         // Check if it's an object that needs to be converted to entries
+ 225:         if (parsedNodes && typeof parsedNodes === 'object' && !Array.isArray(parsedNodes)) {
+ 226:           // Convert object to array of entries
+ 227:           const entries = Object.entries(parsedNodes).map(([key, value]) => [key, Boolean(value)]) as [string, boolean][];
+ 228:           setExpandedNodes(new Map(entries));
+ 229:         } else if (Array.isArray(parsedNodes)) {
+ 230:           // It's already in the format of [key, value] pairs
+ 231:           const typedEntries = parsedNodes.map(([key, value]) => [key, Boolean(value)]) as [string, boolean][];
+ 232:           setExpandedNodes(new Map(typedEntries));
+ 233:         } else {
+ 234:           // Reset to empty Map if format is not recognized
+ 235:           setExpandedNodes(new Map());
+ 236:         }
+ 237:       } catch (error) {
+ 238:         console.error("Error parsing saved expanded nodes:", error);
+ 239:         // Reset to empty Map on error
+ 240:         setExpandedNodes(new Map());
+ 241:       }
+ 242:     }
+ 243:   }, []);
+ 244: 
+ 245:   // Persist selected folder when it changes
+ 246:   useEffect(() => {
+ 247:     if (selectedFolder) {
+ 248:       localStorage.setItem(STORAGE_KEYS.SELECTED_FOLDER, selectedFolder);
+ 249:     } else {
+ 250:       localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
+ 251:     }
+ 252:   }, [selectedFolder]);
+ 253: 
+ 254:   // Persist selected files when they change
+ 255:   useEffect(() => {
+ 256:     localStorage.setItem(
+ 257:       STORAGE_KEYS.SELECTED_FILES,
+ 258:       JSON.stringify(selectedFiles)
+ 259:     );
+ 260:   }, [selectedFiles]);
+ 261: 
+ 262:   // Persist sort order when it changes
+ 263:   useEffect(() => {
+ 264:     localStorage.setItem(STORAGE_KEYS.SORT_ORDER, sortOrder);
+ 265:   }, [sortOrder]);
+ 266: 
+ 267:   // Persist search term when it changes
+ 268:   useEffect(() => {
+ 269:     localStorage.setItem(STORAGE_KEYS.SEARCH_TERM, searchTerm);
+ 270:   }, [searchTerm]);
+ 271: 
+ 272:   // Load initial data from saved folder
+ 273:   useEffect(() => {
+ 274:     if (!isElectron || !selectedFolder) return;
+ 275: 
+ 276:     // Use a flag in sessionStorage to ensure we only load data once per session
+ 277:     const hasLoadedInitialData = sessionStorage.getItem("hasLoadedInitialData");
+ 278:     if (hasLoadedInitialData === "true") return;
+ 279: 
+ 280:     console.log("Loading saved folder on startup:", selectedFolder);
+ 281:     setProcessingStatus({
+ 282:       status: "processing",
+ 283:       message: "Loading files from previously selected folder...",
+ 284:     });
+ 285:     window.electron.ipcRenderer.send("request-file-list", selectedFolder);
+ 286: 
+ 287:     // Mark that we've loaded the initial data
+ 288:     sessionStorage.setItem("hasLoadedInitialData", "true");
+ 289:   }, [isElectron, selectedFolder]);
+ 290: 
+ 291:   // Listen for folder selection from main process
+ 292:   useEffect(() => {
+ 293:     if (!isElectron) {
+ 294:       console.warn("Not running in Electron environment");
+ 295:       return;
+ 296:     }
+ 297: 
+ 298:     const handleFolderSelected = (folderPath: string) => {
+ 299:       // Check if folderPath is valid string
+ 300:       if (typeof folderPath === "string") {
+ 301:         console.log("Folder selected:", folderPath);
+ 302:         setSelectedFolder(folderPath);
+ 303:         // We'll select all files after they're loaded
+ 304:         setSelectedFiles([]);
+ 305:         setProcessingStatus({
+ 306:           status: "processing",
+ 307:           message: "Requesting file list...",
+ 308:         });
+ 309:         window.electron.ipcRenderer.send("request-file-list", folderPath);
+ 310:       } else {
+ 311:         console.error("Invalid folder path received:", folderPath);
+ 312:         setProcessingStatus({
+ 313:           status: "error",
+ 314:           message: "Invalid folder path received",
+ 315:         });
+ 316:       }
+ 317:     };
+ 318: 
+ 319:     const handleFileListData = (files: FileData[]) => {
+ 320:       console.log("Received file list data:", files.length, "files");
+ 321:       
+ 322:       // Check if this is the app directory - special case
+ 323:       if (files.length === 1 && files[0].isAppDirectory) {
+ 324:         console.log("Detected app directory selection");
+ 325:         setAllFiles([]);
+ 326:         setSelectedFiles([]);
+ 327:         setDisplayedFiles([]);
+ 328:         setProcessingStatus({
+ 329:           status: "error",
+ 330:           message: "Please select a project directory instead of the PasteMax application directory",
+ 331:         });
+ 332:         return;
+ 333:       }
+ 334:       
+ 335:       setAllFiles(files);
+ 336:       setProcessingStatus({
+ 337:         status: "complete",
+ 338:         message: `Loaded ${files.length} files`,
+ 339:       });
+ 340: 
+ 341:       // Apply filters and sort to the new files
+ 342:       applyFiltersAndSort(files, sortOrder, searchTerm);
+ 343: 
+ 344:       // Select only files that are not binary, not skipped, and not excluded by default
+ 345:       const selectablePaths = files
+ 346:         .filter(
+ 347:           (file: FileData) =>
+ 348:             !file.isBinary && !file.isSkipped && !file.excludedByDefault // Respect the excludedByDefault flag
+ 349:         )
+ 350:         .map((file: FileData) => file.path);
+ 351: 
+ 352:       setSelectedFiles(selectablePaths);
+ 353:     };
+ 354: 
+ 355:     const handleProcessingStatus = (status: {
+ 356:       status: "idle" | "processing" | "complete" | "error";
+ 357:       message: string;
+ 358:     }) => {
+ 359:       console.log("Processing status:", status);
+ 360:       setProcessingStatus(status);
+ 361:     };
+ 362: 
+ 363:     window.electron.ipcRenderer.on("folder-selected", handleFolderSelected);
+ 364:     window.electron.ipcRenderer.on("file-list-data", handleFileListData);
+ 365:     window.electron.ipcRenderer.on(
+ 366:       "file-processing-status",
+ 367:       handleProcessingStatus
+ 368:     );
+ 369: 
+ 370:     return () => {
+ 371:       window.electron.ipcRenderer.removeListener(
+ 372:         "folder-selected",
+ 373:         handleFolderSelected
+ 374:       );
+ 375:       window.electron.ipcRenderer.removeListener(
+ 376:         "file-list-data",
+ 377:         handleFileListData
+ 378:       );
+ 379:       window.electron.ipcRenderer.removeListener(
+ 380:         "file-processing-status",
+ 381:         handleProcessingStatus
+ 382:       );
+ 383:     };
+ 384:   }, [isElectron, sortOrder, searchTerm]);
+ 385: 
+ 386:   // Add ESC key handler for directory loading
+ 387:   useEffect(() => {
+ 388:     const handleEscKey = (e: KeyboardEvent) => {
+ 389:       if (e.key === "Escape" && processingStatus.status === "processing") {
+ 390:         console.log("ESC pressed - cancelling directory loading");
+ 391:         window.electron.ipcRenderer.send("cancel-directory-loading");
+ 392:       }
+ 393:     };
+ 394: 
+ 395:     // Only add the event listener when processing
+ 396:     if (processingStatus.status === "processing") {
+ 397:       window.addEventListener("keydown", handleEscKey);
+ 398:       return () => window.removeEventListener("keydown", handleEscKey);
+ 399:     }
+ 400:   }, [processingStatus.status]);
+ 401: 
+ 402:   const openFolder = () => {
+ 403:     if (isElectron) {
+ 404:       console.log("Opening folder dialog");
+ 405:       setProcessingStatus({ status: "idle", message: "Select a folder..." });
+ 406:       window.electron.ipcRenderer.send("open-folder");
+ 407:     } else {
+ 408:       console.warn("Folder selection not available in browser");
+ 409:     }
+ 410:   };
+ 411: 
+ 412:   // Apply filters and sorting to files
+ 413:   const applyFiltersAndSort = (
+ 414:     files: FileData[],
+ 415:     sort: string,
+ 416:     filter: string
+ 417:   ) => {
+ 418:     let filtered = files;
+ 419: 
+ 420:     // Apply filter
+ 421:     if (filter) {
+ 422:       const lowerFilter = filter.toLowerCase();
+ 423:       filtered = files.filter(
+ 424:         (file) =>
+ 425:           file.name.toLowerCase().includes(lowerFilter) ||
+ 426:           file.path.toLowerCase().includes(lowerFilter)
+ 427:       );
+ 428:     }
+ 429: 
+ 430:     // Apply sort
+ 431:     const [sortKey, sortDir] = sort.split("-");
+ 432:     const sorted = [...filtered].sort((a, b) => {
+ 433:       let comparison = 0;
+ 434: 
+ 435:       switch (sortKey) {
+ 436:         case "name":
+ 437:           comparison = a.name.localeCompare(b.name);
+ 438:           break;
+ 439:         case "tokens":
+ 440:           // Ensure we have valid numbers for comparison
+ 441:           const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
+ 442:           const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
+ 443:           comparison = aTokens - bTokens;
+ 444:           break;
+ 445:         case "date":
+ 446:           const aDate = a.lastModified || 0;
+ 447:           const bDate = b.lastModified || 0;
+ 448:           comparison = aDate - bDate;
+ 449:           break;
+ 450:         default:
+ 451:           comparison = a.name.localeCompare(b.name);
+ 452:       }
+ 453: 
+ 454:       return sortDir === "ascending" ? comparison : -comparison;
+ 455:     });
+ 456: 
+ 457:     setDisplayedFiles(sorted);
+ 458:   };
+ 459: 
+ 460:   // Toggle file selection
+ 461:   const toggleFileSelection = (filePath: string) => {
+ 462:     // Normalize the incoming file path to handle cross-platform issues
+ 463:     const normalizedPath = normalizePath(filePath);
+ 464:     
+ 465:     setSelectedFiles((prevSelected: string[]) => {
+ 466:       // Check if the file is already selected
+ 467:       const isSelected = prevSelected.some((path: string) => arePathsEqual(path, normalizedPath));
  468:       
- 469:       return Array.from(newSelection);
- 470:     });
- 471:   };
- 472: 
- 473:   // Update the sort change handler
- 474:   const handleSortChange = (value: string | string[]) => {
- 475:     if (typeof value === 'string') {
- 476:       setSortOrder(value);
- 477:       applyFiltersAndSort(allFiles, value, searchTerm);
- 478:     }
+ 469:       if (isSelected) {
+ 470:         // Remove the file from selected files
+ 471:         const newSelection = prevSelected.filter((path: string) => !arePathsEqual(path, normalizedPath));
+ 472:         return newSelection;
+ 473:       } else {
+ 474:         // Add the file to selected files
+ 475:         const newSelection = [...prevSelected, normalizedPath];
+ 476:         return newSelection;
+ 477:       }
+ 478:     });
  479:   };
  480: 
- 481:   // Handle search change
- 482:   const handleSearchChange = (newSearch: string) => {
- 483:     setSearchTerm(newSearch);
- 484:     applyFiltersAndSort(allFiles, sortOrder, newSearch);
- 485:   };
- 486: 
- 487:   // Calculate total tokens from selected files
- 488:   const calculateTotalTokens = () => {
- 489:     return selectedFiles.reduce((total: number, path: string) => {
- 490:       const file = allFiles.find((f: FileData) => f.path === path);
- 491:       return total + (file ? file.tokenCount : 0);
- 492:     }, 0);
- 493:   };
- 494: 
- 495:   // Concatenate selected files content for copying,
- 496:   // and add user instructions (wrapped in tags) at the bottom if provided.
- 497:   const getSelectedFilesContent = () => {
- 498:     // Sort selected files according to current sort order
- 499:     const [sortKey, sortDir] = sortOrder.split("-");
- 500:     const sortedSelected = allFiles
- 501:       .filter((file: FileData) => selectedFiles.includes(file.path))
- 502:       .sort((a: FileData, b: FileData) => {
- 503:         let comparison = 0;
- 504: 
- 505:         switch (sortKey) {
- 506:           case "name":
- 507:             comparison = a.name.localeCompare(b.name);
- 508:             break;
- 509:           case "tokens":
- 510:             // Ensure we have valid numbers for comparison
- 511:             const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
- 512:             const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
- 513:             comparison = aTokens - bTokens;
- 514:             break;
- 515:           case "date":
- 516:             const aDate = a.lastModified || 0;
- 517:             const bDate = b.lastModified || 0;
- 518:             comparison = aDate - bDate;
- 519:             break;
- 520:           default:
- 521:             comparison = a.name.localeCompare(b.name);
- 522:         }
- 523: 
- 524:         return sortDir === "ascending" ? comparison : -comparison;
- 525:       });
- 526: 
- 527:     if (sortedSelected.length === 0) {
- 528:       return "No files selected.";
- 529:     }
- 530: 
- 531:     let concatenatedString = "";
- 532: 
- 533:     // Add ASCII file tree based on the selected mode
- 534:     if (fileTreeMode !== "none" && selectedFolder) {
- 535:       let filesToInclude = sortedSelected;
- 536:       
- 537:       // For the 'complete' mode, include all files
- 538:       if (fileTreeMode === "complete") {
- 539:         filesToInclude = allFiles;
- 540:       }
- 541:       
- 542:       // For all modes, we pass the fileTreeMode parameter to the function
- 543:       const asciiTree = generateAsciiFileTree(filesToInclude, selectedFolder, fileTreeMode);
- 544:       concatenatedString += `<file_map>\n${selectedFolder}\n${asciiTree}\n</file_map>\n\n`;
- 545:     }
- 546: 
- 547:     // Improve formatting of file header - add file path and token count
- 548:     sortedSelected.forEach((file: FileData) => {
- 549:       // Extract relative path from the full path
- 550:       let relativePath = "";
- 551:       if (selectedFolder && file.path.startsWith(selectedFolder)) {
- 552:         relativePath = file.path.substring(selectedFolder.length);
- 553:         if (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
- 554:           relativePath = relativePath.substring(1);
- 555:         }
- 556:       } else {
- 557:         relativePath = file.path;
- 558:       }
- 559:       
- 560:       // Add formatted file header with token count and path
- 561:       concatenatedString += `\n\n// ---- File: ${relativePath} (${file.tokenCount} tokens) ----\n\n`;
- 562:       concatenatedString += file.content;
- 563:     });
+ 481:   // Select all files that are not excluded or binary
+ 482:   const selectAllFiles = () => {
+ 483:     const filesToSelect = allFiles
+ 484:       .filter(file => !file.excluded && !file.isBinary && !file.isSkipped)
+ 485:       .map(file => file.path);
+ 486:     
+ 487:     // Update selected files state
+ 488:     setSelectedFiles(prevSelected => {
+ 489:       // Create a Set of currently selected files for faster lookup
+ 490:       const currentlySelected = new Set(prevSelected);
+ 491:       
+ 492:       // Add all files that aren't already selected
+ 493:       filesToSelect.forEach(path => {
+ 494:         if (!currentlySelected.has(path)) {
+ 495:           currentlySelected.add(path);
+ 496:         }
+ 497:       });
+ 498:       
+ 499:       return Array.from(currentlySelected);
+ 500:     });
+ 501:   };
+ 502: 
+ 503:   // Deselect all files
+ 504:   const deselectAllFiles = () => {
+ 505:     setSelectedFiles([]);
+ 506:   };
+ 507: 
+ 508:   // Toggle folder selection with proper handling of nested structures
+ 509:   const toggleFolderSelection = (folderPath: string, isSelected: boolean) => {
+ 510:     if (!folderPath) {
+ 511:       console.warn("toggleFolderSelection called with empty path");
+ 512:       return;
+ 513:     }
+ 514:     
+ 515:     setSelectedFiles(prev => {
+ 516:       // Create a Set for better performance
+ 517:       const newSelection = new Set(prev);
+ 518:       
+ 519:       // Find all files under this folder
+ 520:       const filesInFolder = allFiles.filter(file => {
+ 521:         const normalizedFilePath = normalizePath(file.path);
+ 522:         const normalizedFolderPath = normalizePath(folderPath);
+ 523:         
+ 524:         return normalizedFilePath.startsWith(normalizedFolderPath) && 
+ 525:           !file.excluded && 
+ 526:           !file.isBinary && 
+ 527:           !file.isSkipped;
+ 528:       });
+ 529:       
+ 530:       // Update selection based on isSelected flag
+ 531:       filesInFolder.forEach(file => {
+ 532:         if (isSelected) {
+ 533:           newSelection.add(file.path);
+ 534:         } else {
+ 535:           newSelection.delete(file.path);
+ 536:         }
+ 537:       });
+ 538:       
+ 539:       return Array.from(newSelection);
+ 540:     });
+ 541:   };
+ 542: 
+ 543:   // Update the sort change handler
+ 544:   const handleSortChange = (value: string | string[]) => {
+ 545:     if (typeof value === 'string') {
+ 546:       setSortOrder(value);
+ 547:       applyFiltersAndSort(allFiles, value, searchTerm);
+ 548:     }
+ 549:   };
+ 550: 
+ 551:   // Handle search change
+ 552:   const handleSearchChange = (newSearch: string) => {
+ 553:     setSearchTerm(newSearch);
+ 554:     applyFiltersAndSort(allFiles, sortOrder, newSearch);
+ 555:   };
+ 556: 
+ 557:   // Calculate total tokens from selected files
+ 558:   const calculateTotalTokens = () => {
+ 559:     return selectedFiles.reduce((total: number, path: string) => {
+ 560:       const file = allFiles.find((f: FileData) => f.path === path);
+ 561:       return total + (file ? file.tokenCount : 0);
+ 562:     }, 0);
+ 563:   };
  564: 
- 565:     // Wrap user instructions if any and add to the bottom
- 566:     const userInstructionsBlock = userInstructions.trim()
- 567:       ? `\n<user_instructions>\n${userInstructions}\n</user_instructions>\n\n`
- 568:       : "";
- 569:     return concatenatedString + userInstructionsBlock;
- 570:   };
- 571: 
- 572:   // Sort options for the dropdown
- 573:   const sortOptions = [
- 574:     { value: "name-ascending", label: "Name (A to Z)" },
- 575:     { value: "name-descending", label: "Name (Z to A)" },
- 576:     { value: "tokens-ascending", label: "Tokens (Fewest first)" },
- 577:     { value: "tokens-descending", label: "Tokens (Most first)" },
- 578:     { value: "date-ascending", label: "Date (Oldest first)" },
- 579:     { value: "date-descending", label: "Date (Newest first)" }
- 580:   ];
- 581: 
- 582:   // Handle expand/collapse state changes
- 583:   const toggleExpanded = (nodeId: string) => {
- 584:     setExpandedNodes((prev: Map<string, boolean>) => {
- 585:       const newState = new Map(prev);
- 586:       const currentValue = prev.get(nodeId);
- 587:       newState.set(nodeId, currentValue === undefined ? true : !currentValue);
- 588:       
- 589:       // Save to localStorage as an array of entries [key, value]
- 590:       try {
- 591:         localStorage.setItem(
- 592:           STORAGE_KEYS.EXPANDED_NODES,
- 593:           JSON.stringify(Array.from(newState.entries()))
- 594:         );
- 595:       } catch (error) {
- 596:         console.error("Error saving expanded nodes:", error);
- 597:       }
- 598:       
- 599:       return newState;
- 600:     });
- 601:   };
+ 565:   // Concatenate selected files content for copying,
+ 566:   // and add user instructions (wrapped in tags) at the bottom if provided.
+ 567:   const getSelectedFilesContent = () => {
+ 568:     // Sort selected files according to current sort order
+ 569:     const [sortKey, sortDir] = sortOrder.split("-");
+ 570:     const sortedSelected = allFiles
+ 571:       .filter((file: FileData) => selectedFiles.includes(file.path))
+ 572:       .sort((a: FileData, b: FileData) => {
+ 573:         let comparison = 0;
+ 574: 
+ 575:         switch (sortKey) {
+ 576:           case "name":
+ 577:             comparison = a.name.localeCompare(b.name);
+ 578:             break;
+ 579:           case "tokens":
+ 580:             // Ensure we have valid numbers for comparison
+ 581:             const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
+ 582:             const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
+ 583:             comparison = aTokens - bTokens;
+ 584:             break;
+ 585:           case "date":
+ 586:             const aDate = a.lastModified || 0;
+ 587:             const bDate = b.lastModified || 0;
+ 588:             comparison = aDate - bDate;
+ 589:             break;
+ 590:           default:
+ 591:             comparison = a.name.localeCompare(b.name);
+ 592:         }
+ 593: 
+ 594:         return sortDir === "ascending" ? comparison : -comparison;
+ 595:       });
+ 596: 
+ 597:     if (sortedSelected.length === 0) {
+ 598:       return "No files selected.";
+ 599:     }
+ 600: 
+ 601:     let concatenatedString = "";
  602: 
- 603:   // Update loadIgnorePatterns to handle excluded patterns
- 604:   const loadIgnorePatterns = useCallback(async (folderPath: string, isGlobal: boolean = false) => {
- 605:     if (!window.electron) {
- 606:       console.log("Not in Electron environment, skipping loadIgnorePatterns");
- 607:       return "";
- 608:     }
- 609:     
- 610:     // Prevent duplicate loading of patterns
- 611:     if (isGlobal && globalIgnorePatterns.patterns !== "") {
- 612:       console.log("Global ignore patterns already loaded, skipping...");
- 613:       return globalIgnorePatterns.patterns;
- 614:     }
- 615:     
- 616:     if (!isGlobal && folderPath === selectedFolder && localIgnorePatterns.patterns !== "") {
- 617:       console.log("Local ignore patterns already loaded for current folder, skipping...");
- 618:       return localIgnorePatterns.patterns;
- 619:     }
- 620:     
- 621:     console.log(`Loading ${isGlobal ? 'global' : 'local'} ignore patterns${!isGlobal ? ` for ${folderPath}` : ''}`);
- 622:     
- 623:     try {
- 624:       const result = await window.electron.ipcRenderer.invoke("load-ignore-patterns", {
- 625:         folderPath,
- 626:         isGlobal
- 627:       });
- 628:       
- 629:       // Always treat as success since main process now returns safe defaults
- 630:       console.log(`Loaded ${isGlobal ? 'global' : 'local'} ignore patterns`);
- 631:       
- 632:       // Debug log the patterns that were loaded
- 633:       const patterns = result.patterns || '';
- 634:       if (patterns.trim()) {
- 635:         console.log(`Loaded user patterns:\n${patterns}`);
- 636:       } else {
- 637:         console.log(`No ${isGlobal ? 'global' : 'local'} patterns found`);
- 638:       }
- 639:       
- 640:       // Store system patterns if provided
- 641:       if (result.systemPatterns && Array.isArray(result.systemPatterns)) {
- 642:         console.log(`Received ${result.systemPatterns.length} system patterns from main process`);
- 643:         setSystemIgnorePatterns(result.systemPatterns);
- 644:       } else {
- 645:         console.warn('Using default system patterns');
- 646:         setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
- 647:       }
- 648:       
- 649:       // Update pattern state with both patterns and excluded patterns
- 650:       if (isGlobal) {
- 651:         setGlobalIgnorePatterns({
- 652:           patterns: patterns,
- 653:           excludedPatterns: result.excludedPatterns || []
- 654:         });
- 655:       } else if (folderPath === selectedFolder) {
- 656:         setLocalIgnorePatterns({
- 657:           patterns: patterns,
- 658:           excludedPatterns: result.excludedPatterns || []
- 659:         });
- 660:       }
- 661:       
- 662:       return patterns;
- 663:     } catch (error) {
- 664:       console.error(`Error loading ${isGlobal ? 'global' : 'local'} ignore patterns:`, error);
- 665:       // Return empty string for local patterns, defaults for global
- 666:       const defaultPatterns = isGlobal ? DEFAULT_SYSTEM_PATTERNS : '';
- 667:       if (isGlobal) {
- 668:         setGlobalIgnorePatterns({
- 669:           patterns: defaultPatterns,
- 670:           excludedPatterns: []
- 671:         });
- 672:       } else if (folderPath === selectedFolder) {
- 673:         setLocalIgnorePatterns({
- 674:           patterns: defaultPatterns,
- 675:           excludedPatterns: []
- 676:         });
- 677:       }
- 678:       setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
- 679:       return defaultPatterns;
- 680:     }
- 681:   }, [globalIgnorePatterns.patterns, localIgnorePatterns.patterns, selectedFolder]);
- 682: 
- 683:   // Setup listener for ignore patterns loaded event
- 684:   useEffect(() => {
- 685:     if (isElectron) {
- 686:       const handleIgnorePatternsLoaded = (patterns: string) => {
- 687:         setIgnorePatterns(patterns);
- 688:       };
- 689:       
- 690:       window.electron.ipcRenderer.on("ignore-patterns-loaded", handleIgnorePatternsLoaded);
- 691:       
- 692:       return () => {
- 693:         window.electron.ipcRenderer.removeListener("ignore-patterns-loaded", handleIgnorePatternsLoaded);
- 694:       };
- 695:     }
- 696:   }, [isElectron]);
- 697: 
- 698:   // Load global patterns on startup - with improved error handling
- 699:   useEffect(() => {
- 700:     if (isElectron) {
- 701:       // Only load global patterns on startup if we haven't loaded them yet
- 702:       if (globalIgnorePatterns.patterns === "") {
- 703:         loadIgnorePatterns('', true).catch(error => {
- 704:           console.error('Error loading initial global patterns:', error);
- 705:           // Set defaults on error
- 706:           setGlobalIgnorePatterns({
- 707:             patterns: DEFAULT_SYSTEM_PATTERNS.join('\n'),
- 708:             excludedPatterns: []
- 709:           });
- 710:           setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
- 711:         });
- 712:       }
- 713:     }
- 714:   }, [isElectron, globalIgnorePatterns.patterns, loadIgnorePatterns]);
- 715: 
- 716:   // Load local patterns when folder changes - with improved error handling
- 717:   useEffect(() => {
- 718:     if (isElectron && selectedFolder) {
- 719:       loadIgnorePatterns(selectedFolder, false).catch(error => {
- 720:         console.error('Error loading local patterns for new folder:', error);
- 721:         // Set empty patterns on error for local
- 722:         setLocalIgnorePatterns({
- 723:           patterns: '',
- 724:           excludedPatterns: []
+ 603:     // Add ASCII file tree based on the selected mode
+ 604:     if (fileTreeMode !== "none" && selectedFolder) {
+ 605:       let filesToInclude = sortedSelected;
+ 606:       
+ 607:       // For the 'complete' mode, include all files
+ 608:       if (fileTreeMode === "complete") {
+ 609:         filesToInclude = allFiles;
+ 610:       }
+ 611:       
+ 612:       // For all modes, we pass the fileTreeMode parameter to the function
+ 613:       const asciiTree = generateAsciiFileTree(filesToInclude, selectedFolder, fileTreeMode);
+ 614:       concatenatedString += `<file_map>\n${selectedFolder}\n${asciiTree}\n</file_map>\n\n`;
+ 615:     }
+ 616: 
+ 617:     // Improve formatting of file header - add file path and token count
+ 618:     sortedSelected.forEach((file: FileData) => {
+ 619:       // Extract relative path from the full path
+ 620:       let relativePath = "";
+ 621:       if (selectedFolder && file.path.startsWith(selectedFolder)) {
+ 622:         relativePath = file.path.substring(selectedFolder.length);
+ 623:         if (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+ 624:           relativePath = relativePath.substring(1);
+ 625:         }
+ 626:       } else {
+ 627:         relativePath = file.path;
+ 628:       }
+ 629:       
+ 630:       // Add formatted file header with token count and path
+ 631:       concatenatedString += `\n\n// ---- File: ${relativePath} (${file.tokenCount} tokens) ----\n\n`;
+ 632:       concatenatedString += file.content;
+ 633:     });
+ 634: 
+ 635:     // Wrap user instructions if any and add to the bottom
+ 636:     const userInstructionsBlock = userInstructions.trim()
+ 637:       ? `\n<user_instructions>\n${userInstructions}\n</user_instructions>\n\n`
+ 638:       : "";
+ 639:     return concatenatedString + userInstructionsBlock;
+ 640:   };
+ 641: 
+ 642:   // Sort options for the dropdown
+ 643:   const sortOptions = [
+ 644:     { value: "name-ascending", label: "Name (A to Z)" },
+ 645:     { value: "name-descending", label: "Name (Z to A)" },
+ 646:     { value: "tokens-ascending", label: "Tokens (Fewest first)" },
+ 647:     { value: "tokens-descending", label: "Tokens (Most first)" },
+ 648:     { value: "date-ascending", label: "Date (Oldest first)" },
+ 649:     { value: "date-descending", label: "Date (Newest first)" }
+ 650:   ];
+ 651: 
+ 652:   // Handle expand/collapse state changes
+ 653:   const toggleExpanded = (nodeId: string) => {
+ 654:     setExpandedNodes((prev: Map<string, boolean>) => {
+ 655:       const newState = new Map(prev);
+ 656:       const currentValue = prev.get(nodeId);
+ 657:       newState.set(nodeId, currentValue === undefined ? true : !currentValue);
+ 658:       
+ 659:       // Save to localStorage as an array of entries [key, value]
+ 660:       try {
+ 661:         localStorage.setItem(
+ 662:           STORAGE_KEYS.EXPANDED_NODES,
+ 663:           JSON.stringify(Array.from(newState.entries()))
+ 664:         );
+ 665:       } catch (error) {
+ 666:         console.error("Error saving expanded nodes:", error);
+ 667:       }
+ 668:       
+ 669:       return newState;
+ 670:     });
+ 671:   };
+ 672: 
+ 673:   // Update loadIgnorePatterns to handle excluded patterns
+ 674:   const loadIgnorePatterns = useCallback(async (folderPath: string, isGlobal: boolean = false) => {
+ 675:     if (!window.electron) {
+ 676:       console.log("Not in Electron environment, skipping loadIgnorePatterns");
+ 677:       return "";
+ 678:     }
+ 679:     
+ 680:     // Prevent duplicate loading of patterns
+ 681:     if (isGlobal && globalIgnorePatterns.patterns !== "") {
+ 682:       console.log("Global ignore patterns already loaded, skipping...");
+ 683:       return globalIgnorePatterns.patterns;
+ 684:     }
+ 685:     
+ 686:     if (!isGlobal && folderPath === selectedFolder && localIgnorePatterns.patterns !== "") {
+ 687:       console.log("Local ignore patterns already loaded for current folder, skipping...");
+ 688:       return localIgnorePatterns.patterns;
+ 689:     }
+ 690:     
+ 691:     console.log(`Loading ${isGlobal ? 'global' : 'local'} ignore patterns${!isGlobal ? ` for ${folderPath}` : ''}`);
+ 692:     
+ 693:     try {
+ 694:       const result = await window.electron.ipcRenderer.invoke("load-ignore-patterns", {
+ 695:         folderPath,
+ 696:         isGlobal
+ 697:       });
+ 698:       
+ 699:       // Parse the content to extract disabled system patterns
+ 700:       const { excludedPatterns, userPatterns } = parseIgnorePatternsContent(result.patterns || '');
+ 701:       
+ 702:       console.log(`Loaded ${isGlobal ? 'global' : 'local'} ignore patterns`);
+ 703:       
+ 704:       // Debug log the patterns that were loaded
+ 705:       if (userPatterns.trim()) {
+ 706:         console.log(`Loaded user patterns:\n${userPatterns}`);
+ 707:       } else {
+ 708:         console.log(`No ${isGlobal ? 'global' : 'local'} patterns found`);
+ 709:       }
+ 710:       
+ 711:       // Store system patterns if provided
+ 712:       if (result.systemPatterns && Array.isArray(result.systemPatterns)) {
+ 713:         console.log(`Received ${result.systemPatterns.length} system patterns from main process`);
+ 714:         setSystemIgnorePatterns(result.systemPatterns);
+ 715:       } else {
+ 716:         console.warn('Using default system patterns');
+ 717:         setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
+ 718:       }
+ 719:       
+ 720:       // Update pattern state with both patterns and excluded patterns
+ 721:       if (isGlobal) {
+ 722:         setGlobalIgnorePatterns({
+ 723:           patterns: userPatterns,
+ 724:           excludedPatterns: excludedPatterns
  725:         });
- 726:       });
- 727:     }
- 728:   }, [isElectron, selectedFolder, loadIgnorePatterns]);
- 729: 
- 730:   // Update saveIgnorePatterns to handle excluded patterns
- 731:   const saveIgnorePatterns = async (patterns: string, isGlobal: boolean, folderPath?: string) => {
- 732:     setProcessingStatus({
- 733:       status: "processing",
- 734:       message: `Saving ${isGlobal ? "global" : "local"} ignore patterns...`,
- 735:     });
- 736: 
- 737:     try {
- 738:       // Update state first to show immediate feedback in UI
- 739:       if (isGlobal) {
- 740:         setGlobalIgnorePatterns(prev => ({
- 741:           ...prev,
- 742:           patterns
- 743:         }));
- 744:       } else if (folderPath) {
- 745:         setLocalIgnorePatterns(prev => ({
- 746:           ...prev,
- 747:           patterns
- 748:         }));
- 749:       }
- 750: 
- 751:       // Use async/await with the new invoke pattern
- 752:       const result = await window.electron.ipcRenderer.invoke("save-ignore-patterns", {
- 753:         patterns,
- 754:         isGlobal,
- 755:         folderPath: folderPath || selectedFolder
- 756:       });
- 757: 
- 758:       if (result.success) {
- 759:         console.log(`Successfully saved ${isGlobal ? 'global' : 'local'} ignore patterns`);
- 760:         
- 761:         setProcessingStatus({
- 762:           status: "complete",
- 763:           message: `${isGlobal ? "Global" : "Local"} ignore patterns saved successfully.`,
- 764:         });
- 765:         
- 766:         // Only reload if absolutely necessary
- 767:         if (!isGlobal && folderPath === selectedFolder) {
- 768:           setTimeout(() => {
- 769:             reloadFolder();
- 770:           }, 300);
- 771:         } else if (isGlobal && selectedFolder) {
- 772:           setTimeout(() => {
- 773:             reloadFolder();
- 774:           }, 300);
- 775:         }
- 776:       } else {
- 777:         console.error(`Error saving ${isGlobal ? 'global' : 'local'} ignore patterns:`, result.error);
- 778:         
- 779:         setProcessingStatus({
- 780:           status: "error",
- 781:           message: `Error saving ${isGlobal ? "global" : "local"} ignore patterns: ${result.error}`,
+ 726:       } else if (folderPath === selectedFolder) {
+ 727:         setLocalIgnorePatterns({
+ 728:           patterns: userPatterns,
+ 729:           excludedPatterns: excludedPatterns
+ 730:         });
+ 731:       }
+ 732:       
+ 733:       return userPatterns;
+ 734:     } catch (error) {
+ 735:       console.error(`Error loading ${isGlobal ? 'global' : 'local'} ignore patterns:`, error);
+ 736:       // Return empty string for local patterns, defaults for global
+ 737:       const defaultPatterns = isGlobal ? DEFAULT_SYSTEM_PATTERNS : '';
+ 738:       if (isGlobal) {
+ 739:         setGlobalIgnorePatterns({
+ 740:           patterns: defaultPatterns,
+ 741:           excludedPatterns: []
+ 742:         });
+ 743:       } else if (folderPath === selectedFolder) {
+ 744:         setLocalIgnorePatterns({
+ 745:           patterns: defaultPatterns,
+ 746:           excludedPatterns: []
+ 747:         });
+ 748:       }
+ 749:       setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
+ 750:       return defaultPatterns;
+ 751:     }
+ 752:   }, [globalIgnorePatterns.patterns, localIgnorePatterns.patterns, selectedFolder]);
+ 753: 
+ 754:   // Setup listener for ignore patterns loaded event
+ 755:   useEffect(() => {
+ 756:     if (isElectron) {
+ 757:       const handleIgnorePatternsLoaded = (patterns: string) => {
+ 758:         setIgnorePatterns(patterns);
+ 759:       };
+ 760:       
+ 761:       window.electron.ipcRenderer.on("ignore-patterns-loaded", handleIgnorePatternsLoaded);
+ 762:       
+ 763:       return () => {
+ 764:         window.electron.ipcRenderer.removeListener("ignore-patterns-loaded", handleIgnorePatternsLoaded);
+ 765:       };
+ 766:     }
+ 767:   }, [isElectron]);
+ 768: 
+ 769:   // Load global patterns on startup - with improved error handling
+ 770:   useEffect(() => {
+ 771:     if (isElectron) {
+ 772:       // Only load global patterns on startup if we haven't loaded them yet
+ 773:       if (globalIgnorePatterns.patterns === "") {
+ 774:         loadIgnorePatterns('', true).catch(error => {
+ 775:           console.error('Error loading initial global patterns:', error);
+ 776:           // Set defaults on error
+ 777:           setGlobalIgnorePatterns({
+ 778:             patterns: DEFAULT_SYSTEM_PATTERNS.join('\n'),
+ 779:             excludedPatterns: []
+ 780:           });
+ 781:           setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
  782:         });
  783:       }
- 784:     } catch (error) {
- 785:       console.error("Error invoking save-ignore-patterns:", error);
- 786:       
- 787:       setProcessingStatus({
- 788:         status: "error",
- 789:         message: `Error saving ${isGlobal ? "global" : "local"} ignore patterns: ${String(error)}`,
- 790:       });
- 791:     }
- 792:   };
- 793: 
- 794:   // Function to reset ignore patterns to defaults
- 795:   const resetIgnorePatterns = async (isGlobal: boolean, folderPath?: string) => {
- 796:     setProcessingStatus({
- 797:       status: "processing",
- 798:       message: `Resetting ${isGlobal ? "global" : "local"} ignore patterns...`,
- 799:     });
+ 784:     }
+ 785:   }, [isElectron, globalIgnorePatterns.patterns, loadIgnorePatterns]);
+ 786: 
+ 787:   // Load local patterns when folder changes - with improved error handling
+ 788:   useEffect(() => {
+ 789:     if (isElectron && selectedFolder) {
+ 790:       loadIgnorePatterns(selectedFolder, false).catch(error => {
+ 791:         console.error('Error loading local patterns for new folder:', error);
+ 792:         // Set empty patterns on error for local
+ 793:         setLocalIgnorePatterns({
+ 794:           patterns: '',
+ 795:           excludedPatterns: []
+ 796:         });
+ 797:       });
+ 798:     }
+ 799:   }, [isElectron, selectedFolder, loadIgnorePatterns]);
  800: 
- 801:     try {
- 802:       // Update state immediately for UI feedback
- 803:       if (isGlobal) {
- 804:         setGlobalIgnorePatterns({
- 805:           patterns: '',
- 806:           excludedPatterns: []
- 807:         });
- 808:       } else if (folderPath) {
- 809:         setLocalIgnorePatterns({
- 810:           patterns: '',
- 811:           excludedPatterns: []
- 812:         });
- 813:       }
- 814: 
- 815:       // Use async/await with the new invoke pattern
- 816:       const result = await window.electron.ipcRenderer.invoke("reset-ignore-patterns", {
- 817:         isGlobal,
- 818:         folderPath: folderPath || selectedFolder
- 819:       });
- 820: 
- 821:       if (result.success) {
- 822:         console.log(`Successfully reset ${isGlobal ? 'global' : 'local'} ignore patterns`);
- 823:         
- 824:         // Update the local pattern state if applicable
- 825:         if (!isGlobal && folderPath) {
- 826:           setLocalIgnorePatterns({
- 827:             patterns: '',
- 828:             excludedPatterns: []
- 829:           });
- 830:         } else if (isGlobal) {
- 831:           setGlobalIgnorePatterns({
- 832:             patterns: '',
- 833:             excludedPatterns: []
- 834:           });
- 835:         }
+ 801:   // Update saveIgnorePatterns to handle excluded patterns
+ 802:   const saveIgnorePatterns = async (patterns: string, isGlobal: boolean, folderPath?: string) => {
+ 803:     setProcessingStatus({
+ 804:       status: "processing",
+ 805:       message: `Saving ${isGlobal ? "global" : "local"} ignore patterns...`,
+ 806:     });
+ 807: 
+ 808:     try {
+ 809:       // Update state first to show immediate feedback in UI
+ 810:       if (isGlobal) {
+ 811:         setGlobalIgnorePatterns(prev => ({
+ 812:           ...prev,
+ 813:           patterns
+ 814:         }));
+ 815:       } else if (folderPath) {
+ 816:         setLocalIgnorePatterns(prev => ({
+ 817:           ...prev,
+ 818:           patterns
+ 819:         }));
+ 820:       }
+ 821: 
+ 822:       // Use async/await with the new invoke pattern
+ 823:       const result = await window.electron.ipcRenderer.invoke("save-ignore-patterns", {
+ 824:         patterns,
+ 825:         isGlobal,
+ 826:         folderPath: folderPath || selectedFolder
+ 827:       });
+ 828: 
+ 829:       if (result.success) {
+ 830:         console.log(`Successfully saved ${isGlobal ? 'global' : 'local'} ignore patterns`);
+ 831:         
+ 832:         setProcessingStatus({
+ 833:           status: "complete",
+ 834:           message: `${isGlobal ? "Global" : "Local"} ignore patterns saved successfully.`,
+ 835:         });
  836:         
- 837:         setProcessingStatus({
- 838:           status: "complete",
- 839:           message: `${isGlobal ? "Global" : "Local"} ignore patterns have been reset.`,
- 840:         });
- 841:         
- 842:         // Only reload if necessary and with a delay
- 843:         if (!isGlobal && folderPath === selectedFolder) {
- 844:           setTimeout(() => {
- 845:             reloadFolder();
- 846:           }, 300);
- 847:         } else if (isGlobal && selectedFolder) {
- 848:           setTimeout(() => {
- 849:             reloadFolder();
- 850:           }, 300);
- 851:         }
- 852:       } else {
- 853:         console.error(`Error resetting ${isGlobal ? 'global' : 'local'} ignore patterns:`, result.error);
- 854:         
- 855:         setProcessingStatus({
- 856:           status: "error",
- 857:           message: `Error resetting ${isGlobal ? "global" : "local"} ignore patterns: ${result.error}`,
- 858:         });
- 859:       }
- 860:     } catch (error) {
- 861:       console.error("Error invoking reset-ignore-patterns:", error);
- 862:       
- 863:       setProcessingStatus({
- 864:         status: "error",
- 865:         message: `Error resetting ${isGlobal ? "global" : "local"} ignore patterns: ${String(error)}`,
- 866:       });
- 867:     }
- 868:   };
- 869: 
- 870:   // Wrap reloadFolder in useCallback to prevent recreating it on every render
- 871:   const reloadFolder = useCallback(() => {
- 872:     if (isElectron && selectedFolder) {
- 873:       console.log(`Reloading folder: ${selectedFolder}`);
- 874:       setProcessingStatus({
- 875:         status: "processing",
- 876:         message: "Loading files...",
- 877:       });
- 878:       
- 879:       // Clear state
- 880:       setAllFiles([]);
- 881:       setDisplayedFiles([]);
- 882:       
- 883:       // Trigger folder loading - use the correct event name
- 884:       window.electron.ipcRenderer.send("reload-file-list", selectedFolder);
- 885:     }
- 886:   }, [isElectron, selectedFolder, setProcessingStatus, setAllFiles, setDisplayedFiles]);
- 887: 
- 888:   // Now add the ignore-patterns-saved handler after reloadFolder is defined
- 889:   useEffect(() => {
- 890:     if (isElectron) {
- 891:       const handleIgnorePatternsSaved = (result: { 
- 892:         success: boolean, 
- 893:         isGlobal?: boolean, 
- 894:         folderPath?: string,
- 895:         error?: string 
- 896:       }) => {
- 897:         if (result.success) {
- 898:           console.log("Ignore patterns saved successfully");
- 899:           
- 900:           // Auto-reload when patterns are saved
- 901:           if (selectedFolder) {
- 902:             // If global patterns were changed, or if local patterns for current folder were changed
- 903:             if (result.isGlobal || (!result.isGlobal && result.folderPath === selectedFolder)) {
- 904:               console.log("Automatically reloading file list after pattern change");
- 905:               reloadFolder();
- 906:             }
- 907:           }
- 908:         } else {
- 909:           console.error("Failed to save ignore patterns:", result.error);
- 910:         }
- 911:       };
- 912:       
- 913:       // Increase the maximum number of listeners to prevent the warning
- 914:       if (window.electron.ipcRenderer.setMaxListeners) {
- 915:         window.electron.ipcRenderer.setMaxListeners(20);
- 916:       }
- 917:       
- 918:       window.electron.ipcRenderer.on("ignore-patterns-saved", handleIgnorePatternsSaved);
- 919:       
- 920:       return () => {
- 921:         window.electron.ipcRenderer.removeListener("ignore-patterns-saved", handleIgnorePatternsSaved);
- 922:       };
- 923:     }
- 924:   }, [isElectron, selectedFolder, reloadFolder]);
- 925: 
- 926:   // Add dialog states
- 927:   const [showClearSelectionDialog, setShowClearSelectionDialog] = useState(false);
- 928:   const [showRemoveAllFoldersDialog, setShowRemoveAllFoldersDialog] = useState(false);
- 929:   const [showResetPatternsDialog, setShowResetPatternsDialog] = useState(false);
- 930:   const [resetPatternsContext, setResetPatternsContext] = useState<{isGlobal: boolean; folderPath: string} | null>(null);
- 931: 
- 932:   // Update handlers to show dialogs
- 933:   const handleClearSelectionClick = () => {
- 934:     setShowClearSelectionDialog(true);
- 935:   };
- 936: 
- 937:   const clearSelection = () => {
- 938:     setSelectedFiles([]);
- 939:     setShowClearSelectionDialog(false);
- 940:   };
- 941: 
- 942:   const handleRemoveAllFoldersClick = () => {
- 943:     setShowRemoveAllFoldersDialog(true);
- 944:   };
- 945: 
- 946:   const removeAllFolders = () => {
- 947:     setSelectedFolder(null);
- 948:     setAllFiles([]);
- 949:     setSelectedFiles([]);
- 950:     setDisplayedFiles([]);
- 951:     
- 952:     // Clear localStorage
- 953:     localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
- 954:     localStorage.removeItem(STORAGE_KEYS.SELECTED_FILES);
- 955:     localStorage.removeItem(STORAGE_KEYS.EXPANDED_NODES);
- 956:     
- 957:     // Clear sessionStorage flag to allow loading data next time
- 958:     sessionStorage.removeItem("hasLoadedInitialData");
- 959:     setShowRemoveAllFoldersDialog(false);
- 960:   };
- 961: 
- 962:   const handleResetPatternsClick = (isGlobal: boolean, folderPath: string) => {
- 963:     setResetPatternsContext({ isGlobal, folderPath });
- 964:     setShowResetPatternsDialog(true);
- 965:   };
- 966: 
- 967:   // Initialize system patterns with defaults on component mount
- 968:   useEffect(() => {
- 969:     console.log(`App initialized with ${DEFAULT_SYSTEM_PATTERNS.length} default system patterns`);
- 970:     console.log('System patterns sample:', DEFAULT_SYSTEM_PATTERNS.slice(0, 5));
- 971:   }, []);
- 972: 
- 973:   // Clear ignore patterns state when folder changes
- 974:   useEffect(() => {
- 975:     if (selectedFolder) {
- 976:       // Reset local patterns state when folder changes
- 977:       setLocalIgnorePatterns({
- 978:         patterns: '',
- 979:         excludedPatterns: []
- 980:       });
- 981:       console.log("Folder changed, clearing local patterns state");
- 982:     }
- 983:   }, [selectedFolder]);
- 984: 
- 985:   // Function to clear local ignore patterns for a folder
- 986:   const clearLocalIgnorePatterns = async (folderPath: string) => {
- 987:     setProcessingStatus({
- 988:       status: "processing",
- 989:       message: "Clearing local ignore patterns...",
- 990:     });
- 991: 
- 992:     try {
- 993:       // Update state immediately for UI feedback
- 994:       setLocalIgnorePatterns({
- 995:         patterns: '',
- 996:         excludedPatterns: []
- 997:       });
- 998:       
- 999:       const result = await window.electron.ipcRenderer.invoke("clear-local-ignore-patterns", {
-1000:         folderPath
-1001:       });
+ 837:         // Only reload if absolutely necessary
+ 838:         if (!isGlobal && folderPath === selectedFolder) {
+ 839:           setTimeout(() => {
+ 840:             reloadFolder();
+ 841:           }, 300);
+ 842:         } else if (isGlobal && selectedFolder) {
+ 843:           setTimeout(() => {
+ 844:             reloadFolder();
+ 845:           }, 300);
+ 846:         }
+ 847:       } else {
+ 848:         console.error(`Error saving ${isGlobal ? 'global' : 'local'} ignore patterns:`, result.error);
+ 849:         
+ 850:         setProcessingStatus({
+ 851:           status: "error",
+ 852:           message: `Error saving ${isGlobal ? "global" : "local"} ignore patterns: ${result.error}`,
+ 853:         });
+ 854:       }
+ 855:     } catch (error) {
+ 856:       console.error("Error invoking save-ignore-patterns:", error);
+ 857:       
+ 858:       setProcessingStatus({
+ 859:         status: "error",
+ 860:         message: `Error saving ${isGlobal ? "global" : "local"} ignore patterns: ${String(error)}`,
+ 861:       });
+ 862:     }
+ 863:   };
+ 864: 
+ 865:   // Function to reset ignore patterns to defaults
+ 866:   const resetIgnorePatterns = async (isGlobal: boolean, folderPath?: string) => {
+ 867:     setProcessingStatus({
+ 868:       status: "processing",
+ 869:       message: `Resetting ${isGlobal ? "global" : "local"} ignore patterns...`,
+ 870:     });
+ 871: 
+ 872:     try {
+ 873:       // Update state immediately for UI feedback
+ 874:       if (isGlobal) {
+ 875:         setGlobalIgnorePatterns({
+ 876:           patterns: '',
+ 877:           excludedPatterns: []
+ 878:         });
+ 879:       } else if (folderPath) {
+ 880:         setLocalIgnorePatterns({
+ 881:           patterns: '',
+ 882:           excludedPatterns: []
+ 883:         });
+ 884:       }
+ 885: 
+ 886:       // Use async/await with the new invoke pattern
+ 887:       const result = await window.electron.ipcRenderer.invoke("reset-ignore-patterns", {
+ 888:         isGlobal,
+ 889:         folderPath: folderPath || selectedFolder
+ 890:       });
+ 891: 
+ 892:       if (result.success) {
+ 893:         console.log(`Successfully reset ${isGlobal ? 'global' : 'local'} ignore patterns`);
+ 894:         
+ 895:         // Update the local pattern state if applicable
+ 896:         if (!isGlobal && folderPath) {
+ 897:           setLocalIgnorePatterns({
+ 898:             patterns: '',
+ 899:             excludedPatterns: []
+ 900:           });
+ 901:         } else if (isGlobal) {
+ 902:           setGlobalIgnorePatterns({
+ 903:             patterns: '',
+ 904:             excludedPatterns: []
+ 905:           });
+ 906:         }
+ 907:         
+ 908:         setProcessingStatus({
+ 909:           status: "complete",
+ 910:           message: `${isGlobal ? "Global" : "Local"} ignore patterns have been reset.`,
+ 911:         });
+ 912:         
+ 913:         // Only reload if necessary and with a delay
+ 914:         if (!isGlobal && folderPath === selectedFolder) {
+ 915:           setTimeout(() => {
+ 916:             reloadFolder();
+ 917:           }, 300);
+ 918:         } else if (isGlobal && selectedFolder) {
+ 919:           setTimeout(() => {
+ 920:             reloadFolder();
+ 921:           }, 300);
+ 922:         }
+ 923:       } else {
+ 924:         console.error(`Error resetting ${isGlobal ? 'global' : 'local'} ignore patterns:`, result.error);
+ 925:         
+ 926:         setProcessingStatus({
+ 927:           status: "error",
+ 928:           message: `Error resetting ${isGlobal ? "global" : "local"} ignore patterns: ${result.error}`,
+ 929:         });
+ 930:       }
+ 931:     } catch (error) {
+ 932:       console.error("Error invoking reset-ignore-patterns:", error);
+ 933:       
+ 934:       setProcessingStatus({
+ 935:         status: "error",
+ 936:         message: `Error resetting ${isGlobal ? "global" : "local"} ignore patterns: ${String(error)}`,
+ 937:       });
+ 938:     }
+ 939:   };
+ 940: 
+ 941:   // Wrap reloadFolder in useCallback to prevent recreating it on every render
+ 942:   const reloadFolder = useCallback(() => {
+ 943:     if (isElectron && selectedFolder) {
+ 944:       console.log(`Reloading folder: ${selectedFolder}`);
+ 945:       setProcessingStatus({
+ 946:         status: "processing",
+ 947:         message: "Loading files...",
+ 948:       });
+ 949:       
+ 950:       // Clear state
+ 951:       setAllFiles([]);
+ 952:       setDisplayedFiles([]);
+ 953:       
+ 954:       // Trigger folder loading - use the correct event name
+ 955:       window.electron.ipcRenderer.send("reload-file-list", selectedFolder);
+ 956:     }
+ 957:   }, [isElectron, selectedFolder, setProcessingStatus, setAllFiles, setDisplayedFiles]);
+ 958: 
+ 959:   // Now add the ignore-patterns-saved handler after reloadFolder is defined
+ 960:   useEffect(() => {
+ 961:     if (isElectron) {
+ 962:       const handleIgnorePatternsSaved = (result: { 
+ 963:         success: boolean, 
+ 964:         isGlobal?: boolean, 
+ 965:         folderPath?: string,
+ 966:         error?: string 
+ 967:       }) => {
+ 968:         if (result.success) {
+ 969:           console.log("Ignore patterns saved successfully");
+ 970:           
+ 971:           // Auto-reload when patterns are saved
+ 972:           if (selectedFolder) {
+ 973:             // If global patterns were changed, or if local patterns for current folder were changed
+ 974:             if (result.isGlobal || (!result.isGlobal && result.folderPath === selectedFolder)) {
+ 975:               console.log("Automatically reloading file list after pattern change");
+ 976:               reloadFolder();
+ 977:             }
+ 978:           }
+ 979:         } else {
+ 980:           console.error("Failed to save ignore patterns:", result.error);
+ 981:         }
+ 982:       };
+ 983:       
+ 984:       // Increase the maximum number of listeners to prevent the warning
+ 985:       if (window.electron.ipcRenderer.setMaxListeners) {
+ 986:         window.electron.ipcRenderer.setMaxListeners(20);
+ 987:       }
+ 988:       
+ 989:       window.electron.ipcRenderer.on("ignore-patterns-saved", handleIgnorePatternsSaved);
+ 990:       
+ 991:       return () => {
+ 992:         window.electron.ipcRenderer.removeListener("ignore-patterns-saved", handleIgnorePatternsSaved);
+ 993:       };
+ 994:     }
+ 995:   }, [isElectron, selectedFolder, reloadFolder]);
+ 996: 
+ 997:   // Add dialog states
+ 998:   const [showClearSelectionDialog, setShowClearSelectionDialog] = useState(false);
+ 999:   const [showRemoveAllFoldersDialog, setShowRemoveAllFoldersDialog] = useState(false);
+1000:   const [showResetPatternsDialog, setShowResetPatternsDialog] = useState(false);
+1001:   const [resetPatternsContext, setResetPatternsContext] = useState<{isGlobal: boolean; folderPath: string} | null>(null);
 1002: 
-1003:       if (result.success) {
-1004:         console.log("Successfully cleared local ignore patterns");
-1005:         
-1006:         setLocalIgnorePatterns({
-1007:           patterns: '',
-1008:           excludedPatterns: []
-1009:         });
-1010:         
-1011:         setProcessingStatus({
-1012:           status: "complete",
-1013:           message: "Local ignore patterns cleared successfully.",
-1014:         });
-1015:         
-1016:         // Only reload if the folder being cleared is the current selected folder
-1017:         if (folderPath === selectedFolder) {
-1018:           setTimeout(() => {
-1019:             reloadFolder();
-1020:           }, 300);
-1021:         }
-1022:       } else {
-1023:         console.error("Error clearing local ignore patterns:", result.error);
-1024:         
-1025:         setProcessingStatus({
-1026:           status: "error",
-1027:           message: `Error clearing local ignore patterns: ${result.error}`,
-1028:         });
-1029:       }
-1030:     } catch (error) {
-1031:       console.error("Error invoking clear-local-ignore-patterns:", error);
-1032:       
-1033:       setProcessingStatus({
-1034:         status: "error",
-1035:         message: `Error clearing local ignore patterns: ${String(error)}`,
-1036:       });
-1037:     }
-1038:   };
-1039: 
-1040:   const truncatePath = (path: string) => {
-1041:     const parts = path.split('/');
-1042:     if (parts.length <= 3) return path;
-1043:     
-1044:     // Get the last two meaningful parts
-1045:     const lastParts = parts.filter(p => p).slice(-2);
-1046:     return `.../${lastParts.join('/')}`;
-1047:   };
-1048: 
-1049:   return (
-1050:     <ThemeProvider>
-1051:       <div className={styles.appContainer}>
-1052:         <header className={styles.appHeader}>
-1053:           <h1>PasteMax</h1>
-1054:           <div className={styles.headerActions}>
-1055:             <a href="#" className={styles.headerLink}>Guide</a>
-1056:             <div className={styles.headerSeparator}></div>
-1057:             <ThemeToggle />
-1058:             <div className={styles.headerSeparator}></div>
-1059:             <a
-1060:               href="https://github.com/jsulpis/pastemax"
-1061:               target="_blank"
-1062:               rel="noopener noreferrer"
-1063:               className={styles.githubButton}
-1064:             >
-1065:               <Github size={16} />
-1066:             </a>
-1067:           </div>
-1068:         </header>
-1069: 
-1070:         {processingStatus.status === "processing" && (
-1071:           <div className={styles.processingIndicator}>
-1072:             <div className={styles.spinner}></div>
-1073:             <span>{processingStatus.message}</span>
-1074:           </div>
-1075:         )}
-1076: 
-1077:         {processingStatus.status === "error" && (
-1078:           <div className={styles.errorMessage}>Error: {processingStatus.message}</div>
-1079:         )}
-1080: 
-1081:         <div className={styles.mainContainer}>
-1082:           <Sidebar
-1083:             selectedFolder={selectedFolder}
-1084:             openFolder={openFolder}
-1085:             allFiles={allFiles}
-1086:             selectedFiles={selectedFiles}
-1087:             toggleFileSelection={toggleFileSelection}
-1088:             toggleFolderSelection={toggleFolderSelection}
-1089:             searchTerm={searchTerm}
-1090:             onSearchChange={handleSearchChange}
-1091:             selectAllFiles={selectAllFiles}
-1092:             deselectAllFiles={deselectAllFiles}
-1093:             expandedNodes={expandedNodes}
-1094:             toggleExpanded={toggleExpanded}
-1095:             reloadFolder={reloadFolder}
-1096:             clearSelection={clearSelection}
-1097:             removeAllFolders={removeAllFolders}
-1098:             ignorePatterns={ignorePatterns}
-1099:             setIgnorePatterns={setIgnorePatterns}
-1100:             loadIgnorePatterns={loadIgnorePatterns}
-1101:             saveIgnorePatterns={saveIgnorePatterns}
-1102:             resetIgnorePatterns={resetIgnorePatterns}
-1103:             systemIgnorePatterns={systemIgnorePatterns}
-1104:             clearIgnorePatterns={clearLocalIgnorePatterns}
-1105:             onClearSelectionClick={handleClearSelectionClick}
-1106:             onRemoveAllFoldersClick={handleRemoveAllFoldersClick}
-1107:             onResetPatternsClick={handleResetPatternsClick}
-1108:             fileTreeSortOrder={fileTreeSortOrder}
-1109:             onSortOrderChange={setFileTreeSortOrder}
-1110:           />
-1111:           
-1112:           {selectedFolder ? (
-1113:             <div className={styles.contentArea}>
-1114:               <div className={styles.contentHeader}>
-1115:                 <h1 className={styles.contentTitle}>Files</h1>
-1116:                 <div className={styles.folderPathDisplay}>{truncatePath(selectedFolder)}</div>
-1117:                 <div className={styles.contentActions}>
-1118:                   <Dropdown
-1119:                     options={sortOptions}
-1120:                     value={sortOrder}
-1121:                     onChange={handleSortChange}
-1122:                     trigger={
-1123:                       <Button
-1124:                         variant="secondary"
-1125:                         size="sm"
-1126:                         startIcon={getSortIcon(sortOrder)}
-1127:                       >
-1128:                         Sort
-1129:                       </Button>
-1130:                     }
-1131:                     menuClassName={styles.sortDropdownMenu}
-1132:                   />
-1133:                 </div>
-1134:                 <div className={styles.fileStats}>
-1135:                   {selectedFiles.length} files selected ({calculateTotalTokens().toLocaleString()} tokens)
-1136:                 </div>
-1137:               </div>
-1138: 
-1139:               <FileList
-1140:                 files={displayedFiles}
-1141:                 selectedFiles={selectedFiles}
-1142:                 toggleFileSelection={toggleFileSelection}
-1143:               />
-1144: 
-1145:               {showUserInstructions && (
-1146:                 <div className={styles.userInstructionsContainer}>
-1147:                   <UserInstructions
-1148:                     instructions={userInstructions}
-1149:                     setInstructions={setUserInstructions}
-1150:                   />
-1151:                 </div>
-1152:               )}
-1153: 
-1154:               <ControlContainer
-1155:                 fileTreeMode={fileTreeMode}
-1156:                 setFileTreeMode={setFileTreeMode}
-1157:                 showUserInstructions={showUserInstructions}
-1158:                 setShowUserInstructions={setShowUserInstructions}
-1159:                 getSelectedFilesContent={getSelectedFilesContent}
-1160:                 selectedFilesCount={selectedFiles.length}
-1161:                 fileTreeSortOrder={sortOrder === 'name-ascending' ? 'name-asc' : 
-1162:                                    sortOrder === 'name-descending' ? 'name-desc' :
-1163:                                    sortOrder === 'date-ascending' ? 'date-newest' : undefined}
-1164:                 setFileTreeSortOrder={(value) => {
-1165:                   setSortOrder(value === 'name-asc' ? 'name-ascending' :
-1166:                               value === 'name-desc' ? 'name-descending' :
-1167:                               value === 'date-newest' ? 'date-ascending' : 'name-ascending');
-1168:                 }}
-1169:                 ignorePatterns={ignorePatterns}
-1170:                 setIgnorePatterns={setIgnorePatterns}
-1171:                 loadIgnorePatterns={loadIgnorePatterns}
-1172:                 saveIgnorePatterns={saveIgnorePatterns}
-1173:                 resetIgnorePatterns={resetIgnorePatterns}
-1174:                 reloadFolder={reloadFolder}
-1175:                 clearSelection={clearSelection}
-1176:                 removeAllFolders={removeAllFolders}
-1177:               />
-1178:             </div>
-1179:           ) : (
-1180:             <div className={styles.contentArea}>
-1181:               <div className={styles.emptyStateContent}>
-1182:                 <h2>Welcome to PasteMax</h2>
-1183:                 <p>Select a folder from the file tree panel to start working with your files.</p>
-1184:                 <p>PasteMax helps you format your code for AI models by:</p>
-1185:                 <ul>
-1186:                   <li>Selecting specific files</li>
-1187:                   <li>Organizing them in a tree structure</li>
-1188:                   <li>Adding custom instructions</li>
-1189:                   <li>Calculating token counts</li>
-1190:                 </ul>
-1191:               </div>
-1192:             </div>
-1193:           )}
-1194:         </div>
-1195: 
-1196:         {/* Add confirmation dialogs */}
-1197:         <ConfirmationDialog
-1198:           isOpen={showClearSelectionDialog}
-1199:           onClose={() => setShowClearSelectionDialog(false)}
-1200:           onConfirm={clearSelection}
-1201:           title="Clear Selection"
-1202:           description="Are you sure you want to clear all selected files?"
-1203:           confirmLabel="Clear Selection"
-1204:           variant="destructive"
-1205:         />
-1206: 
-1207:         <ConfirmationDialog
-1208:           isOpen={showRemoveAllFoldersDialog}
-1209:           onClose={() => setShowRemoveAllFoldersDialog(false)}
-1210:           onConfirm={removeAllFolders}
-1211:           title="Remove All Folders"
-1212:           description="Are you sure you want to remove all folders? This will reset the application state."
-1213:           confirmLabel="Remove All"
-1214:           variant="destructive"
-1215:         />
-1216: 
-1217:         <ConfirmationDialog
-1218:           isOpen={showResetPatternsDialog}
-1219:           onClose={() => setShowResetPatternsDialog(false)}
-1220:           onConfirm={() => {
-1221:             if (resetPatternsContext) {
-1222:               resetIgnorePatterns(
-1223:                 resetPatternsContext.isGlobal,
-1224:                 resetPatternsContext.folderPath
-1225:               );
-1226:               setShowResetPatternsDialog(false);
-1227:               setResetPatternsContext(null);
-1228:             }
-1229:           }}
-1230:           title={`Reset ${resetPatternsContext?.isGlobal ? 'Global' : 'Local'} Ignore Patterns`}
-1231:           description="Are you sure you want to reset the ignore patterns to their default values?"
-1232:           confirmLabel="Reset Patterns"
-1233:           variant="destructive"
-1234:         />
-1235:       </div>
-1236:     </ThemeProvider>
-1237:   );
-1238: };
-1239: 
-1240: export default App;
+1003:   // Update handlers to show dialogs
+1004:   const handleClearSelectionClick = () => {
+1005:     setShowClearSelectionDialog(true);
+1006:   };
+1007: 
+1008:   const clearSelection = () => {
+1009:     setSelectedFiles([]);
+1010:     setShowClearSelectionDialog(false);
+1011:   };
+1012: 
+1013:   const handleRemoveAllFoldersClick = () => {
+1014:     setShowRemoveAllFoldersDialog(true);
+1015:   };
+1016: 
+1017:   const removeAllFolders = () => {
+1018:     setSelectedFolder(null);
+1019:     setAllFiles([]);
+1020:     setSelectedFiles([]);
+1021:     setDisplayedFiles([]);
+1022:     
+1023:     // Clear localStorage
+1024:     localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
+1025:     localStorage.removeItem(STORAGE_KEYS.SELECTED_FILES);
+1026:     localStorage.removeItem(STORAGE_KEYS.EXPANDED_NODES);
+1027:     
+1028:     // Clear sessionStorage flag to allow loading data next time
+1029:     sessionStorage.removeItem("hasLoadedInitialData");
+1030:     setShowRemoveAllFoldersDialog(false);
+1031:   };
+1032: 
+1033:   const handleResetPatternsClick = (isGlobal: boolean, folderPath: string) => {
+1034:     setResetPatternsContext({ isGlobal, folderPath });
+1035:     setShowResetPatternsDialog(true);
+1036:   };
+1037: 
+1038:   // Initialize system patterns with defaults on component mount
+1039:   useEffect(() => {
+1040:     console.log(`App initialized with ${DEFAULT_SYSTEM_PATTERNS.length} default system patterns`);
+1041:     console.log('System patterns sample:', DEFAULT_SYSTEM_PATTERNS.slice(0, 5));
+1042:   }, []);
+1043: 
+1044:   // Clear ignore patterns state when folder changes
+1045:   useEffect(() => {
+1046:     if (selectedFolder) {
+1047:       // Reset local patterns state when folder changes
+1048:       setLocalIgnorePatterns({
+1049:         patterns: '',
+1050:         excludedPatterns: []
+1051:       });
+1052:       console.log("Folder changed, clearing local patterns state");
+1053:     }
+1054:   }, [selectedFolder]);
+1055: 
+1056:   // Function to clear local ignore patterns for a folder
+1057:   const clearLocalIgnorePatterns = async (folderPath: string) => {
+1058:     setProcessingStatus({
+1059:       status: "processing",
+1060:       message: "Clearing local ignore patterns...",
+1061:     });
+1062: 
+1063:     try {
+1064:       // Update state immediately for UI feedback
+1065:       setLocalIgnorePatterns({
+1066:         patterns: '',
+1067:         excludedPatterns: []
+1068:       });
+1069:       
+1070:       const result = await window.electron.ipcRenderer.invoke("clear-local-ignore-patterns", {
+1071:         folderPath
+1072:       });
+1073: 
+1074:       if (result.success) {
+1075:         console.log("Successfully cleared local ignore patterns");
+1076:         
+1077:         setLocalIgnorePatterns({
+1078:           patterns: '',
+1079:           excludedPatterns: []
+1080:         });
+1081:         
+1082:         setProcessingStatus({
+1083:           status: "complete",
+1084:           message: "Local ignore patterns cleared successfully.",
+1085:         });
+1086:         
+1087:         // Only reload if the folder being cleared is the current selected folder
+1088:         if (folderPath === selectedFolder) {
+1089:           setTimeout(() => {
+1090:             reloadFolder();
+1091:           }, 300);
+1092:         }
+1093:       } else {
+1094:         console.error("Error clearing local ignore patterns:", result.error);
+1095:         
+1096:         setProcessingStatus({
+1097:           status: "error",
+1098:           message: `Error clearing local ignore patterns: ${result.error}`,
+1099:         });
+1100:       }
+1101:     } catch (error) {
+1102:       console.error("Error invoking clear-local-ignore-patterns:", error);
+1103:       
+1104:       setProcessingStatus({
+1105:         status: "error",
+1106:         message: `Error clearing local ignore patterns: ${String(error)}`,
+1107:       });
+1108:     }
+1109:   };
+1110: 
+1111:   const truncatePath = (path: string) => {
+1112:     const parts = path.split('/');
+1113:     if (parts.length <= 3) return path;
+1114:     
+1115:     // Get the last two meaningful parts
+1116:     const lastParts = parts.filter(p => p).slice(-2);
+1117:     return `.../${lastParts.join('/')}`;
+1118:   };
+1119: 
+1120:   return (
+1121:     <ThemeProvider>
+1122:       <div className={styles.appContainer}>
+1123:         <header className={styles.appHeader}>
+1124:           <h1>PasteMax</h1>
+1125:           <div className={styles.headerActions}>
+1126:             <a href="#" className={styles.headerLink}>Guide</a>
+1127:             <div className={styles.headerSeparator}></div>
+1128:             <ThemeToggle />
+1129:             <div className={styles.headerSeparator}></div>
+1130:             <a
+1131:               href="https://github.com/jsulpis/pastemax"
+1132:               target="_blank"
+1133:               rel="noopener noreferrer"
+1134:               className={styles.githubButton}
+1135:             >
+1136:               <Github size={16} />
+1137:             </a>
+1138:           </div>
+1139:         </header>
+1140: 
+1141:         {processingStatus.status === "processing" && (
+1142:           <div className={styles.processingIndicator}>
+1143:             <div className={styles.spinner}></div>
+1144:             <span>{processingStatus.message}</span>
+1145:           </div>
+1146:         )}
+1147: 
+1148:         {processingStatus.status === "error" && (
+1149:           <div className={styles.errorMessage}>Error: {processingStatus.message}</div>
+1150:         )}
+1151: 
+1152:         <div className={styles.mainContainer}>
+1153:           <Sidebar
+1154:             selectedFolder={selectedFolder}
+1155:             openFolder={openFolder}
+1156:             allFiles={allFiles}
+1157:             selectedFiles={selectedFiles}
+1158:             toggleFileSelection={toggleFileSelection}
+1159:             toggleFolderSelection={toggleFolderSelection}
+1160:             searchTerm={searchTerm}
+1161:             onSearchChange={handleSearchChange}
+1162:             selectAllFiles={selectAllFiles}
+1163:             deselectAllFiles={deselectAllFiles}
+1164:             expandedNodes={expandedNodes}
+1165:             toggleExpanded={toggleExpanded}
+1166:             reloadFolder={reloadFolder}
+1167:             clearSelection={clearSelection}
+1168:             removeAllFolders={removeAllFolders}
+1169:             ignorePatterns={ignorePatterns}
+1170:             setIgnorePatterns={setIgnorePatterns}
+1171:             loadIgnorePatterns={loadIgnorePatterns}
+1172:             saveIgnorePatterns={saveIgnorePatterns}
+1173:             resetIgnorePatterns={resetIgnorePatterns}
+1174:             systemIgnorePatterns={systemIgnorePatterns}
+1175:             clearIgnorePatterns={clearLocalIgnorePatterns}
+1176:             onClearSelectionClick={handleClearSelectionClick}
+1177:             onRemoveAllFoldersClick={handleRemoveAllFoldersClick}
+1178:             onResetPatternsClick={handleResetPatternsClick}
+1179:             fileTreeSortOrder={fileTreeSortOrder}
+1180:             onSortOrderChange={setFileTreeSortOrder}
+1181:           />
+1182:           
+1183:           {selectedFolder ? (
+1184:             <div className={styles.contentArea}>
+1185:               <div className={styles.contentHeader}>
+1186:                 <h1 className={styles.contentTitle}>Files</h1>
+1187:                 <div className={styles.folderPathDisplay}>{truncatePath(selectedFolder)}</div>
+1188:                 <div className={styles.contentActions}>
+1189:                   <Dropdown
+1190:                     options={sortOptions}
+1191:                     value={sortOrder}
+1192:                     onChange={handleSortChange}
+1193:                     trigger={
+1194:                       <Button
+1195:                         variant="secondary"
+1196:                         size="sm"
+1197:                         startIcon={getSortIcon(sortOrder)}
+1198:                       >
+1199:                         Sort
+1200:                       </Button>
+1201:                     }
+1202:                     menuClassName={styles.sortDropdownMenu}
+1203:                   />
+1204:                 </div>
+1205:                 <div className={styles.fileStats}>
+1206:                   {selectedFiles.length} files selected ({calculateTotalTokens().toLocaleString()} tokens)
+1207:                 </div>
+1208:               </div>
+1209: 
+1210:               <FileList
+1211:                 files={displayedFiles}
+1212:                 selectedFiles={selectedFiles}
+1213:                 toggleFileSelection={toggleFileSelection}
+1214:               />
+1215: 
+1216:               {showUserInstructions && (
+1217:                 <div className={styles.userInstructionsContainer}>
+1218:                   <UserInstructions
+1219:                     instructions={userInstructions}
+1220:                     setInstructions={setUserInstructions}
+1221:                   />
+1222:                 </div>
+1223:               )}
+1224: 
+1225:               <ControlContainer
+1226:                 fileTreeMode={fileTreeMode}
+1227:                 setFileTreeMode={setFileTreeMode}
+1228:                 showUserInstructions={showUserInstructions}
+1229:                 setShowUserInstructions={setShowUserInstructions}
+1230:                 getSelectedFilesContent={getSelectedFilesContent}
+1231:                 selectedFilesCount={selectedFiles.length}
+1232:                 fileTreeSortOrder={sortOrder === 'name-ascending' ? 'name-asc' : 
+1233:                                    sortOrder === 'name-descending' ? 'name-desc' :
+1234:                                    sortOrder === 'date-ascending' ? 'date-newest' : undefined}
+1235:                 setFileTreeSortOrder={(value) => {
+1236:                   setSortOrder(value === 'name-asc' ? 'name-ascending' :
+1237:                               value === 'name-desc' ? 'name-descending' :
+1238:                               value === 'date-newest' ? 'date-ascending' : 'name-ascending');
+1239:                 }}
+1240:                 ignorePatterns={ignorePatterns}
+1241:                 setIgnorePatterns={setIgnorePatterns}
+1242:                 loadIgnorePatterns={loadIgnorePatterns}
+1243:                 saveIgnorePatterns={saveIgnorePatterns}
+1244:                 resetIgnorePatterns={resetIgnorePatterns}
+1245:                 reloadFolder={reloadFolder}
+1246:                 clearSelection={clearSelection}
+1247:                 removeAllFolders={removeAllFolders}
+1248:               />
+1249:             </div>
+1250:           ) : (
+1251:             <div className={styles.contentArea}>
+1252:               <div className={styles.emptyStateContent}>
+1253:                 <h2>Welcome to PasteMax</h2>
+1254:                 <p>Select a folder from the file tree panel to start working with your files.</p>
+1255:                 <p>PasteMax helps you format your code for AI models by:</p>
+1256:                 <ul>
+1257:                   <li>Selecting specific files</li>
+1258:                   <li>Organizing them in a tree structure</li>
+1259:                   <li>Adding custom instructions</li>
+1260:                   <li>Calculating token counts</li>
+1261:                 </ul>
+1262:               </div>
+1263:             </div>
+1264:           )}
+1265:         </div>
+1266: 
+1267:         {/* Add confirmation dialogs */}
+1268:         <ConfirmationDialog
+1269:           isOpen={showClearSelectionDialog}
+1270:           onClose={() => setShowClearSelectionDialog(false)}
+1271:           onConfirm={clearSelection}
+1272:           title="Clear Selection"
+1273:           description="Are you sure you want to clear all selected files?"
+1274:           confirmLabel="Clear Selection"
+1275:           variant="destructive"
+1276:         />
+1277: 
+1278:         <ConfirmationDialog
+1279:           isOpen={showRemoveAllFoldersDialog}
+1280:           onClose={() => setShowRemoveAllFoldersDialog(false)}
+1281:           onConfirm={removeAllFolders}
+1282:           title="Remove All Folders"
+1283:           description="Are you sure you want to remove all folders? This will reset the application state."
+1284:           confirmLabel="Remove All"
+1285:           variant="destructive"
+1286:         />
+1287: 
+1288:         <ConfirmationDialog
+1289:           isOpen={showResetPatternsDialog}
+1290:           onClose={() => setShowResetPatternsDialog(false)}
+1291:           onConfirm={() => {
+1292:             if (resetPatternsContext) {
+1293:               resetIgnorePatterns(
+1294:                 resetPatternsContext.isGlobal,
+1295:                 resetPatternsContext.folderPath
+1296:               );
+1297:               setShowResetPatternsDialog(false);
+1298:               setResetPatternsContext(null);
+1299:             }
+1300:           }}
+1301:           title={`Reset ${resetPatternsContext?.isGlobal ? 'Global' : 'Local'} Ignore Patterns`}
+1302:           description="Are you sure you want to reset the ignore patterns to their default values?"
+1303:           confirmLabel="Reset Patterns"
+1304:           variant="destructive"
+1305:         />
+1306:       </div>
+1307:     </ThemeProvider>
+1308:   );
+1309: };
+1310: 
+1311: export default App;
 ```
