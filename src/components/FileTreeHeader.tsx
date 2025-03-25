@@ -1,9 +1,43 @@
 import React from "react";
-import { Folder, ArrowUpDown, Filter, X, RefreshCw } from "lucide-react";
+import { 
+  Folder, 
+  Filter, 
+  X, 
+  RefreshCw, 
+  ArrowUpDown,        // Default icon
+  ArrowDownAZ,        // For name-ascending
+  ArrowUpZA,          // For name-descending
+  ArrowUp01,          // For tokens-ascending
+  ArrowDown10,        // For tokens-descending
+  ArrowUpNarrowWide,  // For date-ascending
+  ArrowDownWideNarrow // For date-descending
+} from "lucide-react";
 import { SortOrder } from "../types/FileTypes";
 import { Button } from "./ui";
 import { Dropdown } from "./ui/Dropdown";
+import { getSortIcon } from "../utils/sortIcons";
 import styles from "./FileTreeHeader.module.css";
+
+// Map sort options to corresponding Lucide icons
+const sortIconMap = {
+  "name-ascending": "ArrowDownAZ",
+  "name-descending": "ArrowUpZA",
+  "tokens-ascending": "ArrowUp01",
+  "tokens-descending": "ArrowDown10",
+  "date-ascending": "ArrowUpNarrowWide",
+  "date-descending": "ArrowDownWideNarrow"
+};
+
+// Icon component lookup for direct reference
+const iconComponents = {
+  "ArrowDownAZ": ArrowDownAZ,
+  "ArrowUpZA": ArrowUpZA,
+  "ArrowUp01": ArrowUp01,
+  "ArrowDown10": ArrowDown10,
+  "ArrowUpNarrowWide": ArrowUpNarrowWide,
+  "ArrowDownWideNarrow": ArrowDownWideNarrow,
+  "ArrowUpDown": ArrowUpDown  // Default
+};
 
 interface FileTreeHeaderProps {
   onOpenFolder: () => void;
@@ -13,6 +47,7 @@ interface FileTreeHeaderProps {
   onReloadFileTree: () => void;
   onOpenIgnorePatterns: (isGlobal: boolean) => void;
   excludedFilesCount?: number;
+  currentSortOrder?: SortOrder;
 }
 
 const sortOptions = [
@@ -37,6 +72,7 @@ const FileTreeHeader = ({
   onReloadFileTree,
   onOpenIgnorePatterns,
   excludedFilesCount,
+  currentSortOrder,
 }: FileTreeHeaderProps): JSX.Element => {
   
   const handleSortSelect = (value: string | string[]) => {
@@ -71,12 +107,13 @@ const FileTreeHeader = ({
             options={sortOptions}
             onChange={handleSortSelect}
             placeholder="Sort by..."
+            value={currentSortOrder}
             trigger={
               <Button 
                 variant="icon"
                 size="sm"
                 iconOnly
-                startIcon={<ArrowUpDown size={16} />}
+                startIcon={getSortIcon(currentSortOrder)}
                 title="Sort By"
                 className={styles.fileTreeBtn}
               />

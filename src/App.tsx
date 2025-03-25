@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Sidebar from "./components/Sidebar";
 import FileList from "./components/FileList";
 import UserInstructions from "./components/UserInstructions";
@@ -11,6 +11,8 @@ import { Github, ArrowUpDown } from "lucide-react";
 import styles from "./App.module.css";
 import { Dropdown } from "./components/ui";
 import { ConfirmationDialog } from "./components/ui/ConfirmationDialog";
+import { Button } from "./components/ui/Button";
+import { getSortIcon } from "./utils/sortIcons";
 
 // Access the electron API from the window object
 declare global {
@@ -385,17 +387,17 @@ const App = () => {
     // Normalize the incoming file path to handle cross-platform issues
     const normalizedPath = normalizePath(filePath);
     
-    setSelectedFiles((prev: string[]) => {
+    setSelectedFiles((prevSelected: string[]) => {
       // Check if the file is already selected
-      const isSelected = prev.some((path: string) => arePathsEqual(path, normalizedPath));
+      const isSelected = prevSelected.some((path: string) => arePathsEqual(path, normalizedPath));
       
       if (isSelected) {
         // Remove the file from selected files
-        const newSelection = prev.filter((path: string) => !arePathsEqual(path, normalizedPath));
+        const newSelection = prevSelected.filter((path: string) => !arePathsEqual(path, normalizedPath));
         return newSelection;
       } else {
         // Add the file to selected files
-        const newSelection = [...prev, normalizedPath];
+        const newSelection = [...prevSelected, normalizedPath];
         return newSelection;
       }
     });
@@ -685,7 +687,7 @@ const App = () => {
         loadIgnorePatterns('', true).catch(error => {
           console.error('Error loading initial global patterns:', error);
           // Set defaults on error
-          setGlobalIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
+          setGlobalIgnorePatterns(DEFAULT_SYSTEM_PATTERNS.join('\n'));
           setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
         });
       }
@@ -1073,7 +1075,15 @@ const App = () => {
                     options={sortOptions}
                     value={sortOrder}
                     onChange={handleSortChange}
-                    icon={<ArrowUpDown size={16} />}
+                    trigger={
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        startIcon={getSortIcon(sortOrder)}
+                      >
+                        Sort
+                      </Button>
+                    }
                     menuClassName={styles.sortDropdownMenu}
                   />
                 </div>
@@ -1104,8 +1114,14 @@ const App = () => {
                 setShowUserInstructions={setShowUserInstructions}
                 getSelectedFilesContent={getSelectedFilesContent}
                 selectedFilesCount={selectedFiles.length}
-                fileTreeSortOrder={fileTreeSortOrder}
-                setFileTreeSortOrder={setFileTreeSortOrder}
+                fileTreeSortOrder={sortOrder === 'name-ascending' ? 'name-asc' : 
+                                   sortOrder === 'name-descending' ? 'name-desc' :
+                                   sortOrder === 'date-ascending' ? 'date-newest' : undefined}
+                setFileTreeSortOrder={(value) => {
+                  setSortOrder(value === 'name-asc' ? 'name-ascending' :
+                              value === 'name-desc' ? 'name-descending' :
+                              value === 'date-newest' ? 'date-ascending' : 'name-ascending');
+                }}
                 ignorePatterns={ignorePatterns}
                 setIgnorePatterns={setIgnorePatterns}
                 loadIgnorePatterns={loadIgnorePatterns}

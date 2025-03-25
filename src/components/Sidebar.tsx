@@ -563,6 +563,7 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
         onReloadFileTree={reloadFolder}
         onOpenIgnorePatterns={() => handleOpenIgnorePatterns(false)}
         excludedFilesCount={countExcludedFiles()}
+        currentSortOrder={fileTreeSortOrder}
       />
       
       {selectedFolder ? (
