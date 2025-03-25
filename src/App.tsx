@@ -67,6 +67,76 @@ interface IgnorePatternsState {
   excludedPatterns: string[];
 }
 
+// System pattern categories
+const SYSTEM_PATTERN_CATEGORIES = {
+  versionControl: [
+    "**/.git/**",
+    "**/.svn/**",
+    "**/.hg/**",
+    "**/.cvs/**"
+  ],
+  buildFiles: [
+    "**/dist/**",
+    "**/build/**",
+    "**/.output/**"
+  ],
+  mediaFiles: [
+    "**/*.png",
+    "**/*.jpg",
+    "**/*.jpeg",
+    "**/*.gif",
+    "**/*.webp",
+    "**/*.svg",
+    "**/*.mp4",
+    "**/*.mp3",
+    "**/*.flac",
+    "**/*.wav"
+  ],
+  documentation: [
+    "**/*.pdf",
+    "**/*.doc",
+    "**/*.docx",
+    "**/*.xls",
+    "**/*.xlsx"
+  ],
+  dependencies: [
+    "**/node_modules/**",
+    "**/__pycache__/**",
+    "**/venv/**",
+    "**/vendor/**"
+  ]
+};
+
+// Parse ignore patterns content to extract disabled patterns and user patterns
+const parseIgnorePatternsContent = (content: string) => {
+  const lines = content.split('\n');
+  const excludedPatterns: string[] = [];
+  const userPatterns: string[] = [];
+  
+  let inDisabledSection = true;
+  
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('# DISABLED:')) {
+      const pattern = trimmed.substring('# DISABLED:'.length).trim();
+      if (pattern) {
+        excludedPatterns.push(pattern);
+      }
+    } else if (trimmed === '') {
+      // Empty line could separate disabled section from user patterns
+      inDisabledSection = false;
+    } else {
+      inDisabledSection = false;
+      userPatterns.push(line);
+    }
+  });
+  
+  return {
+    excludedPatterns,
+    userPatterns: userPatterns.join('\n')
+  };
+};
+
 const App = () => {
   // Load initial state from localStorage if available
   const savedFolder = localStorage.getItem(STORAGE_KEYS.SELECTED_FOLDER);
@@ -626,13 +696,14 @@ const App = () => {
         isGlobal
       });
       
-      // Always treat as success since main process now returns safe defaults
+      // Parse the content to extract disabled system patterns
+      const { excludedPatterns, userPatterns } = parseIgnorePatternsContent(result.patterns || '');
+      
       console.log(`Loaded ${isGlobal ? 'global' : 'local'} ignore patterns`);
       
       // Debug log the patterns that were loaded
-      const patterns = result.patterns || '';
-      if (patterns.trim()) {
-        console.log(`Loaded user patterns:\n${patterns}`);
+      if (userPatterns.trim()) {
+        console.log(`Loaded user patterns:\n${userPatterns}`);
       } else {
         console.log(`No ${isGlobal ? 'global' : 'local'} patterns found`);
       }
@@ -649,17 +720,17 @@ const App = () => {
       // Update pattern state with both patterns and excluded patterns
       if (isGlobal) {
         setGlobalIgnorePatterns({
-          patterns: patterns,
-          excludedPatterns: result.excludedPatterns || []
+          patterns: userPatterns,
+          excludedPatterns: excludedPatterns
         });
       } else if (folderPath === selectedFolder) {
         setLocalIgnorePatterns({
-          patterns: patterns,
-          excludedPatterns: result.excludedPatterns || []
+          patterns: userPatterns,
+          excludedPatterns: excludedPatterns
         });
       }
       
-      return patterns;
+      return userPatterns;
     } catch (error) {
       console.error(`Error loading ${isGlobal ? 'global' : 'local'} ignore patterns:`, error);
       // Return empty string for local patterns, defaults for global

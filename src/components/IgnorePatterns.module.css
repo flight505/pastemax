@@ -9,17 +9,20 @@
   justify-content: center;
   align-items: center;
   z-index: var(--z-index-modal);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
 }
 
 .content {
   background-color: var(--background-primary);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 700px;
-  max-height: 90vh;
-  padding: 24px;
+  max-height: 85vh;
+  padding: 1.5rem;
   box-shadow: var(--shadow-lg);
   overflow-y: auto;
+  animation: slideUp 0.2s ease-out;
 }
 
 .header {
@@ -255,13 +258,13 @@
 
 .systemPatternItem {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
   padding: 4px 8px;
+  font-family: monospace;
+  font-size: 13px;
+  transition: background-color 0.15s ease;
   border-radius: var(--radius);
-  cursor: pointer;
-  transition: background-color 0.15s;
-  user-select: none;
 }
 
 .systemPatternItem:hover {
@@ -292,32 +295,169 @@
 }
 
 .previewContainer {
-  margin-top: 16px;
-  padding: 12px;
   background-color: var(--background-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-}
-
-.previewContainer h4 {
-  margin: 0 0 12px 0;
-  font-size: 0.9rem;
-  color: var(--text-primary);
-}
-
-.patternPreview {
-  font-family: monospace;
-  font-size: 13px;
+  padding: 12px;
   max-height: 150px;
   overflow-y: auto;
+  margin-top: 16px;
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .previewLine {
   padding: 2px 0;
+}
+
+.previewSystem {
+  color: var(--accent-color);
+}
+
+.previewGlobal {
   color: var(--text-primary);
 }
 
-.previewLine.disabled {
+.previewLocal {
+  color: var(--success-color);
+}
+
+.previewBadge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-left: 8px;
+  background-color: var(--background-secondary);
   color: var(--text-secondary);
-  text-decoration: line-through;
+}
+
+.notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(100%);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  z-index: var(--z-index-modal);
+}
+
+.notification.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.notification.success {
+  border-left: 4px solid var(--success-color);
+}
+
+.notification.error {
+  border-left: 4px solid var(--error-color);
+}
+
+@keyframes slideIn {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes togglePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.patternCategory {
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.categoryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background-color: var(--background-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.categoryHeader:hover {
+  background-color: var(--hover-color);
+}
+
+.categoryTitle {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.categoryMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.categoryCount {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.chevronRotated {
+  transform: rotate(180deg);
+}
+
+.categoryItems {
+  padding: 8px 12px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.categoryExpanded .categoryItems {
+  max-height: 1000px;
+  padding: 8px 12px;
+}
+
+.smallerSwitch {
+  transform: scale(0.9);
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, RefreshCw, ChevronDown, Trash2, Check, Square } from "lucide-react";
-import { Button } from "./ui";
+import { X, RefreshCw, ChevronDown, Trash2, Check } from "lucide-react";
+import { Button, Switch } from "./ui";
 import styles from "./IgnorePatterns.module.css";
 
 // Props interface
@@ -19,8 +19,9 @@ interface IgnorePatternsProps {
   clearIgnorePatterns: (folderPath: string) => Promise<void>;
   systemIgnorePatterns: string[];
   recentFolders: string[];
-  excludedGlobalPatterns: string[];
-  excludedLocalPatterns: string[];
+  excludedSystemPatterns?: string[];
+  setExcludedSystemPatterns?: (patterns: string[]) => void;
+  systemPatternCategories?: Record<string, string[]>;
 }
 
 const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
@@ -35,8 +36,15 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   clearIgnorePatterns,
   systemIgnorePatterns,
   recentFolders,
-  excludedGlobalPatterns,
-  excludedLocalPatterns
+  excludedSystemPatterns = [],
+  setExcludedSystemPatterns,
+  systemPatternCategories = {
+    versionControl: ["**/.git/**", "**/.svn/**"],
+    buildFiles: ["**/dist/**", "**/build/**"],
+    mediaFiles: ["**/*.png", "**/*.jpg", "**/*.jpeg"],
+    documentation: ["**/*.pdf", "**/*.doc"],
+    dependencies: ["**/node_modules/**", "**/__pycache__/**"]
+  }
 }) => {
   // State for the active tab
   const [activeTab, setActiveTab] = useState<"global" | "local">("global");
@@ -45,8 +53,13 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   const [globalPatterns, setGlobalPatterns] = useState<string>(globalIgnorePatterns);
   const [localPatterns, setLocalPatterns] = useState<string>(localIgnorePatterns);
   
-  // State for excluded system patterns
-  const [excludedSystemPatterns, setExcludedSystemPatterns] = useState<string[]>([]);
+  // State for expanded categories
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
+    Object.keys(systemPatternCategories).reduce((acc, category) => ({
+      ...acc,
+      [category]: true
+    }), {})
+  );
   
   // State for the merged preview
   const [mergedPreview, setMergedPreview] = useState<string>("");
@@ -140,11 +153,28 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     setFolderSelectOpen(false);
   };
   
-  // Function to handle system pattern toggling
+  // Function to toggle category expansion
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+  
+  // Function to handle system pattern toggling with visual feedback
   const handleToggleSystemPattern = (pattern: string) => {
-    setExcludedSystemPatterns((prev) => {
+    // Add visual feedback animation when toggling
+    const patternElement = document.querySelector(`[data-pattern="${pattern}"]`);
+    if (patternElement) {
+      patternElement.classList.add(styles.patternToggled);
+      setTimeout(() => {
+        patternElement.classList.remove(styles.patternToggled);
+      }, 300);
+    }
+    
+    setExcludedSystemPatterns(prev => {
       if (prev.includes(pattern)) {
-        return prev.filter((p) => p !== pattern);
+        return prev.filter(p => p !== pattern);
       } else {
         return [...prev, pattern];
       }
@@ -249,12 +279,11 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
         <div className={styles.header}>
           <h2>
             Ignore Patterns
-            {applyingPatterns && <span className={styles.applying}>(Applying changes...)</span>}
+            {applyingPatterns && <span className={styles.applying}>(Applying...)</span>}
           </h2>
           <Button 
-            variant="secondary" 
+            variant="ghost" 
             size="sm" 
-            iconOnly
             onClick={onClose}
             startIcon={<X size={16} />}
             title="Close"
@@ -285,45 +314,93 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
           </Button>
         </div>
         
-        <div className={styles.scopeDescription}>
-          {activeTab === "global" 
-            ? "Global patterns apply to all folders. One pattern per line. Use * as wildcard." 
-            : "Local patterns apply only to the selected folder. One pattern per line. Use * as wildcard."}
-        </div>
-        
-        {activeTab === "local" && (
-          <div className={styles.folderSelector}>
-            <label>Select Folder</label>
-            <div className={styles.customSelect} onClick={() => !applyingPatterns && setFolderSelectOpen(!folderSelectOpen)}>
-              <div className={styles.selectedValue}>
-                {selectedFolder || 'Select a folder'}
-                <ChevronDown size={16} className={`${styles.chevron} ${folderSelectOpen ? styles.open : ''}`} />
-              </div>
-              {folderSelectOpen && (
-                <div className={styles.optionsContainer}>
-                  {recentFolders.length > 0 ? (
-                    recentFolders.map((folder, index) => (
-                      <div 
-                        key={index} 
-                        className={styles.option} 
-                        onClick={() => handleFolderChange(folder)}
-                      >
-                        {folder}
-                      </div>
-                    ))
-                  ) : (
-                    <div className={styles.option}>{selectedFolder || 'No folders available'}</div>
-                  )}
+        {activeTab === "global" && (
+          <div className={styles.systemPatternsSection}>
+            <h3 className={styles.sectionTitle}>System Patterns</h3>
+            
+            {Object.entries(systemPatternCategories).map(([category, patterns]) => (
+              <div 
+                key={category}
+                className={`${styles.patternCategory} ${expandedCategories[category] ? styles.categoryExpanded : ''}`}
+              >
+                <div 
+                  className={styles.categoryHeader} 
+                  onClick={() => toggleCategory(category)}
+                >
+                  <div className={styles.categoryTitle}>
+                    {category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                  </div>
+                  <div className={styles.categoryMeta}>
+                    <span className={styles.categoryCount}>
+                      {patterns.filter(p => !excludedSystemPatterns.includes(p)).length}/{patterns.length}
+                    </span>
+                    <ChevronDown 
+                      size={16} 
+                      className={`${styles.chevron} ${expandedCategories[category] ? styles.chevronRotated : ''}`} 
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
-            <div className={styles.pathDisplay}>
-              {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'No folder selected'}
-            </div>
+                
+                {expandedCategories[category] && (
+                  <div className={styles.categoryItems}>
+                    {patterns.map(pattern => (
+                      <div 
+                        key={pattern} 
+                        className={styles.systemPatternItem}
+                        data-pattern={pattern}
+                      >
+                        <span className={styles.patternText}>{pattern}</span>
+                        <Switch
+                          checked={!excludedSystemPatterns.includes(pattern)}
+                          onChange={() => handleToggleSystemPattern(pattern)}
+                          className={styles.smallerSwitch}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
         
-        <div className={styles.patternsSection}>
+        <div className={styles.patternEntrySection}>
+          <h3 className={styles.sectionTitle}>
+            {activeTab === "global" ? "Global Custom Patterns" : "Local Custom Patterns"}
+          </h3>
+          
+          {activeTab === "local" && (
+            <div className={styles.folderSelector}>
+              <label>Select Folder</label>
+              <div className={styles.customSelect} onClick={() => !applyingPatterns && setFolderSelectOpen(!folderSelectOpen)}>
+                <div className={styles.selectedValue}>
+                  {selectedFolder || 'Select a folder'}
+                  <ChevronDown size={16} className={`${styles.chevron} ${folderSelectOpen ? styles.open : ''}`} />
+                </div>
+                {folderSelectOpen && (
+                  <div className={styles.optionsContainer}>
+                    {recentFolders.length > 0 ? (
+                      recentFolders.map((folder, index) => (
+                        <div 
+                          key={index} 
+                          className={styles.option} 
+                          onClick={() => handleFolderChange(folder)}
+                        >
+                          {folder}
+                        </div>
+                      ))
+                    ) : (
+                      <div className={styles.option}>{selectedFolder || 'No folders available'}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className={styles.pathDisplay}>
+                {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'No folder selected'}
+              </div>
+            </div>
+          )}
+          
           <textarea 
             ref={textareaRef}
             className={styles.patternsInput}
@@ -333,40 +410,39 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
             placeholder="Enter ignore patterns, one per line..."
             disabled={applyingPatterns || (activeTab === "local" && !selectedFolder)}
           />
-          
-          {activeTab === "global" && (
-            <div className={styles.systemPatterns}>
-              <h3>System Patterns</h3>
-              <div className={styles.systemPatternsList}>
-                {systemIgnorePatterns.map((pattern) => (
-                  <label key={pattern} className={styles.systemPatternItem}>
-                    <button
-                      className={styles.toggleButton}
-                      onClick={() => handleToggleSystemPattern(pattern)}
-                      title={excludedSystemPatterns.includes(pattern) ? "Enable pattern" : "Disable pattern"}
-                    >
-                      {excludedSystemPatterns.includes(pattern) ? (
-                        <Square size={16} />
-                      ) : (
-                        <Check size={16} />
-                      )}
-                    </button>
-                    <span className={excludedSystemPatterns.includes(pattern) ? styles.disabledPattern : ''}>
-                      {pattern}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
+        </div>
+        
+        <div className={styles.previewSection}>
           <div className={styles.previewContainer}>
-            <h4>Effective Patterns</h4>
-            <div className={styles.patternPreview}>
-              {mergedPreview.split('\n').map((line, index) => (
-                <div key={index} className={styles.previewLine}>{line}</div>
-              ))}
+            <div className={styles.previewHeader}>
+              <span>Effective Patterns</span>
+              <span className={styles.patternCount}>
+                {mergedPreview.split('\n').filter(line => line.trim()).length} patterns active
+              </span>
             </div>
+            {mergedPreview.split('\n').map((line, index) => {
+              if (!line.trim()) return null;
+              
+              const isSystemPattern = systemIgnorePatterns.includes(line);
+              const isGlobalPattern = globalPatterns.includes(line);
+              const isLocalPattern = !isSystemPattern && !isGlobalPattern;
+              
+              return (
+                <div 
+                  key={index} 
+                  className={`${styles.previewLine} ${
+                    isSystemPattern ? styles.previewSystem : 
+                    isGlobalPattern ? styles.previewGlobal : 
+                    styles.previewLocal
+                  }`}
+                >
+                  {line}
+                  <span className={styles.previewBadge}>
+                    {isSystemPattern ? 'system' : isGlobalPattern ? 'global' : 'local'}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
         

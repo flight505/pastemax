@@ -648,6 +648,13 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
         }}
         systemIgnorePatterns={systemIgnorePatterns}
         recentFolders={getAvailableFolders()}
+        systemPatternCategories={{
+          versionControl: ["**/.git/**", "**/.svn/**", "**/.hg/**"],
+          buildFiles: ["**/dist/**", "**/build/**", "**/.output/**"],
+          mediaFiles: ["**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif"],
+          documentation: ["**/*.pdf", "**/*.doc", "**/*.docx"],
+          dependencies: ["**/node_modules/**", "**/__pycache__/**", "**/venv/**"]
+        }}
       />
     </div>
   );
