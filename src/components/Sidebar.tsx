@@ -300,79 +300,154 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     isUpdatingExpandedNodesRef.current = false;
   }, [expandedNodes, fileTree]);
 
-  // Set up the effect for building the file tree
+  // Build file tree structure from flat list of files
+  const buildFileTree = useCallback(async (files: FileData[], rootFolder: string, currentSortOrder: SortOrder): Promise<TreeNode[]> => {
+    if (!files || files.length === 0) return [];
+    
+    // Create a stable map of paths to prevent recursion issues
+    const pathMap = new Map<string, FileData>();
+    files.forEach(file => {
+      if (file.path) {
+        pathMap.set(file.path, file);
+      }
+    });
+    
+    try {
+      // Create a map to store the file tree structure
+      const fileMap: Record<string, any> = {};
+      
+      // Process each file
+      Array.from(pathMap.entries()).forEach(([path, file]) => {
+        let relativePath = path;
+        if (relativePath.startsWith(rootFolder)) {
+          relativePath = relativePath.substring(rootFolder.length);
+          if (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
+            relativePath = relativePath.substring(1);
+          }
+        }
+        
+        const parts = relativePath.split(/[/\\]/);
+        let current = fileMap;
+        
+        // Build the tree structure
+        parts.forEach((part, index) => {
+          if (!current[part]) {
+            const fullPath = parts.slice(0, index + 1).join('/');
+            current[part] = {
+              name: part,
+              path: fullPath,
+              id: `${fullPath}-${index}`, // Add index to ensure unique IDs
+              type: index === parts.length - 1 ? "file" as const : "directory" as const,
+              children: {},
+              fileData: index === parts.length - 1 ? file : undefined
+            };
+          }
+          current = current[part].children;
+        });
+      });
+      
+      // Convert the nested object structure to an array of TreeNodes
+      const convertToTreeNodes = (
+        obj: Record<string, any>,
+        level = 0
+      ): TreeNode[] => {
+        const nodes = Object.values(obj)
+          .filter(item => item !== undefined)
+          .map((item: any): TreeNode => {
+            const nodeId = item.id;
+            const isExpanded = expandedNodes.get(nodeId);
+            
+            if (item.type === "directory") {
+              const children = convertToTreeNodes(item.children, level + 1);
+              return {
+                id: nodeId,
+                name: item.name,
+                path: item.path,
+                type: "directory" as const,
+                children: sortFileTreeNodes(children), // Sort children immediately
+                isExpanded: isExpanded !== undefined ? isExpanded : level < 2, // Auto-expand first two levels
+                depth: level,
+              };
+            }
+            
+            return {
+              id: nodeId,
+              name: item.name,
+              path: item.path,
+              type: "file" as const,
+              fileData: item.fileData,
+              depth: level,
+            };
+          });
+        
+        return sortFileTreeNodes(nodes);
+      };
+      
+      // Set a maximum time limit for tree conversion
+      const timeoutPromise = new Promise<TreeNode[]>((_, reject) => {
+        setTimeout(() => reject(new Error('Tree conversion timed out')), 5000);
+      });
+      
+      // Convert with timeout protection
+      const conversionPromise = Promise.resolve().then(() => convertToTreeNodes(fileMap));
+      
+      const result = await Promise.race([timeoutPromise, conversionPromise]);
+      return result;
+        
+    } catch (error) {
+      console.error('Error building file tree:', error);
+      return [];
+    }
+  }, [expandedNodes, sortFileTreeNodes]);
+
+  // Set up the effect for building the file tree with debouncing and cleanup
   useEffect(() => {
-    // Return early if there are no files
+    let isCurrentBuild = true;
+    const buildId = Math.random(); // Unique identifier for this build
+    
     if (!allFiles || allFiles.length === 0) {
       setFileTree([]);
       return;
     }
     
-    // Skip if we're already building the tree or updating expanded nodes
-    if (isBuildingTreeRef.current || isUpdatingExpandedNodesRef.current) {
+    // Skip if we're already building a tree
+    if (isBuildingTreeRef.current) {
+      console.log('Tree building in progress, scheduling rebuild...');
       return;
     }
-
-    // Debounce the tree building to prevent rapid UI updates
-    const debounceId = setTimeout(() => {
+    
+    const buildTreeWithTimeout = async () => {
       try {
         isBuildingTreeRef.current = true;
+        console.log(`Starting tree build ${buildId}...`);
         
-        const builtTree = buildFileTree(allFiles, selectedFolder || "", fileTreeSortOrder || "name-ascending");
+        const result = await buildFileTree(allFiles, selectedFolder || "", fileTreeSortOrder || "name-ascending");
         
-        // Only update if necessary by doing a shallow comparison
-        setFileTree(prevTree => {
-          try {
-            // Simple length check as first comparison
-            if (prevTree.length !== builtTree.length) {
-              return builtTree;
-            }
-            
-            // If same length, compare a sample of nodes
-            const hasChanged = prevTree.length === 0 || 
-              prevTree[0]?.id !== builtTree[0]?.id || 
-              prevTree[prevTree.length - 1]?.id !== builtTree[builtTree.length - 1]?.id;
-              
-            return hasChanged ? builtTree : prevTree;
-          } catch (error) {
-            console.error('Error comparing trees in setFileTree callback:', error);
-            // Return the new tree on error to ensure we don't get stuck
-            return builtTree;
-          }
-        });
-
-        // Only update expanded state after the tree has been built
-        // and when we're not already in the process of updating
-        const hasExpandedNodes = expandedNodes.size > 0;
-        if (hasExpandedNodes && !isUpdatingExpandedNodesRef.current) {
-          // Use setTimeout to ensure tree build finishes first
-          setTimeout(() => {
-            try {
-              updateTreeWithExpandedState();
-            } catch (error) {
-              console.error('Error updating tree with expanded state:', error);
-              // Reset the flag even if there's an error
-              isUpdatingExpandedNodesRef.current = false;
-            }
-          }, 0);
+        // Only update if this is still the current build
+        if (isCurrentBuild) {
+          setFileTree(result);
+          console.log(`Tree build ${buildId} completed successfully`);
         }
       } catch (error) {
-        console.error('Error building file tree:', error);
-        // On error, reset the tree to empty to avoid inconsistent state
-        setFileTree([]);
+        console.error(`Tree build ${buildId} failed:`, error);
+        if (isCurrentBuild) {
+          setFileTree([]);
+        }
       } finally {
-        isBuildingTreeRef.current = false;
+        if (isCurrentBuild) {
+          isBuildingTreeRef.current = false;
+        }
       }
-    }, DEBOUNCE_DELAY);
-
-    // Cleanup function
-    return () => {
-      clearTimeout(debounceId);
-      // Reset flags on cleanup to avoid stuck states
-      isBuildingTreeRef.current = false;
-      isUpdatingExpandedNodesRef.current = false;
     };
-  }, [allFiles, selectedFolder, fileTreeSortOrder, sortFileTreeNodes]);
+    
+    const timeoutId = setTimeout(buildTreeWithTimeout, DEBOUNCE_DELAY);
+    
+    return () => {
+      isCurrentBuild = false;
+      clearTimeout(timeoutId);
+      console.log(`Cleaning up tree build ${buildId}`);
+    };
+  }, [allFiles, selectedFolder, fileTreeSortOrder, buildFileTree]);
 
   // Handle opening the ignore patterns modal
   const handleOpenIgnorePatterns = async (isGlobal = false) => {
@@ -476,96 +551,6 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     const excludedFilesCount = allFiles.filter(file => file.excluded).length;
     return excludedFilesCount;
   };
-
-  // Function to build file tree structure from flat list of files
-  const buildFileTree = useCallback((files: FileData[], rootFolder: string, currentSortOrder: SortOrder): TreeNode[] => {
-    // Create a structured representation using nested objects first
-    const fileMap: Record<string, any> = {};
-
-    // First pass: create directories and files
-    files.forEach((file) => {
-      if (!file.path) return;
-
-      const relativePath =
-        rootFolder && file.path.startsWith(rootFolder)
-          ? file.path
-              .substring(rootFolder.length)
-              .replace(/^\/|^\\/, "")
-          : file.path;
-
-      const parts = relativePath.split(/[/\\]/);
-      let currentPath = "";
-      let current = fileMap;
-
-      // Process path parts to create directory structure
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        if (!part) continue; // Skip empty parts
-        
-        currentPath = currentPath ? `${currentPath}/${part}` : part;
-        
-        if (i === parts.length - 1) {
-          // This is a file
-          current[part] = {
-            type: "file",
-            name: part,
-            path: file.path,
-            fileData: file,
-          };
-        } else {
-          // This is a directory
-          if (!current[part]) {
-            current[part] = {
-              type: "directory",
-              name: part,
-              children: {},
-            };
-          }
-          current = current[part].children;
-        }
-      }
-    });
-
-    // Convert the nested object structure to TreeNode array with proper nesting
-    const convertToTreeNodes = (
-      node: Record<string, any>,
-      level = 0,
-    ): TreeNode[] => {
-      return Object.keys(node).map((key) => {
-        const item = node[key];
-        const id = `node-${Math.random().toString(36).substring(2, 9)}`;
-        
-        if (item.type === "directory") {
-          return {
-            id,
-            name: item.name,
-            type: "directory",
-            path: "", // Add empty string as default path for directory nodes
-            children: convertToTreeNodes(item.children, level + 1),
-            isExpanded: level < 2 || (expandedNodes.has(id) ? !!expandedNodes.get(id) : false),
-            depth: level,
-          };
-        } else {
-          return {
-            id,
-            name: item.name,
-            type: "file",
-            path: item.path,
-            children: [],
-            isExpanded: false,
-            fileData: item.fileData,
-            depth: level,
-          };
-        }
-      });
-    };
-
-    // Convert the fileMap to a TreeNode array
-    const unsortedTree = convertToTreeNodes(fileMap);
-    
-    // Sort the tree if a sort function is available
-    return sortFileTreeNodes ? sortFileTreeNodes(unsortedTree) : unsortedTree;
-  }, [expandedNodes, sortFileTreeNodes]);
 
   // Handle sort change events
   const handleSortChange = (newSortOrder: SortOrder) => {

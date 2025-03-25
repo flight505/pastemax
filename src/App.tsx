@@ -401,67 +401,65 @@ const App = () => {
     });
   };
 
-  // Handle select all files
+  // Select all files that are not excluded or binary
   const selectAllFiles = () => {
-    const selectablePaths = displayedFiles
-      .filter((file: FileData) => !file.isBinary && !file.isSkipped && !file.excludedByDefault)
-      .map((file: FileData) => file.path);
-
-    setSelectedFiles((prev: string[]) => {
-      const newSelection = [...prev];
-      selectablePaths.forEach((path: string) => {
-        if (!newSelection.includes(path)) {
-          newSelection.push(path);
+    const filesToSelect = allFiles
+      .filter(file => !file.excluded && !file.isBinary && !file.isSkipped)
+      .map(file => file.path);
+    
+    // Update selected files state
+    setSelectedFiles(prevSelected => {
+      // Create a Set of currently selected files for faster lookup
+      const currentlySelected = new Set(prevSelected);
+      
+      // Add all files that aren't already selected
+      filesToSelect.forEach(path => {
+        if (!currentlySelected.has(path)) {
+          currentlySelected.add(path);
         }
       });
-      return newSelection;
+      
+      return Array.from(currentlySelected);
     });
   };
 
-  // Handle deselect all files
+  // Deselect all files
   const deselectAllFiles = () => {
-    const displayedPaths = displayedFiles.map((file: FileData) => file.path);
-    setSelectedFiles((prev: string[]) =>
-      prev.filter((path: string) => !displayedPaths.includes(path))
-    );
+    setSelectedFiles([]);
   };
 
-  // Toggle folder selection (select/deselect all files within a folder)
+  // Toggle folder selection with proper handling of nested structures
   const toggleFolderSelection = (folderPath: string, isSelected: boolean) => {
-    if (!folderPath) return;
+    if (!folderPath) {
+      console.warn("toggleFolderSelection called with empty path");
+      return;
+    }
     
-    setSelectedFiles((prev: string[]) => {
-      // Create a copy of the current selectedFiles array
-      const newSelectedFiles = [...prev];
+    setSelectedFiles(prev => {
+      // Create a Set for better performance
+      const newSelection = new Set(prev);
       
-      // Find all files that match this folder path prefix
-      const filesInFolder = allFiles.filter(
-        (file) => 
-          file.path.startsWith(folderPath) && 
+      // Find all files under this folder
+      const filesInFolder = allFiles.filter(file => {
+        const normalizedFilePath = normalizePath(file.path);
+        const normalizedFolderPath = normalizePath(folderPath);
+        
+        return normalizedFilePath.startsWith(normalizedFolderPath) && 
           !file.excluded && 
-          file.type !== 'directory'
-      );
+          !file.isBinary && 
+          !file.isSkipped;
+      });
       
-      // Use a Set for better lookup performance
-      const selectedFilesSet = new Set(newSelectedFiles);
+      // Update selection based on isSelected flag
+      filesInFolder.forEach(file => {
+        if (isSelected) {
+          newSelection.add(file.path);
+        } else {
+          newSelection.delete(file.path);
+        }
+      });
       
-      // Check if we should select or deselect
-      if (isSelected) {
-        // Add all files in the folder to selection
-        filesInFolder.forEach((file) => {
-          if (!selectedFilesSet.has(file.path)) {
-            selectedFilesSet.add(file.path);
-          }
-        });
-      } else {
-        // Remove all files in the folder from selection
-        filesInFolder.forEach((file) => {
-          selectedFilesSet.delete(file.path);
-        });
-      }
-      
-      // Convert Set back to array
-      return Array.from(selectedFilesSet);
+      return Array.from(newSelection);
     });
   };
 
@@ -1074,7 +1072,7 @@ const App = () => {
                   <Dropdown
                     options={sortOptions}
                     value={sortOrder}
-                    onChange={setSortOrder}
+                    onChange={handleSortChange}
                     icon={<ArrowUpDown size={16} />}
                     menuClassName={styles.sortDropdownMenu}
                   />
