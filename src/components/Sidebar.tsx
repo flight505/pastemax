@@ -8,9 +8,6 @@ import { Button } from "./ui";
 import SearchBar from "./SearchBar";
 import styles from "./Sidebar.module.css";
 
-// Debounce delay in ms
-const DEBOUNCE_DELAY = 300;
-
 // Extend the existing SidebarProps from FileTypes
 interface ExtendedSidebarProps extends SidebarProps {
   reloadFolder: () => void;
@@ -30,21 +27,11 @@ interface ExtendedSidebarProps extends SidebarProps {
   onSortOrderChange?: (newSortOrder: SortOrder) => void;
 }
 
-interface IgnorePatternsProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (patterns: string, isGlobal: boolean, folderPath: string) => void;
-  onReset: () => Promise<void>;
-  onClear: (folderPath?: string) => void;
-  currentFolder: string;
-  existingPatterns: string;
-  isGlobal: boolean;
-  globalPatterns: string;
-  localPatterns: string;
-  systemPatterns: string[];
-  availableFolders: string[];
-  onTabChange: (isGlobal: boolean) => void;
-}
+// Debounce delay in ms
+const DEBOUNCE_DELAY = 200;
+
+// Use a timeout to prevent infinite tree building loops
+const TREE_BUILD_TIMEOUT = 5000;
 
 const Sidebar: React.FC<ExtendedSidebarProps> = ({
   selectedFolder,
@@ -74,7 +61,7 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
   onResetPatternsClick,
   fileTreeSortOrder,
   onSortOrderChange,
-}: ExtendedSidebarProps) => {
+}) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [isResizing, setIsResizing] = useState(false);
@@ -94,9 +81,14 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
   const lastProcessedFolderRef = useRef<string | null>(null);
   const isBuildingTreeRef = useRef(false);
   const isUpdatingExpandedNodesRef = useRef(false);
+  const buildTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSelectedFilesRef = useRef<string[]>([]);
 
-  // Define all helper functions first before they're used
-  
+  // Cache the previous selected files to optimize render
+  useEffect(() => {
+    lastSelectedFilesRef.current = selectedFiles;
+  }, [selectedFiles]);
+
   // Helper function for file tree - Flatten the tree for rendering
   const flattenTree = useCallback((nodes: TreeNode[]): TreeNode[] => {
     let result: TreeNode[] = [];
@@ -112,61 +104,57 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     return result;
   }, []);
   
-  // Helper function for file tree - Filter the tree based on search term
+  // Helper function for file tree - Filter the tree based on search term with performance optimizations
   const filterTree = useCallback((nodes: TreeNode[], term: string): TreeNode[] => {
     if (!term) return nodes;
     
     const lowerTerm = term.toLowerCase();
     
-    // Helper function to check if a node matches the search term
-    const hasMatchingChild = (node: TreeNode): boolean => {
-      if (node.type === "file") {
-        return node.name.toLowerCase().includes(lowerTerm);
+    // Helper function to check if a node or its children match the search term
+    const hasMatch = (node: TreeNode): boolean => {
+      if (node.name.toLowerCase().includes(lowerTerm)) {
+        return true;
       }
       
-      if (node.type === "directory") {
-        const dirMatch = node.name.toLowerCase().includes(lowerTerm);
-        const childMatch = node.children && node.children.some(hasMatchingChild);
-        
-        return dirMatch || Boolean(childMatch);
+      if (node.type === "directory" && node.children && node.children.length > 0) {
+        return node.children.some(hasMatch);
       }
       
       return false;
     };
     
-    const filterWithExpanded = (node: TreeNode): TreeNode | null => {
+    const filterNode = (node: TreeNode): TreeNode | null => {
+      if (!hasMatch(node)) {
+        return null;
+      }
+      
       if (node.type === "file") {
-        return node.name.toLowerCase().includes(lowerTerm) ? node : null;
+        return node;
       }
       
       if (node.type === "directory") {
-        // Keep this directory if it matches or has matching children
-        const isMatching = hasMatchingChild(node);
+        const filteredChildren = node.children 
+          ? node.children
+              .map(filterNode)
+              .filter((n): n is TreeNode => n !== null)
+          : [];
         
-        if (isMatching) {
-          // Filter children, but keep the structure
-          const filteredChildren = node.children && node.children
-            .map(filterWithExpanded)
-            .filter((n): n is TreeNode => n !== null);
-          
-          // Return a new node with expanded state if it's matching
-          return {
-            ...node,
-            children: filteredChildren || [],
-            isExpanded: true, // Always expand matching directories
-          };
-        }
+        return {
+          ...node,
+          isExpanded: true, // Always expand matching directories
+          children: filteredChildren
+        };
       }
       
       return null;
     };
     
     return nodes
-      .map(filterWithExpanded)
+      .map(filterNode)
       .filter((n): n is TreeNode => n !== null);
   }, []);
   
-  // Now that we've defined filterTree and flattenTree, we can use them in useMemo
+  // Use memoization to avoid unnecessary recalculations
   const memoizedFilteredTree = useMemo(() => {
     return searchTerm ? filterTree(fileTree, searchTerm) : fileTree;
   }, [fileTree, searchTerm, filterTree]);
@@ -223,10 +211,13 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     // Load the patterns
     loadIgnorePatterns(selectedFolder, false);
     
-  }, [selectedFolder, loadIgnorePatterns]); // Added loadIgnorePatterns as dependency
+  }, [selectedFolder, loadIgnorePatterns]);
 
   // Sort file tree nodes - memoized with useCallback to prevent recreation on every render
   const sortFileTreeNodes = useCallback((nodes: TreeNode[]): TreeNode[] => {
+    if (!nodes || nodes.length === 0) return [];
+
+    // Create a new array to avoid mutating the input
     return [...nodes].sort((a, b) => {
       // Always sort directories first
       if (a.type === "directory" && b.type === "file") return -1;
@@ -252,56 +243,27 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
     });
   }, [fileTreeSortOrder]);
 
-  // Update tree with expanded state
-  const updateTreeWithExpandedState = useCallback(() => {
-    if (fileTree.length === 0 || isUpdatingExpandedNodesRef.current) {
-      return;
-    }
+  // Apply sort recursively to the entire tree
+  const sortNodesRecursively = useCallback((nodes: TreeNode[]): TreeNode[] => {
+    if (!nodes || nodes.length === 0) return [];
+
+    // Sort the current level
+    const sortedNodes = sortFileTreeNodes(nodes);
     
-    isUpdatingExpandedNodesRef.current = true;
-    
-    // Add change detection to prevent unnecessary updates
-    let hasChanged = false;
-    
-    const updateNodes = (nodes: TreeNode[]): TreeNode[] => {
-      return nodes.map(node => {
-        const nodeExpanded = expandedNodes.has(node.id) ? !!expandedNodes.get(node.id) : false;
-        const isExpanded = nodeExpanded || node.isExpanded;
-        
-        // Check if there's a change in expanded state
-        if (isExpanded !== node.isExpanded) {
-          hasChanged = true;
-        }
-        
-        // Check if directory has children to update
-        if (node.type === "directory" && node.children && node.children.length > 0) {
-          return {
-            ...node,
-            isExpanded,
-            children: updateNodes(node.children),
-          };
-        }
-        
+    // Recursively sort children
+    return sortedNodes.map(node => {
+      if (node.type === "directory" && node.children && node.children.length > 0) {
         return {
           ...node,
-          isExpanded,
+          children: sortNodesRecursively(node.children)
         };
-      });
-    };
-    
-    // Only update if there are actual changes
-    if (hasChanged) {
-      // Create a new tree reference to avoid mutating state
-      const updatedTree = updateNodes([...fileTree]);
-      setFileTree(updatedTree);
-    }
-    
-    // Always reset the flag when done, even if no changes were made
-    isUpdatingExpandedNodesRef.current = false;
-  }, [expandedNodes, fileTree]);
+      }
+      return node;
+    });
+  }, [sortFileTreeNodes]);
 
-  // Build file tree structure from flat list of files
-  const buildFileTree = useCallback(async (files: FileData[], rootFolder: string, currentSortOrder: SortOrder): Promise<TreeNode[]> => {
+  // Build file tree structure from flat list of files - optimized
+  const buildFileTree = useCallback(async (files: FileData[], rootFolder: string): Promise<TreeNode[]> => {
     if (!files || files.length === 0) return [];
     
     // Create a stable map of paths to prevent recursion issues
@@ -332,11 +294,12 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
         // Build the tree structure
         parts.forEach((part, index) => {
           if (!current[part]) {
-            const fullPath = parts.slice(0, index + 1).join('/');
+            const fullPath = rootFolder + '/' + parts.slice(0, index + 1).join('/');
+            const nodeId = `${fullPath}`;
             current[part] = {
               name: part,
               path: fullPath,
-              id: `${fullPath}-${index}`, // Add index to ensure unique IDs
+              id: nodeId, 
               type: index === parts.length - 1 ? "file" as const : "directory" as const,
               children: {},
               fileData: index === parts.length - 1 ? file : undefined
@@ -355,7 +318,10 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
           .filter(item => item !== undefined)
           .map((item: any): TreeNode => {
             const nodeId = item.id;
-            const isExpanded = expandedNodes.get(nodeId);
+            const isNodeExpanded = expandedNodes.get(nodeId);
+            
+            // Auto-expand first level when no explicit expansion state is saved
+            const shouldAutoExpand = isNodeExpanded === undefined && level < 1;
             
             if (item.type === "directory") {
               const children = convertToTreeNodes(item.children, level + 1);
@@ -364,8 +330,8 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
                 name: item.name,
                 path: item.path,
                 type: "directory" as const,
-                children: sortFileTreeNodes(children), // Sort children immediately
-                isExpanded: isExpanded !== undefined ? isExpanded : level < 2, // Auto-expand first two levels
+                children: children,
+                isExpanded: isNodeExpanded !== undefined ? isNodeExpanded : shouldAutoExpand,
                 depth: level,
               };
             }
@@ -380,53 +346,69 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
             };
           });
         
-        return sortFileTreeNodes(nodes);
+        return nodes;
       };
       
-      // Set a maximum time limit for tree conversion
-      const timeoutPromise = new Promise<TreeNode[]>((_, reject) => {
-        setTimeout(() => reject(new Error('Tree conversion timed out')), 5000);
-      });
-      
       // Convert with timeout protection
-      const conversionPromise = Promise.resolve().then(() => convertToTreeNodes(fileMap));
+      let result = convertToTreeNodes(fileMap);
       
-      const result = await Promise.race([timeoutPromise, conversionPromise]);
+      // Apply sorting recursively
+      result = sortNodesRecursively(result);
+      
       return result;
         
     } catch (error) {
       console.error('Error building file tree:', error);
       return [];
     }
-  }, [expandedNodes, sortFileTreeNodes]);
+  }, [expandedNodes, sortNodesRecursively]);
 
   // Set up the effect for building the file tree with debouncing and cleanup
   useEffect(() => {
-    let isCurrentBuild = true;
-    const buildId = Math.random(); // Unique identifier for this build
-    
     if (!allFiles || allFiles.length === 0) {
       setFileTree([]);
+      isBuildingTreeRef.current = false;
       return;
     }
     
     // Skip if we're already building a tree
     if (isBuildingTreeRef.current) {
-      console.log('Tree building in progress, scheduling rebuild...');
+      console.log('Tree building in progress, skipping...');
       return;
     }
     
-    const buildTreeWithTimeout = async () => {
+    // Clear any existing timeout
+    if (buildTimeoutRef.current) {
+      clearTimeout(buildTimeoutRef.current);
+      buildTimeoutRef.current = null;
+    }
+    
+    let isCurrentBuild = true;
+    const buildId = Math.random().toString(36).substring(2, 9); // Unique ID for logging
+    
+    const buildTreeWithDebounce = async () => {
       try {
         isBuildingTreeRef.current = true;
         console.log(`Starting tree build ${buildId}...`);
         
-        const result = await buildFileTree(allFiles, selectedFolder || "", fileTreeSortOrder || "name-ascending");
+        // Safety timeout to prevent tree building from hanging
+        const timeoutPromise = new Promise<TreeNode[]>((_, reject) => {
+          buildTimeoutRef.current = setTimeout(() => {
+            console.warn(`Tree build ${buildId} timed out after ${TREE_BUILD_TIMEOUT}ms`);
+            reject(new Error('Tree build timed out'));
+          }, TREE_BUILD_TIMEOUT);
+        });
         
-        // Only update if this is still the current build
-        if (isCurrentBuild) {
+        // Actual tree building process
+        const buildPromise = buildFileTree(allFiles, selectedFolder || "");
+        
+        // Race between timeout and completion
+        const result = await Promise.race([timeoutPromise, buildPromise]);
+        
+        // Only update if this is still the current build and we have a valid result
+        if (isCurrentBuild && result) {
           setFileTree(result);
-          console.log(`Tree build ${buildId} completed successfully`);
+          console.log(`Tree build ${buildId} completed successfully with ${result.length} root nodes`);
         }
       } catch (error) {
         console.error(`Tree build ${buildId} failed:`, error);
@@ -436,23 +418,33 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
       } finally {
         if (isCurrentBuild) {
           isBuildingTreeRef.current = false;
+          if (buildTimeoutRef.current) {
+            clearTimeout(buildTimeoutRef.current);
+            buildTimeoutRef.current = null;
+          }
         }
       }
     };
     
-    const timeoutId = setTimeout(buildTreeWithTimeout, DEBOUNCE_DELAY);
+    // Debounce the tree build to avoid unnecessary work during rapid state changes
+    const timeoutId = setTimeout(buildTreeWithDebounce, DEBOUNCE_DELAY);
     
     return () => {
       isCurrentBuild = false;
       clearTimeout(timeoutId);
+      if (buildTimeoutRef.current) {
+        clearTimeout(buildTimeoutRef.current);
+        buildTimeoutRef.current = null;
+      }
       console.log(`Cleaning up tree build ${buildId}`);
     };
-  }, [allFiles, selectedFolder, fileTreeSortOrder, buildFileTree]);
+  }, [allFiles, selectedFolder, buildFileTree]);
 
   // Handle opening the ignore patterns modal
   const handleOpenIgnorePatterns = async (isGlobal = false) => {
     try {
       setIgnoreGlobal(isGlobal);
+      setIgnoreModalOpen(true);
       
       // Ensure we have patterns loaded
       if (isGlobal) {
@@ -547,9 +539,7 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
 
   // Count files excluded by ignore patterns
   const countExcludedFiles = () => {
-    // For simplicity, we just return 0 here until we can compute this properly
-    const excludedFilesCount = allFiles.filter(file => file.excluded).length;
-    return excludedFilesCount;
+    return allFiles.filter(file => file.excluded).length;
   };
 
   // Handle sort change events
@@ -640,49 +630,23 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
       <IgnorePatterns 
         isOpen={ignoreModalOpen}
         onClose={() => setIgnoreModalOpen(false)}
-        onSave={(patterns: string, isGlobal: boolean, folderPath: string) => {
-          // Update the appropriate state
-          if (isGlobal) {
-            setGlobalIgnorePatterns(patterns);
-          } else {
-            // Get the target folder - either the provided one or the currently selected one
-            const targetFolder = folderPath || selectedFolder || '';
-            
-            if (targetFolder) {
-              setLocalIgnorePatterns(patterns);
-            }
-          }
-          
-          // Call the saveIgnorePatterns which will save to disk
-          // Use the provided folderPath if available, otherwise use selectedFolder
-          saveIgnorePatterns(patterns, isGlobal, folderPath || selectedFolder || '');
-          
-          // Close the modal
-          setIgnoreModalOpen(false);
-          
-          // If patterns are for the current folder, reload the folder
-          if (!isGlobal && (folderPath === selectedFolder || !folderPath)) {
-            reloadFolder();
+        globalIgnorePatterns={globalIgnorePatterns}
+        localIgnorePatterns={localIgnorePatterns}
+        localFolderPath={selectedFolder || ""}
+        processingStatus={{ status: "idle", message: "" }}
+        saveIgnorePatterns={async (patterns, isGlobal, folderPath) => {
+          await Promise.resolve(saveIgnorePatterns(patterns, isGlobal, folderPath || ""));
+        }}
+        resetIgnorePatterns={async (isGlobal, folderPath) => {
+          if (resetIgnorePatterns) {
+            await Promise.resolve(resetIgnorePatterns(isGlobal, folderPath || ""));
           }
         }}
-        onReset={handleResetIgnorePatterns}
-        onClear={handleClearIgnorePatterns}
-        currentFolder={selectedFolder || ""}
-        existingPatterns={ignorePatterns}
-        isGlobal={ignoreGlobal}
-        globalPatterns={globalIgnorePatterns}
-        localPatterns={localIgnorePatterns}
-        systemPatterns={systemIgnorePatterns}
-        availableFolders={getAvailableFolders()}
-        onTabChange={(isGlobal: boolean) => {
-          setIgnoreGlobal(isGlobal);
-          // Load the appropriate patterns if needed
-          if (isGlobal) {
-            setIgnorePatterns(globalIgnorePatterns);
-          } else {
-            setIgnorePatterns(localIgnorePatterns);
-          }
+        clearIgnorePatterns={async (folderPath) => {
+          await Promise.resolve(clearIgnorePatterns(folderPath));
         }}
+        systemIgnorePatterns={systemIgnorePatterns}
+        recentFolders={getAvailableFolders()}
       />
     </div>
   );
