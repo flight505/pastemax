@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, RefreshCw, ChevronDown, Trash2, Check } from "lucide-react";
 import { Button, Switch } from "./ui";
+import { ErrorBoundary } from './ErrorBoundary';
 import styles from "./IgnorePatterns.module.css";
 
 // Props interface
@@ -24,6 +25,48 @@ interface IgnorePatternsProps {
   systemPatternCategories?: Record<string, string[]>;
 }
 
+/**
+ * Custom error for pattern validation
+ */
+class PatternValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PatternValidationError';
+  }
+}
+
+/**
+ * Validates a glob pattern for syntax errors
+ */
+const validatePattern = (pattern: string): boolean => {
+  // Allow all characters in glob patterns - they are valid in .gitignore
+  // Only check for empty patterns
+  if (!pattern.trim()) {
+    throw new PatternValidationError(`Invalid pattern: Pattern cannot be empty`);
+  }
+  return true;
+};
+
+/**
+ * IgnorePatterns Component wrapped with error boundary
+ */
+const IgnorePatternsWithErrorBoundary: React.FC<IgnorePatternsProps> = (props) => (
+  <ErrorBoundary
+    fallback={
+      <div className={styles.errorFallback}>
+        <h3>Error in Ignore Patterns</h3>
+        <p>There was an error managing ignore patterns. Please try again.</p>
+        <Button variant="primary" onClick={props.onClose}>Close</Button>
+      </div>
+    }
+  >
+    <IgnorePatterns {...props} />
+  </ErrorBoundary>
+);
+
+/**
+ * Inner component with actual implementation
+ */
 const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   isOpen,
   onClose,
@@ -46,14 +89,31 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     dependencies: ["**/node_modules/**", "**/__pycache__/**"]
   }
 }) => {
-  // State for the active tab
-  const [activeTab, setActiveTab] = useState<"global" | "local">("global");
+  /**
+   * Component State Management
+   */
   
-  // State for the textarea values
+  // Track initialization
+  const isInitialized = useRef(false);
+  
+  // Controlled mode detection
+  const isControlled = useRef(typeof setExcludedSystemPatterns === 'function').current;
+  
+  // Pattern management state with memoized initializer
+  const [internalExcludedPatterns, setInternalExcludedPatterns] = useState(() => 
+    excludedSystemPatterns || []
+  );
   const [globalPatterns, setGlobalPatterns] = useState<string>(globalIgnorePatterns);
   const [localPatterns, setLocalPatterns] = useState<string>(localIgnorePatterns);
+  const [mergedPreview, setMergedPreview] = useState<string>("");
   
-  // State for expanded categories
+  // UI state
+  const [activeTab, setActiveTab] = useState<"global" | "local">("global");
+  const [selectedFolder, setSelectedFolder] = useState<string | undefined>(localFolderPath);
+  const [applyingPatterns, setApplyingPatterns] = useState<boolean>(false);
+  const [folderSelectOpen, setFolderSelectOpen] = useState(false);
+  
+  // Category expansion state
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
     Object.keys(systemPatternCategories).reduce((acc, category) => ({
       ...acc,
@@ -61,32 +121,48 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     }), {})
   );
   
-  // State for the merged preview
-  const [mergedPreview, setMergedPreview] = useState<string>("");
-  
-  // State for the selected folder
-  const [selectedFolder, setSelectedFolder] = useState<string | undefined>(localFolderPath);
-  
-  // State for pattern application status
-  const [applyingPatterns, setApplyingPatterns] = useState<boolean>(false);
-  const [folderSelectOpen, setFolderSelectOpen] = useState(false);
-  
-  // Ref for the textarea to focus it
+  // Refs
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  // Effect to initialize the components with the props
+  /**
+   * Initialize component state when modal opens
+   */
   useEffect(() => {
-    if (isOpen) {
-      setGlobalPatterns(globalIgnorePatterns);
-      setLocalPatterns(localIgnorePatterns);
-      setSelectedFolder(localFolderPath);
-      
-      // Reset the pattern application status
-      setApplyingPatterns(false);
-    }
-  }, [isOpen, globalIgnorePatterns, localIgnorePatterns, localFolderPath]);
+    if (!isOpen || isInitialized.current) return;
+    
+    setGlobalPatterns(globalIgnorePatterns);
+    setLocalPatterns(localIgnorePatterns);
+    setSelectedFolder(localFolderPath);
+    setInternalExcludedPatterns(excludedSystemPatterns || []);
+    setApplyingPatterns(false);
+    
+    isInitialized.current = true;
+  }, [isOpen]); // Only depend on isOpen
   
-  // Effect to update local patterns when selectedFolder changes
+  /**
+   * Reset initialization flag when modal closes
+   */
+  useEffect(() => {
+    if (!isOpen) {
+      isInitialized.current = false;
+    }
+  }, [isOpen]);
+  
+  /**
+   * Sync with parent in controlled mode
+   */
+  useEffect(() => {
+    if (isControlled && isOpen && setExcludedSystemPatterns) {
+      const currentPatterns = JSON.stringify(internalExcludedPatterns);
+      const propPatterns = JSON.stringify(excludedSystemPatterns || []);
+      
+      if (currentPatterns !== propPatterns) {
+        setExcludedSystemPatterns(internalExcludedPatterns);
+      }
+    }
+  }, [internalExcludedPatterns, isControlled, isOpen, setExcludedSystemPatterns, excludedSystemPatterns]);
+  
+  // Update local patterns when selected folder changes
   useEffect(() => {
     if (selectedFolder === localFolderPath) {
       setLocalPatterns(localIgnorePatterns);
@@ -96,50 +172,60 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     }
   }, [selectedFolder, localFolderPath, localIgnorePatterns]);
   
-  // Effect to update UI based on processing status
+  // Update UI based on processing status
   useEffect(() => {
-    if (!processingStatus) {
-      return; // Exit early if processingStatus is undefined or null
-    }
+    if (!processingStatus) return;
     
     if (processingStatus.status === 'processing') {
       setApplyingPatterns(true);
     } else if (processingStatus.status === 'complete' || processingStatus.status === 'error') {
       // Delay resetting to allow for visual feedback
-      setTimeout(() => {
-        setApplyingPatterns(false);
-      }, 500);
+      setTimeout(() => setApplyingPatterns(false), 500);
     }
   }, [processingStatus]);
   
-  // Effect to generate merged preview
+  // Generate merged preview
   useEffect(() => {
     // Get active patterns based on current tab
     const userPatterns = activeTab === "global" ? globalPatterns : localPatterns;
     
-    // Filter system patterns (exclude disabled ones)
+    // Filter system patterns using internal state
     const activeSystemPatterns = systemIgnorePatterns.filter(
-      pattern => !excludedSystemPatterns.includes(pattern)
+      pattern => !internalExcludedPatterns.includes(pattern)
     );
     
-    // Combine patterns
+    // Split and filter user patterns to remove empty lines
+    const userPatternLines = userPatterns
+      .split("\n")
+      .filter(line => line.trim() !== "");
+    
+    // Combine patterns with system patterns first
     const mergedLines = [
       ...activeSystemPatterns,
-      ...userPatterns.split("\n").filter(line => line.trim() !== "")
+      ...userPatternLines
     ];
     
+    // Update preview with combined patterns
     setMergedPreview(mergedLines.join("\n"));
-  }, [activeTab, globalPatterns, localPatterns, systemIgnorePatterns, excludedSystemPatterns]);
+  }, [
+    activeTab,
+    globalPatterns,
+    localPatterns,
+    systemIgnorePatterns,
+    internalExcludedPatterns
+  ]);
   
-  // Function to handle tab change
+  /**
+   * Event Handlers
+   */
+  
+  // Tab and input handlers
   const handleTabChange = (isGlobal: boolean) => {
     setActiveTab(isGlobal ? "global" : "local");
   };
   
-  // Function to handle textarea change
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { value } = e.target;
-    
     if (activeTab === 'global') {
       setGlobalPatterns(value);
     } else {
@@ -147,13 +233,13 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     }
   };
   
-  // Function to handle folder selection
+  // Folder selection handlers
   const handleFolderChange = (folderPath: string) => {
     setSelectedFolder(folderPath);
     setFolderSelectOpen(false);
   };
   
-  // Function to toggle category expansion
+  // Category management
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => ({
       ...prev,
@@ -161,71 +247,148 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     }));
   };
   
-  // Function to handle system pattern toggling with visual feedback
-  const handleToggleSystemPattern = (pattern: string) => {
-    // Add visual feedback animation when toggling
-    const patternElement = document.querySelector(`[data-pattern="${pattern}"]`);
-    if (patternElement) {
-      patternElement.classList.add(styles.patternToggled);
-      setTimeout(() => {
-        patternElement.classList.remove(styles.patternToggled);
-      }, 300);
-    }
-    
-    setExcludedSystemPatterns(prev => {
-      if (prev.includes(pattern)) {
-        return prev.filter(p => p !== pattern);
-      } else {
-        return [...prev, pattern];
+  // System pattern management
+  const handleToggleSystemPattern = useCallback((pattern: string) => {
+    try {
+      validatePattern(pattern);
+      
+      setInternalExcludedPatterns(prev => {
+        const newPatterns = prev.includes(pattern)
+          ? prev.filter(p => p !== pattern)
+          : [...prev, pattern];
+        return newPatterns;
+      });
+
+      // Visual feedback
+      const patternElement = document.querySelector(`[data-pattern="${pattern}"]`);
+      if (patternElement) {
+        patternElement.classList.add(styles.patternToggled);
+        setTimeout(() => {
+          patternElement.classList.remove(styles.patternToggled);
+        }, 300);
       }
-    });
-  };
+    } catch (error) {
+      console.error('Error toggling pattern:', error);
+      // Show error in UI instead of console
+      if (error instanceof PatternValidationError) {
+        // You could add a toast/notification system here
+        console.warn('Pattern validation failed:', error.message);
+      }
+    }
+  }, []);
   
-  // Functions to handle saving patterns
+  // Pattern saving handlers
   const handleSaveGlobalPatterns = async () => {
-    setApplyingPatterns(true);
-    const patternsWithDisabled = excludedSystemPatterns.length > 0
-      ? excludedSystemPatterns
-          .map(pattern => `# DISABLED: ${pattern}`)
-          .join('\n') + '\n\n' + globalPatterns
-      : globalPatterns;
-    await saveIgnorePatterns(patternsWithDisabled, true);
+    try {
+      setApplyingPatterns(true);
+      
+      // Validate all patterns before saving
+      const userPatterns = globalPatterns.split('\n').filter(p => p.trim());
+      userPatterns.forEach(validatePattern);
+      
+      // Format disabled patterns with comments
+      const disabledPatternsSection = internalExcludedPatterns.length > 0
+        ? internalExcludedPatterns
+            .map(pattern => `# DISABLED: ${pattern}`)
+            .join('\n')
+        : '';
+      
+      // Combine disabled patterns with global patterns
+      const patternsWithDisabled = disabledPatternsSection
+        ? `${disabledPatternsSection}\n\n${globalPatterns}`
+        : globalPatterns;
+      
+      // Save patterns and sync state if in controlled mode
+      try {
+        await saveIgnorePatterns(patternsWithDisabled, true);
+        if (isControlled && setExcludedSystemPatterns) {
+          setExcludedSystemPatterns(internalExcludedPatterns);
+        }
+      } catch (error) {
+        // Handle IPC errors
+        if (error instanceof Error && error.message.includes('No handler registered')) {
+          console.error('IPC handler not found:', error);
+          // You could show a user-friendly error message here
+        } else {
+          throw error; // Re-throw other errors
+        }
+      }
+    } catch (error) {
+      console.error('Error saving global patterns:', error);
+      if (error instanceof PatternValidationError) {
+        // Handle validation error
+        console.warn('Pattern validation failed:', error.message);
+      }
+    } finally {
+      setApplyingPatterns(false);
+    }
   };
   
   const handleSaveLocalPatterns = async () => {
-    if (selectedFolder) {
+    if (!selectedFolder) return;
+    
+    try {
       setApplyingPatterns(true);
-      await saveIgnorePatterns(localPatterns, false, selectedFolder);
+      
+      // Validate all patterns before saving
+      const userPatterns = localPatterns.split('\n').filter(p => p.trim());
+      userPatterns.forEach(validatePattern);
+      
+      try {
+        await saveIgnorePatterns(localPatterns, false, selectedFolder);
+      } catch (error) {
+        // Handle IPC errors
+        if (error instanceof Error && error.message.includes('No handler registered')) {
+          console.error('IPC handler not found:', error);
+          // You could show a user-friendly error message here
+        } else {
+          throw error; // Re-throw other errors
+        }
+      }
+    } catch (error) {
+      console.error('Error saving local patterns:', error);
+      if (error instanceof PatternValidationError) {
+        // Handle validation error
+        console.warn('Pattern validation failed:', error.message);
+      }
+    } finally {
+      setApplyingPatterns(false);
     }
   };
   
-  // Functions to handle resetting patterns
+  // Pattern reset handlers
   const handleResetGlobalPatterns = async () => {
     setApplyingPatterns(true);
     await resetIgnorePatterns(true);
   };
   
   const handleResetLocalPatterns = async () => {
-    if (selectedFolder) {
-      setApplyingPatterns(true);
-      await resetIgnorePatterns(false, selectedFolder);
-    }
+    if (!selectedFolder) return;
+    setApplyingPatterns(true);
+    await resetIgnorePatterns(false, selectedFolder);
   };
   
-  // Function to handle clearing patterns
   const handleClearLocalPatterns = async () => {
-    if (selectedFolder) {
-      setApplyingPatterns(true);
-      await clearIgnorePatterns(selectedFolder);
-    }
+    if (!selectedFolder) return;
+    setApplyingPatterns(true);
+    await clearIgnorePatterns(selectedFolder);
   };
   
-  // Function to handle keyboard events
+  // Modal management
+  const handleModalClose = () => {
+    // If controlled, call parent's setter with final state
+    if (isControlled && setExcludedSystemPatterns) {
+      setExcludedSystemPatterns(internalExcludedPatterns);
+    }
+    
+    // Call the original onClose
+    onClose();
+  };
+  
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Save on Ctrl+S / Cmd+S
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      
       if (activeTab === 'global') {
         handleSaveGlobalPatterns();
       } else if (selectedFolder) {
@@ -235,23 +398,21 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     
     // Close on Escape
     if (e.key === 'Escape') {
-      onClose();
+      handleModalClose();
     }
   };
   
-  // If the modal is not open, don't render anything
-  if (!isOpen) {
-    return null;
-  }
+  /**
+   * Helper Functions
+   */
   
-  // Function to render the processing status message
+  // Status message renderer
   const renderStatusMessage = () => {
     if (!processingStatus || processingStatus.status === 'idle') {
       return null;
     }
     
     let statusClass = styles.statusMessage;
-    
     switch (processingStatus.status) {
       case 'processing':
         statusClass += ` ${styles.processing}`;
@@ -273,6 +434,15 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     );
   };
   
+  // Early return if modal is not open
+  if (!isOpen) {
+    return null;
+  }
+  
+  /**
+   * Component Render
+   */
+  
   return (
     <div className={styles.modal}>
       <div className={styles.content}>
@@ -284,7 +454,7 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={onClose}
+            onClick={handleModalClose}
             startIcon={<X size={16} />}
             title="Close"
             disabled={applyingPatterns}
@@ -316,7 +486,12 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
         
         {activeTab === "global" && (
           <div className={styles.systemPatternsSection}>
-            <h3 className={styles.sectionTitle}>System Patterns</h3>
+            <h3 className={styles.sectionTitle}>
+              System Patterns
+              <span className={styles.totalCount}>
+                ({systemIgnorePatterns.length - internalExcludedPatterns.length} active)
+              </span>
+            </h3>
             
             {Object.entries(systemPatternCategories).map(([category, patterns]) => (
               <div 
@@ -332,7 +507,7 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
                   </div>
                   <div className={styles.categoryMeta}>
                     <span className={styles.categoryCount}>
-                      {patterns.filter(p => !excludedSystemPatterns.includes(p)).length}/{patterns.length}
+                      {patterns.filter(p => !internalExcludedPatterns.includes(p)).length}/{patterns.length}
                     </span>
                     <ChevronDown 
                       size={16} 
@@ -343,20 +518,23 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
                 
                 {expandedCategories[category] && (
                   <div className={styles.categoryItems}>
-                    {patterns.map(pattern => (
-                      <div 
-                        key={pattern} 
-                        className={styles.systemPatternItem}
-                        data-pattern={pattern}
-                      >
-                        <span className={styles.patternText}>{pattern}</span>
-                        <Switch
-                          checked={!excludedSystemPatterns.includes(pattern)}
-                          onChange={() => handleToggleSystemPattern(pattern)}
-                          className={styles.smallerSwitch}
-                        />
-                      </div>
-                    ))}
+                    {patterns.map(pattern => {
+                      const isEnabled = !internalExcludedPatterns.includes(pattern);
+                      return (
+                        <div 
+                          key={pattern} 
+                          className={`${styles.systemPatternItem} ${isEnabled ? styles.enabled : styles.disabled}`}
+                          data-pattern={pattern}
+                        >
+                          <span className={styles.patternText}>{pattern}</span>
+                          <Switch
+                            checked={isEnabled}
+                            onChange={() => handleToggleSystemPattern(pattern)}
+                            className={styles.smallerSwitch}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -495,7 +673,7 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
           
           <Button 
             variant="ghost"
-            onClick={onClose}
+            onClick={handleModalClose}
             disabled={applyingPatterns}
           >
             Cancel
@@ -506,4 +684,4 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   );
 };
 
-export default IgnorePatterns; 
+export default IgnorePatternsWithErrorBoundary; 
