@@ -124,54 +124,28 @@ PasteMax uses Electron Builder for creating production builds across platforms.
 npm run package
 
 # Build for specific platform
-npm run package:win
 npm run package:mac
+npm run package:win
 npm run package:linux
 
 # Build for all platforms at once
 npm run package:all
 ```
 
-### Building from Different OS
+### Project Structure for Building
 
-#### Windows
+The project follows this structure for Electron files:
+- `electron/main.js` - Main process file
+- `electron/preload.js` - Preload script
+- `electron/excluded-files.js` - File exclusion patterns
 
-```bash
-# Build for Windows only
-npm run package:win
+Make sure these files exist in the `electron/` directory before building.
 
-# Build for macOS (requires code signing)
-npm run package:mac
+### Common Build Issues
 
-# Build for Linux
-npm run package:linux
-```
-
-#### macOS
-
-```bash
-# Build for macOS only
-npm run package:mac
-
-# Build for Windows (works on Apple Silicon with cross-compilation)
-npm run package:win
-
-# Build for Linux
-npm run package:linux
-```
-
-#### Linux
-
-```bash
-# Build for Linux only
-npm run package:linux
-
-# Build for Windows
-npm run package:win
-
-# Build for macOS (requires macOS for code signing)
-# Not fully supported from Linux
-```
+1. **Missing Entry File**: Ensure `electron/main.js` exists and is properly configured
+2. **Build Configuration**: Check that `package.json` has correct paths in the `build.files` array
+3. **Dependencies**: Run `npm install` before building to ensure all dependencies are installed
 
 ## Installation on Different Systems
 

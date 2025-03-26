@@ -48,9 +48,7 @@
     },
     "files": [
       "dist/**/*",
-      "main.js",
-      "preload.js",
-      "excluded-files.js",
+      "electron/**/*",
       "node_modules/**/*"
     ],
     "mac": {
