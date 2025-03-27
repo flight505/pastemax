@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Plus, X } from "lucide-react";
 import { Button, Switch } from "./ui";
 import { ErrorBoundary } from './ErrorBoundary';
 import styles from "./IgnorePatterns.module.css";
@@ -82,8 +82,9 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   // Add safe fallback for initial render if globalPatternsState is somehow undefined briefly
   const excludedSystemPatterns = useMemo(() => globalPatternsState?.excludedSystemPatterns || [], [globalPatternsState]);
 
+  // Initialize with all categories collapsed
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
-    Object.keys(SYSTEM_PATTERN_CATEGORIES).reduce((acc, category) => ({ ...acc, [category]: true }), {})
+    Object.keys(SYSTEM_PATTERN_CATEGORIES).reduce((acc, category) => ({ ...acc, [category]: false }), {})
   );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -319,14 +320,25 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modal}>
+    <div className={styles.modal} onClick={(e) => {
+      if (e.target === e.currentTarget) onClose();
+    }}>
       <div className={styles.content}>
         <div className={styles.header}>
           <h2>
             Ignore Patterns
             {applyingPatterns && <span className={styles.applying}>(Applying...)</span>}
           </h2>
-          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close" disabled={applyingPatterns} />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onClose} 
+            aria-label="Close" 
+            disabled={applyingPatterns}
+            className={styles.closeButton}
+          >
+            <X size={16} />
+          </Button>
         </div>
 
         <div className={styles.description}>
@@ -360,7 +372,10 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
                             <div className={styles.categoryTitle}> {category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} </div>
                             <div className={styles.categoryMeta}>
                               <span className={styles.categoryCount}> {enabledInCategory}/{categoryPatterns.length} </span>
-                              <ChevronDown size={16} className={`${styles.chevron} ${expandedCategories[category] ? styles.chevronRotated : ''}`} />
+                              <Plus 
+                                size={16} 
+                                className={`${styles.accordionIcon} ${expandedCategories[category] ? styles.rotated : ''}`} 
+                              />
                             </div>
                           </div>
                           {expandedCategories[category] && (
@@ -402,7 +417,7 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
             <div className={styles.patternEntrySection}>
                 <h3 className={styles.sectionTitle}> Local Custom Patterns </h3>
                 <div className={styles.folderSelector}>
-                    <label htmlFor="folder-select-dropdown">Select Folder</label> {/* Add label */}
+                    <label htmlFor="folder-select-dropdown">Select Folder</label>
                     <div id="folder-select-dropdown" className={styles.customSelect} onClick={() => !applyingPatterns && setFolderSelectOpen(!folderSelectOpen)} aria-haspopup="listbox">
                         <div className={styles.selectedValue} role="button" aria-expanded={folderSelectOpen}>
                             {selectedFolder || 'Select a folder'}
