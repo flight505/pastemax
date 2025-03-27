@@ -15,6 +15,8 @@ import { Button } from "./components/ui/Button";
 import { getSortIcon } from "./utils/sortIcons";
 // Import utilities from patternUtils
 import { SYSTEM_PATTERN_CATEGORIES, parseIgnorePatternsContent } from "./utils/patternUtils";
+import { FileInfo } from "./types/FileInfo";
+import { GlobalPatternsState } from "./types/GlobalPatternsState";
 
 // Access the electron API from the window object
 declare global {
@@ -146,12 +148,12 @@ const App = () => {
   }, [savedExpandedNodes]);
 
   const [selectedFolder, setSelectedFolder] = useState<string | null>(savedFolder);
-  const [allFiles, setAllFiles] = useState<Omit<FileData, 'content'>[]>([]);
+  const [allFiles, setAllFiles] = useState<FileInfo[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>(
     savedFiles ? JSON.parse(savedFiles) : []
   );
-  const [sortOrder, setSortOrder] = useState<SortOrder>((savedSortOrder as SortOrder) || "tokens-descending");
-  const [searchTerm, setSearchTerm] = useState(savedSearchTerm || "");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("name-ascending");
+  const [searchTerm, setSearchTerm] = useState("");
   const [expandedNodes, setExpandedNodes] = useState<Map<string, boolean>>(initialExpandedNodes);
   const [displayedFiles, setDisplayedFiles] = useState<Omit<FileData, 'content'>[]>([]);
   const [processingStatus, setProcessingStatus] = useState({
@@ -166,7 +168,10 @@ const App = () => {
   const [fileTreeSortOrder, setFileTreeSortOrder] = useState<SortOrder>("name-ascending");
 
   // Centralized state for ignore patterns
-  const [globalIgnorePatterns, setGlobalPatterns] = useState<IgnorePatternsState>(loadIgnoreStateFromStorage);
+  const [globalPatternsState, setGlobalPatternsState] = useState<GlobalPatternsState>({
+    excludedSystemPatterns: [],
+    userPatterns: [],
+  });
   const [localIgnorePatterns, setLocalPatterns] = useState<IgnorePatternsState>({ patterns: '', excludedSystemPatterns: [] }); // Local doesn't have excluded system patterns
   const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>(DEFAULT_SYSTEM_PATTERNS);
 
@@ -204,8 +209,8 @@ const App = () => {
 
   // Persist global ignore patterns state
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.GLOBAL_IGNORE_PATTERNS, JSON.stringify(globalIgnorePatterns));
-  }, [globalIgnorePatterns]);
+    localStorage.setItem(STORAGE_KEYS.GLOBAL_IGNORE_PATTERNS, JSON.stringify(globalPatternsState));
+  }, [globalPatternsState]);
 
   // --- IPC Listeners ---
 
@@ -275,14 +280,14 @@ const App = () => {
     // Listener for loaded ignore patterns (both global and local)
     const handleIgnorePatternsLoaded = (result: { patterns: string; isGlobal: boolean; systemPatterns?: string[]; folderPath?: string }) => {
         console.log(`IPC: Received ${result.isGlobal ? 'global' : 'local'} patterns loaded event.`);
-        const { excludedSystemPatterns: parsedExcluded, userPatterns } = parseIgnorePatternsContent(result.patterns || '');
+        const { excludedPatterns, userPatterns } = parseIgnorePatternsContent(result.patterns || '');
 
         if (result.isGlobal) {
-            setGlobalPatterns({ patterns: userPatterns, excludedSystemPatterns: parsedExcluded });
+            setGlobalPatternsState({ patterns: userPatterns, excludedSystemPatterns: excludedPatterns });
             if (result.systemPatterns) {
                 setSystemIgnorePatterns(result.systemPatterns);
             }
-            console.log(`Updated global state: ${userPatterns.split('\n').length} patterns, ${parsedExcluded.length} excluded system.`);
+            console.log(`Updated global state: ${userPatterns.split('\n').length} patterns, ${excludedPatterns.length} excluded system.`);
         } else if (result.folderPath === selectedFolder) { // Ensure it's for the current folder
             setLocalPatterns({ patterns: userPatterns, excludedSystemPatterns: [] }); // Local patterns don't manage system excludes
             console.log(`Updated local state for ${result.folderPath}: ${userPatterns.split('\n').length} patterns.`);
@@ -419,7 +424,7 @@ const App = () => {
   // Re-run applyFiltersAndSort when relevant state changes
   useEffect(() => {
     applyFiltersAndSort(allFiles, sortOrder, searchTerm);
-  }, [allFiles, sortOrder, searchTerm, applyFiltersAndSort]);
+  }, [allFiles, sortOrder, searchTerm, applyFiltersAndSort]); // applyFiltersAndSort is stable and doesn't depend on state
 
   // Toggle file selection
   const toggleFileSelection = useCallback((filePath: string) => {
@@ -619,7 +624,7 @@ const App = () => {
         console.error(`Error invoking load-ignore-patterns (${isGlobal ? 'global' : 'local'}):`, error);
         // Set default state on error
         if (isGlobal) {
-            setGlobalPatterns({ patterns: '', excludedSystemPatterns: [] });
+            setGlobalPatternsState({ patterns: '', excludedSystemPatterns: [] });
             setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
         } else if (folderPath === selectedFolder) {
             setLocalPatterns({ patterns: '', excludedSystemPatterns: [] });
@@ -691,7 +696,7 @@ const App = () => {
         console.log(`IPC: Reset ${isGlobal ? 'global' : 'local'} patterns successful.`);
         // Update state *after* success
         if (isGlobal) {
-          setGlobalPatterns({ patterns: '', excludedSystemPatterns: [] }); // Reset global state
+          setGlobalPatternsState({ patterns: '', excludedSystemPatterns: [] }); // Reset global state
         } else {
           setLocalPatterns({ patterns: '', excludedSystemPatterns: [] }); // Reset local state
         }
@@ -787,9 +792,9 @@ const App = () => {
 
   // Callback for IgnorePatterns component to update global excluded patterns
   const handleExcludedSystemPatternsChange = useCallback((newExcluded: string[]) => {
-    setGlobalPatterns(prev => ({
-        ...prev,
-        excludedSystemPatterns: newExcluded
+    setGlobalPatternsState((prev: GlobalPatternsState) => ({
+      ...prev,
+      excludedSystemPatterns: newExcluded
     }));
   }, []);
 
@@ -839,7 +844,7 @@ const App = () => {
             onResetPatternsClick={handleResetPatternsClick}
             fileTreeSortOrder={fileTreeSortOrder}
             onSortOrderChange={setFileTreeSortOrder}
-            globalPatternsState={globalIgnorePatterns}
+            globalPatternsState={globalPatternsState}
             localPatternsState={localIgnorePatterns}
             onExcludedSystemPatternsChange={handleExcludedSystemPatternsChange}
             ignorePatterns=""

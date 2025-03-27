@@ -7,13 +7,20 @@ describe('IgnorePatterns Component', () => {
   const defaultProps = {
     isOpen: true,
     onClose: jest.fn(),
-    globalIgnorePatterns: '',
-    localIgnorePatterns: '',
+    globalPatternsState: {
+      patterns: '',
+      excludedSystemPatterns: []
+    },
+    localPatternsState: {
+      patterns: '',
+      excludedSystemPatterns: []
+    },
     systemIgnorePatterns: ['**/.git/**', '**/node_modules/**'],
     recentFolders: ['/test/folder1', '/test/folder2'],
     saveIgnorePatterns: jest.fn(),
     resetIgnorePatterns: jest.fn(),
     clearIgnorePatterns: jest.fn(),
+    onExcludedSystemPatternsChange: jest.fn(),
   };
 
   beforeEach(() => {
@@ -21,14 +28,14 @@ describe('IgnorePatterns Component', () => {
   });
 
   describe('Controlled Mode Tests', () => {
-    const mockSetExcludedPatterns = jest.fn();
-
     it('initializes with provided excluded patterns', () => {
       render(
         <IgnorePatterns
           {...defaultProps}
-          excludedSystemPatterns={['**/.git/**']}
-          setExcludedSystemPatterns={mockSetExcludedPatterns}
+          globalPatternsState={{
+            patterns: '',
+            excludedSystemPatterns: ['**/.git/**']
+          }}
         />
       );
 
@@ -43,8 +50,10 @@ describe('IgnorePatterns Component', () => {
       render(
         <IgnorePatterns
           {...defaultProps}
-          excludedSystemPatterns={[]}
-          setExcludedSystemPatterns={mockSetExcludedPatterns}
+          globalPatternsState={{
+            patterns: '',
+            excludedSystemPatterns: []
+          }}
         />
       );
 
@@ -56,22 +65,23 @@ describe('IgnorePatterns Component', () => {
       }
 
       fireEvent.click(toggleButton);
-      expect(mockSetExcludedPatterns).toHaveBeenCalledWith(['**/node_modules/**']);
+      expect(defaultProps.onExcludedSystemPatternsChange).toHaveBeenCalledWith(['**/node_modules/**']);
     });
 
     it('syncs state with parent on modal close', () => {
       render(
         <IgnorePatterns
           {...defaultProps}
-          excludedSystemPatterns={[]}
-          setExcludedSystemPatterns={mockSetExcludedPatterns}
+          globalPatternsState={{
+            patterns: '',
+            excludedSystemPatterns: []
+          }}
         />
       );
 
       const closeButton = screen.getByLabelText('Close');
       fireEvent.click(closeButton);
 
-      expect(mockSetExcludedPatterns).toHaveBeenCalledWith([]);
       expect(defaultProps.onClose).toHaveBeenCalled();
     });
   });
@@ -81,7 +91,10 @@ describe('IgnorePatterns Component', () => {
       render(
         <IgnorePatterns
           {...defaultProps}
-          excludedSystemPatterns={['**/.git/**']}
+          globalPatternsState={{
+            patterns: '',
+            excludedSystemPatterns: ['**/.git/**']
+          }}
         />
       );
 

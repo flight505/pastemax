@@ -643,8 +643,8 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
       <IgnorePatterns 
         isOpen={ignoreModalOpen}
         onClose={() => setIgnoreModalOpen(false)}
-        globalIgnorePatterns={globalIgnorePatterns}
-        localIgnorePatterns={localIgnorePatterns}
+        globalPatternsState={globalPatternsState}
+        localPatternsState={localPatternsState}
         localFolderPath={selectedFolder || ""}
         processingStatus={{ status: "idle", message: "" }}
         saveIgnorePatterns={async (patterns, isGlobal, folderPath) => {
@@ -658,15 +658,9 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
         clearIgnorePatterns={async (folderPath) => {
           await Promise.resolve(clearIgnorePatterns(folderPath));
         }}
+        onExcludedSystemPatternsChange={onExcludedSystemPatternsChange}
         systemIgnorePatterns={systemIgnorePatterns}
         recentFolders={getAvailableFolders()}
-        systemPatternCategories={{
-          versionControl: ["**/.git/**", "**/.svn/**", "**/.hg/**"],
-          buildFiles: ["**/dist/**", "**/build/**", "**/.output/**"],
-          mediaFiles: ["**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif"],
-          documentation: ["**/*.pdf", "**/*.doc", "**/*.docx"],
-          dependencies: ["**/node_modules/**", "**/__pycache__/**", "**/venv/**"]
-        }}
       />
     </div>
   );

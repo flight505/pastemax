@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X, ChevronDown } from "lucide-react";
 import { Button, Switch } from "./ui";
 import { ErrorBoundary } from './ErrorBoundary';
@@ -86,7 +86,7 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
 
   // Derive excluded patterns directly from props for controlled behavior
   // Add safe fallback for initial render if globalPatternsState is somehow undefined briefly
-  const excludedSystemPatterns = globalPatternsState?.excludedSystemPatterns || [];
+  const excludedSystemPatterns = useMemo(() => globalPatternsState?.excludedSystemPatterns || [], [globalPatternsState]);
 
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
     Object.keys(SYSTEM_PATTERN_CATEGORIES).reduce((acc, category) => ({ ...acc, [category]: true }), {})
@@ -121,15 +121,40 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   // Generate merged preview - depends on local edits and props
   useEffect(() => {
     const userPatterns = activeTab === "global" ? currentGlobalPatterns : currentLocalPatterns;
-    // Ensure excludedSystemPatterns is an array before filtering
-    const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
-    const activeSystemPatterns = systemIgnorePatterns.filter(
-      pattern => !safeExcluded.includes(pattern)
-    );
-    const userPatternLines = userPatterns.split("\n").filter(line => line.trim() !== "");
-    const mergedLines = [...activeSystemPatterns, ...userPatternLines];
-    setMergedPreview(mergedLines.join("\n"));
-  }, [activeTab, currentGlobalPatterns, currentLocalPatterns, systemIgnorePatterns, excludedSystemPatterns]); // excludedSystemPatterns comes from props via globalPatternsState
+    
+    // Start with an empty array for our preview lines
+    const previewLines: string[] = [];
+
+    if (activeTab === "global") {
+      // For global tab, show active system patterns first
+      const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+      const activeSystemPatterns = systemIgnorePatterns
+        .filter(pattern => !safeExcluded.includes(pattern))
+        .map(pattern => `${pattern} (from system)`);
+      
+      if (activeSystemPatterns.length > 0) {
+        previewLines.push("# Active System Patterns:");
+        previewLines.push(...activeSystemPatterns);
+      }
+
+      // Then show user patterns
+      const userPatternLines = userPatterns.split("\n").filter(line => line.trim() !== "");
+      if (userPatternLines.length > 0) {
+        if (previewLines.length > 0) previewLines.push("");
+        previewLines.push("# User Patterns:");
+        previewLines.push(...userPatternLines.map(pattern => `${pattern} (custom)`));
+      }
+    } else {
+      // For local tab, only show local patterns
+      const userPatternLines = userPatterns.split("\n").filter(line => line.trim() !== "");
+      if (userPatternLines.length > 0) {
+        previewLines.push("# Local Patterns:");
+        previewLines.push(...userPatternLines.map(pattern => `${pattern} (local)`));
+      }
+    }
+
+    setMergedPreview(previewLines.join("\n"));
+  }, [activeTab, currentGlobalPatterns, currentLocalPatterns, systemIgnorePatterns, excludedSystemPatterns]);
 
   /**
    * Event Handlers
@@ -190,76 +215,124 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
 
       // Format disabled patterns using the derived prop value
       const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+      
+      // First, add the system patterns section
+      const activeSystemPatterns = systemIgnorePatterns
+        .filter(pattern => !safeExcluded.includes(pattern))
+        .map(pattern => `# SYSTEM: ${pattern}`)
+        .join('\n');
+
+      // Then, add the disabled patterns section
       const disabledPatternsSection = safeExcluded
         .map(pattern => `# DISABLED: ${pattern}`)
         .join('\n');
 
-      const patternsToSave = disabledPatternsSection
-        ? `${disabledPatternsSection}\n\n${currentGlobalPatterns}`
-        : currentGlobalPatterns;
+      // Finally, add the user patterns section with a header
+      const userPatternsSection = currentGlobalPatterns.trim()
+        ? `# USER PATTERNS:\n${currentGlobalPatterns}`
+        : '';
 
-      await saveIgnorePatterns(patternsToSave, true); // Call App's save function
+      // Combine all sections with proper spacing
+      const sections = [
+        activeSystemPatterns,
+        disabledPatternsSection,
+        userPatternsSection
+      ].filter(Boolean);
+
+      const patternsToSave = sections.join('\n\n');
+
+      await saveIgnorePatterns(patternsToSave, true);
+      setApplyingPatterns(false);
     } catch (error) {
       console.error('Error saving global patterns:', error);
-      if (error instanceof PatternValidationError) console.warn('Pattern validation failed:', error.message);
-    } finally {
-       // Let useEffect watching processingStatus handle resetting applyingPatterns
+      setApplyingPatterns(false);
     }
-  }, [currentGlobalPatterns, excludedSystemPatterns, saveIgnorePatterns]);
+  }, [currentGlobalPatterns, excludedSystemPatterns, systemIgnorePatterns, saveIgnorePatterns]);
 
   const handleSaveLocalPatterns = useCallback(async () => {
-    if (!selectedFolder) return;
     try {
+      if (!selectedFolder) {
+        throw new Error('No folder selected for local patterns');
+      }
       setApplyingPatterns(true);
-      const userPatterns = currentLocalPatterns.split('\n').filter(p => p.trim());
-      userPatterns.forEach(validatePattern);
-      await saveIgnorePatterns(currentLocalPatterns, false, selectedFolder); // Call App's save function
+      await saveIgnorePatterns(currentLocalPatterns, false, selectedFolder);
+      setApplyingPatterns(false);
     } catch (error) {
       console.error('Error saving local patterns:', error);
-      if (error instanceof PatternValidationError) console.warn('Pattern validation failed:', error.message);
-    } finally {
-       // Let useEffect watching processingStatus handle resetting applyingPatterns
+      setApplyingPatterns(false);
     }
   }, [currentLocalPatterns, selectedFolder, saveIgnorePatterns]);
 
-  // Trigger confirmation dialogs via App's handlers - Passed via props
-  const triggerReset = useCallback((isGlobal: boolean) => {
-     // This now correctly calls the prop passed from App, which should show a dialog
-     resetIgnorePatterns(isGlobal, selectedFolder || "");
-  }, [resetIgnorePatterns, selectedFolder]);
-
-  const triggerClear = useCallback(() => {
-    if (selectedFolder) {
-      // This now correctly calls the prop passed from App, which should show a dialog
-      clearIgnorePatterns(selectedFolder);
+  const handleSave = useCallback(async () => {
+    if (activeTab === 'global') {
+      await handleSaveGlobalPatterns();
+    } else {
+      await handleSaveLocalPatterns();
     }
-  }, [clearIgnorePatterns, selectedFolder]);
+  }, [activeTab, handleSaveGlobalPatterns, handleSaveLocalPatterns]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave]);
 
-  // Modal management
-  const handleModalClose = useCallback(() => onClose(), [onClose]); // Wrap in useCallback
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => { // Wrap in useCallback
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault();
-      if (activeTab === 'global') handleSaveGlobalPatterns();
-      else if (selectedFolder) handleSaveLocalPatterns();
+  const handleClearLocal = useCallback(async () => {
+    try {
+      if (!selectedFolder) {
+        throw new Error('No folder selected for local patterns');
+      }
+      setApplyingPatterns(true);
+      await clearIgnorePatterns(selectedFolder);
+      setCurrentLocalPatterns(''); // Clear the textarea
+      setApplyingPatterns(false);
+    } catch (error) {
+      console.error('Error clearing local patterns:', error);
+      setApplyingPatterns(false);
     }
-    if (e.key === 'Escape') handleModalClose();
-  }, [activeTab, selectedFolder, handleSaveGlobalPatterns, handleSaveLocalPatterns, handleModalClose]); // Add dependencies
+  }, [selectedFolder, clearIgnorePatterns]);
+
+  const handleResetLocal = useCallback(async () => {
+    try {
+      if (!selectedFolder) {
+        throw new Error('No folder selected for local patterns');
+      }
+      setApplyingPatterns(true);
+      await resetIgnorePatterns(false, selectedFolder);
+      // The patterns will be reloaded via the patterns-loaded event handler
+      setApplyingPatterns(false);
+    } catch (error) {
+      console.error('Error resetting local patterns:', error);
+      setApplyingPatterns(false);
+    }
+  }, [selectedFolder, resetIgnorePatterns]);
+
+  // Add explanation tooltips for the buttons
+  const buttonTooltips = {
+    save: 'Save current patterns',
+    reset: 'Reset to last saved patterns',
+    clear: 'Remove all patterns',
+    cancel: 'Discard changes'
+  };
 
   // --- Render ---
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modal} onKeyDown={handleKeyDown}> {/* Attach keydown listener here */}
+    <div className={styles.modal}>
       <div className={styles.content}>
         <div className={styles.header}>
           <h2>
             Ignore Patterns
             {applyingPatterns && <span className={styles.applying}>(Applying...)</span>}
           </h2>
-          <Button variant="ghost" size="sm" onClick={handleModalClose} startIcon={<X size={16} />} title="Close" aria-label="Close" disabled={applyingPatterns} />
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close" disabled={applyingPatterns} />
         </div>
 
         <div className={styles.description}>
@@ -356,6 +429,44 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
                     <div className={styles.pathDisplay}> Path: {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'N/A'} </div>
                 </div>
                 <textarea ref={textareaRef} className={styles.patternsInput} value={currentLocalPatterns} onChange={handleTextareaChange} placeholder="Enter local ignore patterns..." disabled={applyingPatterns || !selectedFolder} />
+                <div className={styles.buttonGroup}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleResetLocal}
+                    disabled={applyingPatterns || !selectedFolder}
+                    title={buttonTooltips.reset}
+                  >
+                    Reset Local
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleClearLocal}
+                    disabled={applyingPatterns || !selectedFolder}
+                    title={buttonTooltips.clear}
+                  >
+                    Clear Local
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClose}
+                    disabled={applyingPatterns}
+                    title={buttonTooltips.cancel}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={applyingPatterns || !selectedFolder}
+                    title={buttonTooltips.save}
+                  >
+                    {applyingPatterns ? 'Saving...' : 'Save'}
+                  </Button>
+                </div>
             </div>
         )}
 
@@ -398,25 +509,6 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
                     );
                 })}
             </div>
-        </div>
-
-        {/* Modal Actions */}
-        <div className={styles.modalActions}>
-            {activeTab === "global" ? (
-                <>
-                    <Button variant="primary" onClick={handleSaveGlobalPatterns} disabled={applyingPatterns}> Save Global </Button>
-                    {/* Button now triggers confirmation dialog via App prop */}
-                    <Button variant="secondary" onClick={() => resetIgnorePatterns(true, '')} disabled={applyingPatterns}> Reset Global </Button>
-                </>
-            ) : (
-                <>
-                    <Button variant="primary" onClick={handleSaveLocalPatterns} disabled={!selectedFolder || applyingPatterns}> Save Local </Button>
-                    {/* Button now triggers confirmation dialog via App prop */}
-                    <Button variant="secondary" onClick={() => resetIgnorePatterns(false, selectedFolder || '')} disabled={!selectedFolder || applyingPatterns}> Reset Local </Button>
-                    <Button variant="destructive" onClick={() => clearIgnorePatterns(selectedFolder || '')} disabled={!selectedFolder || applyingPatterns}> Clear Local </Button>
-                </>
-            )}
-            <Button variant="ghost" onClick={handleModalClose} disabled={applyingPatterns}> Cancel </Button>
         </div>
       </div>
     </div>

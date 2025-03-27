@@ -461,3 +461,34 @@
 .smallerSwitch {
   transform: scale(0.9);
 }
+
+.buttonGroup {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+
+.previewSection {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+}
+
+.previewContent {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--background);
+  border-radius: 4px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.hint {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+  margin: 8px 0;
+}

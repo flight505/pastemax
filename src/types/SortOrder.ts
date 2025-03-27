@@ -1,0 +1,1 @@
+export type SortOrder = 'name-asc' | 'name-desc' | 'date-asc' | 'date-desc' | 'size-asc' | 'size-desc'; 
