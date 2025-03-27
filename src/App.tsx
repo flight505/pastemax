@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Sidebar from "./components/Sidebar";
 import FileList from "./components/FileList";
 import UserInstructions from "./components/UserInstructions";
@@ -7,12 +7,13 @@ import { FileData, FileTreeMode, SortOrder } from "./types/FileTypes";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
-import { Github, ArrowUpDown } from "lucide-react";
+import { Github, Loader2, Check, AlertTriangle } from "lucide-react";
 import styles from "./App.module.css";
 import { Dropdown } from "./components/ui";
 import { ConfirmationDialog } from "./components/ui/ConfirmationDialog";
 import { Button } from "./components/ui/Button";
 import { getSortIcon } from "./utils/sortIcons";
+import { SYSTEM_PATTERN_CATEGORIES, handleSelectionChange, handleFolderSelect, updatePatternState } from "./utils/patternUtils";
 
 // Access the electron API from the window object
 declare global {
@@ -67,70 +68,28 @@ interface IgnorePatternsState {
   excludedPatterns: string[];
 }
 
-// System pattern categories
-const SYSTEM_PATTERN_CATEGORIES = {
-  versionControl: [
-    "**/.git/**",
-    "**/.svn/**",
-    "**/.hg/**",
-    "**/.cvs/**"
-  ],
-  buildFiles: [
-    "**/dist/**",
-    "**/build/**",
-    "**/.output/**"
-  ],
-  mediaFiles: [
-    "**/*.png",
-    "**/*.jpg",
-    "**/*.jpeg",
-    "**/*.gif",
-    "**/*.webp",
-    "**/*.svg",
-    "**/*.mp4",
-    "**/*.mp3",
-    "**/*.flac",
-    "**/*.wav"
-  ],
-  documentation: [
-    "**/*.pdf",
-    "**/*.doc",
-    "**/*.docx",
-    "**/*.xls",
-    "**/*.xlsx"
-  ],
-  dependencies: [
-    "**/node_modules/**",
-    "**/__pycache__/**",
-    "**/venv/**",
-    "**/vendor/**"
-  ]
-};
-
 // Parse ignore patterns content to extract disabled patterns and user patterns
-const parseIgnorePatternsContent = (content: string) => {
+const parseIgnorePatternsContent = (content: string): { excludedPatterns: string[]; userPatterns: string } => {
   const lines = content.split('\n');
   const excludedPatterns: string[] = [];
   const userPatterns: string[] = [];
-  
-  let inDisabledSection = true;
-  
-  lines.forEach(line => {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('# DISABLED:')) {
-      const pattern = trimmed.substring('# DISABLED:'.length).trim();
+  let inDisabledSection = false;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith('# DISABLED:')) {
+      inDisabledSection = true;
+      const pattern = trimmedLine.replace('# DISABLED:', '').trim();
       if (pattern) {
         excludedPatterns.push(pattern);
       }
-    } else if (trimmed === '') {
-      // Empty line could separate disabled section from user patterns
+    } else if (trimmedLine === '') {
       inDisabledSection = false;
-    } else {
-      inDisabledSection = false;
-      userPatterns.push(line);
+    } else if (!inDisabledSection && trimmedLine !== '') {
+      userPatterns.push(trimmedLine);
     }
-  });
-  
+  }
+
   return {
     excludedPatterns,
     userPatterns: userPatterns.join('\n')
@@ -205,8 +164,14 @@ const App = () => {
   // NEW: State for file tree sorting and ignore patterns
   const [fileTreeSortOrder, setFileTreeSortOrder] = useState("name-ascending" as SortOrder);
   const [ignorePatterns, setIgnorePatterns] = useState("");
-  const [globalIgnorePatterns, setGlobalIgnorePatterns] = useState<IgnorePatternsState>({ patterns: '', excludedPatterns: [] });
-  const [localIgnorePatterns, setLocalIgnorePatterns] = useState<IgnorePatternsState>({ patterns: '', excludedPatterns: [] });
+  const [globalIgnorePatterns, setGlobalPatterns] = useState<IgnorePatternsState>({
+    patterns: '',
+    excludedPatterns: []
+  });
+  const [localIgnorePatterns, setLocalPatterns] = useState<IgnorePatternsState>({
+    patterns: '',
+    excludedPatterns: []
+  });
   const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>(DEFAULT_SYSTEM_PATTERNS);
 
   // Check if we're running in Electron or browser environment
@@ -409,6 +374,44 @@ const App = () => {
     }
   };
 
+  // Status message renderer
+  const renderStatusMessage = () => {
+    if (!processingStatus || processingStatus.status === 'idle') {
+      return null;
+    }
+
+    let statusClass = styles.statusMessage;
+    let statusIcon = null;
+    let statusText = '';
+
+    switch (processingStatus.status) {
+      case 'processing':
+        statusClass += ` ${styles.processing}`;
+        statusIcon = <Loader2 className="animate-spin" />;
+        statusText = processingStatus.message || 'Processing...';
+        break;
+      case 'complete':
+        statusClass += ` ${styles.complete}`;
+        statusIcon = <Check />;
+        statusText = processingStatus.message || 'Complete';
+        break;
+      case 'error':
+        statusClass += ` ${styles.error}`;
+        statusIcon = <AlertTriangle />;
+        statusText = processingStatus.message || 'Error';
+        break;
+      default:
+        statusClass += ` ${styles.idle}`;
+    }
+
+    return (
+      <div className={statusClass}>
+        {statusIcon && <span className="mr-2">{statusIcon}</span>}
+        {statusText}
+      </div>
+    );
+  };
+
   // Apply filters and sorting to files
   const applyFiltersAndSort = (
     files: FileData[],
@@ -427,7 +430,7 @@ const App = () => {
       );
     }
 
-    // Apply sort
+    // Extract sort key and direction before the switch
     const [sortKey, sortDir] = sort.split("-");
     const sorted = [...filtered].sort((a, b) => {
       let comparison = 0;
@@ -436,17 +439,18 @@ const App = () => {
         case "name":
           comparison = a.name.localeCompare(b.name);
           break;
-        case "tokens":
-          // Ensure we have valid numbers for comparison
+        case "tokens": {
           const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
           const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
           comparison = aTokens - bTokens;
           break;
-        case "date":
+        }
+        case "date": {
           const aDate = a.lastModified || 0;
           const bDate = b.lastModified || 0;
           comparison = aDate - bDate;
           break;
+        }
         default:
           comparison = a.name.localeCompare(b.name);
       }
@@ -478,14 +482,14 @@ const App = () => {
     });
   };
 
-  // Select all files that are not excluded or binary
+  // Fix the selectAllFiles function with proper type annotations
   const selectAllFiles = () => {
     const filesToSelect = allFiles
       .filter(file => !file.excluded && !file.isBinary && !file.isSkipped)
       .map(file => file.path);
     
-    // Update selected files state
-    setSelectedFiles(prevSelected => {
+    // Update selected files state with explicit type annotation
+    setSelectedFiles((prevSelected: string[]) => {
       // Create a Set of currently selected files for faster lookup
       const currentlySelected = new Set(prevSelected);
       
@@ -505,14 +509,14 @@ const App = () => {
     setSelectedFiles([]);
   };
 
-  // Toggle folder selection with proper handling of nested structures
+  // Fix the toggleFolderSelection function with proper type annotations
   const toggleFolderSelection = (folderPath: string, isSelected: boolean) => {
     if (!folderPath) {
       console.warn("toggleFolderSelection called with empty path");
       return;
     }
     
-    setSelectedFiles(prev => {
+    setSelectedFiles((prev: string[]) => {
       // Create a Set for better performance
       const newSelection = new Set(prev);
       
@@ -562,29 +566,31 @@ const App = () => {
     }, 0);
   };
 
-  // Concatenate selected files content for copying,
-  // and add user instructions (wrapped in tags) at the bottom if provided.
+  // Concatenate selected files content for copying
   const getSelectedFilesContent = () => {
-    // Sort selected files according to current sort order
+    // Extract sort parameters before the switch
     const [sortKey, sortDir] = sortOrder.split("-");
+    
+    // Sort selected files according to current sort order
     const sortedSelected = allFiles
       .filter((file: FileData) => selectedFiles.includes(file.path))
       .sort((a: FileData, b: FileData) => {
         let comparison = 0;
+
+        // Move variable declarations outside case blocks
+        const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
+        const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
+        const aDate = a.lastModified || 0;
+        const bDate = b.lastModified || 0;
 
         switch (sortKey) {
           case "name":
             comparison = a.name.localeCompare(b.name);
             break;
           case "tokens":
-            // Ensure we have valid numbers for comparison
-            const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
-            const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
             comparison = aTokens - bTokens;
             break;
           case "date":
-            const aDate = a.lastModified || 0;
-            const bDate = b.lastModified || 0;
             comparison = aDate - bDate;
             break;
           default:
@@ -670,7 +676,7 @@ const App = () => {
     });
   };
 
-  // Update loadIgnorePatterns to handle excluded patterns
+  // Fix the loadIgnorePatterns function to handle pattern types correctly
   const loadIgnorePatterns = useCallback(async (folderPath: string, isGlobal: boolean = false) => {
     if (!window.electron) {
       console.log("Not in Electron environment, skipping loadIgnorePatterns");
@@ -719,29 +725,29 @@ const App = () => {
       
       // Update pattern state with both patterns and excluded patterns
       if (isGlobal) {
-        setGlobalIgnorePatterns({
-          patterns: userPatterns,
+        setGlobalPatterns({
+          patterns: typeof userPatterns === 'string' ? userPatterns : '',
           excludedPatterns: excludedPatterns
         });
       } else if (folderPath === selectedFolder) {
-        setLocalIgnorePatterns({
-          patterns: userPatterns,
+        setLocalPatterns({
+          patterns: typeof userPatterns === 'string' ? userPatterns : '',
           excludedPatterns: excludedPatterns
         });
       }
       
-      return userPatterns;
+      return typeof userPatterns === 'string' ? userPatterns : '';
     } catch (error) {
       console.error(`Error loading ${isGlobal ? 'global' : 'local'} ignore patterns:`, error);
       // Return empty string for local patterns, defaults for global
-      const defaultPatterns = isGlobal ? DEFAULT_SYSTEM_PATTERNS : '';
+      const defaultPatterns = isGlobal ? DEFAULT_SYSTEM_PATTERNS.join('\n') : '';
       if (isGlobal) {
-        setGlobalIgnorePatterns({
+        setGlobalPatterns({
           patterns: defaultPatterns,
           excludedPatterns: []
         });
       } else if (folderPath === selectedFolder) {
-        setLocalIgnorePatterns({
+        setLocalPatterns({
           patterns: defaultPatterns,
           excludedPatterns: []
         });
@@ -774,7 +780,7 @@ const App = () => {
         loadIgnorePatterns('', true).catch(error => {
           console.error('Error loading initial global patterns:', error);
           // Set defaults on error
-          setGlobalIgnorePatterns({
+          setGlobalPatterns({
             patterns: DEFAULT_SYSTEM_PATTERNS.join('\n'),
             excludedPatterns: []
           });
@@ -790,7 +796,7 @@ const App = () => {
       loadIgnorePatterns(selectedFolder, false).catch(error => {
         console.error('Error loading local patterns for new folder:', error);
         // Set empty patterns on error for local
-        setLocalIgnorePatterns({
+        setLocalPatterns({
           patterns: '',
           excludedPatterns: []
         });
@@ -808,14 +814,14 @@ const App = () => {
     try {
       // Update state first to show immediate feedback in UI
       if (isGlobal) {
-        setGlobalIgnorePatterns(prev => ({
+        setGlobalPatterns(prev => ({
           ...prev,
-          patterns
+          patterns: patterns
         }));
       } else if (folderPath) {
-        setLocalIgnorePatterns(prev => ({
+        setLocalPatterns(prev => ({
           ...prev,
-          patterns
+          patterns: patterns
         }));
       }
 
@@ -872,12 +878,12 @@ const App = () => {
     try {
       // Update state immediately for UI feedback
       if (isGlobal) {
-        setGlobalIgnorePatterns({
+        setGlobalPatterns({
           patterns: '',
           excludedPatterns: []
         });
       } else if (folderPath) {
-        setLocalIgnorePatterns({
+        setLocalPatterns({
           patterns: '',
           excludedPatterns: []
         });
@@ -894,12 +900,12 @@ const App = () => {
         
         // Update the local pattern state if applicable
         if (!isGlobal && folderPath) {
-          setLocalIgnorePatterns({
+          setLocalPatterns({
             patterns: '',
             excludedPatterns: []
           });
         } else if (isGlobal) {
-          setGlobalIgnorePatterns({
+          setGlobalPatterns({
             patterns: '',
             excludedPatterns: []
           });
@@ -1045,7 +1051,7 @@ const App = () => {
   useEffect(() => {
     if (selectedFolder) {
       // Reset local patterns state when folder changes
-      setLocalIgnorePatterns({
+      setLocalPatterns({
         patterns: '',
         excludedPatterns: []
       });
@@ -1062,7 +1068,7 @@ const App = () => {
 
     try {
       // Update state immediately for UI feedback
-      setLocalIgnorePatterns({
+      setLocalPatterns({
         patterns: '',
         excludedPatterns: []
       });
@@ -1074,7 +1080,7 @@ const App = () => {
       if (result.success) {
         console.log("Successfully cleared local ignore patterns");
         
-        setLocalIgnorePatterns({
+        setLocalPatterns({
           patterns: '',
           excludedPatterns: []
         });
@@ -1117,6 +1123,19 @@ const App = () => {
     return `.../${lastParts.join('/')}`;
   };
 
+  // Use imported functions
+  const handlePatternUpdate = useCallback((patterns: string | string[], isGlobal: boolean, folderPath?: string) => {
+    updatePatternState(patterns, isGlobal, setGlobalPatterns, setLocalPatterns, folderPath);
+  }, [setGlobalPatterns, setLocalPatterns]);
+
+  const handleFileSelection = useCallback((prevSelected: string[], newSelected: string[]) => {
+    setSelectedFiles(handleSelectionChange(prevSelected, newSelected));
+  }, []);
+
+  const handleFolderSelection = useCallback((prev: string[]) => {
+    setSelectedFolder(prev[0] || '');
+  }, []);
+
   return (
     <ThemeProvider>
       <div className={styles.appContainer}>
@@ -1138,16 +1157,7 @@ const App = () => {
           </div>
         </header>
 
-        {processingStatus.status === "processing" && (
-          <div className={styles.processingIndicator}>
-            <div className={styles.spinner}></div>
-            <span>{processingStatus.message}</span>
-          </div>
-        )}
-
-        {processingStatus.status === "error" && (
-          <div className={styles.errorMessage}>Error: {processingStatus.message}</div>
-        )}
+        {renderStatusMessage()}
 
         <div className={styles.mainContainer}>
           <Sidebar

@@ -1433,3 +1433,66 @@ async function clearLocalIgnorePatterns(folderPath) {
     throw error;
   }
 }
+
+// Handle saving ignore patterns
+ipcMain.handle('save-ignore-patterns', async (event, { patterns, isGlobal, folderPath }) => {
+  try {
+    if (!isWindowValid(mainWindow)) {
+      console.warn("Window not initialized yet or destroyed");
+      return { success: false, error: 'Window not initialized' };
+    }
+
+    if (isGlobal) {
+      try {
+        const appDataPath = app.getPath('userData');
+        const globalIgnorePath = path.join(appDataPath, 'global_patterns.ignore');
+        
+        // Ensure directory exists
+        if (!fs.existsSync(appDataPath)) {
+          await fs.promises.mkdir(appDataPath, { recursive: true });
+        }
+        
+        // Write patterns to file
+        await fs.promises.writeFile(globalIgnorePath, patterns, 'utf8');
+        console.log(`Saved global ignore patterns to ${globalIgnorePath}`);
+        
+        // Clear pattern cache to ensure new patterns are applied
+        clearPatternCache();
+        
+        // Clear all directory caches to ensure new patterns are applied
+        directoryCache.clearAll();
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error saving global patterns:', error);
+        return { success: false, error: error.message };
+      }
+    } else {
+      if (!folderPath) {
+        return { success: false, error: 'No folder path provided for local patterns' };
+      }
+      
+      try {
+        const ignoreFilePath = path.join(folderPath, '.repo_ignore');
+        
+        // Write patterns to file
+        await fs.promises.writeFile(ignoreFilePath, patterns, 'utf8');
+        console.log(`Saved local ignore patterns to ${ignoreFilePath}`);
+        
+        // Clear pattern cache for this folder
+        clearPatternCache(folderPath);
+        
+        // Clear cache for this folder
+        directoryCache.clear(folderPath);
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error saving local patterns:', error);
+        return { success: false, error: error.message };
+      }
+    }
+  } catch (error) {
+    console.error('Error in save-ignore-patterns handler:', error);
+    return { success: false, error: error.message };
+  }
+});

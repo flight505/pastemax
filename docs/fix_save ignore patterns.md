@@ -11,20 +11,13 @@ Okay, let's analyze the code and the error message to find the root cause and pr
 - [x] Add cache clearing after pattern updates
 - [x] Add directory creation for global patterns
 - [x] Add proper file path handling
-- [x] Fix TypeScript type errors in App.tsx:
-  - [x] Parameter type annotations added for selection handlers
-  - [x] Type mismatch between string and string[] in pattern handling resolved
-  - [x] Moved pattern utilities to separate file for better organization
-  - [x] Fixed case declaration issues in switch statements
 
 **Remaining Tasks:**
 
-- [ ] Test the save functionality with both global and local patterns
-- [ ] Verify cache clearing works as expected
-- [ ] Add integration tests for the new handler
-- [ ] Clean up remaining TypeScript warnings (optional, not blocking)
-- [ ] Add proper error handling for edge cases in pattern saving
-- [ ] Add documentation for the new pattern handling system
+- [ ] Fix TypeScript type errors in App.tsx:
+  - Parameter type annotations needed for selection handlers
+  - Type mismatch between string and string[] in pattern handling
+  - These should be addressed in a separate task focused on TypeScript fixes
 
 **Implementation Details:**
 
@@ -37,21 +30,10 @@ The `save-ignore-patterns` handler has been implemented in main.js with the foll
 
 **Next Steps:**
 
-1. Test the save functionality:
-   - Test saving global patterns
-   - Test saving local patterns
-   - Verify proper error handling
-2. Verify cache clearing:
-   - Check if cache is properly cleared after pattern updates
-   - Verify file reloading works correctly
-3. Add integration tests:
-   - Test pattern saving workflow
-   - Test error handling scenarios
-   - Test cache clearing functionality
-
-**Analysis:**
-
-1.  **Error Message:** `Error: No handler registered for 'save-ignore-patterns'` is the key. This unequivocally means that the frontend (Renderer process) is trying to invoke a function named `save-ignore-patterns` in the backend (Main process) using Electron's `ipcRenderer.invoke`, but the Main process hasn't set up a listener using `ipcMain.handle` for that specific channel name (`'save-ignore-patterns'`).
+1. Create a new task for fixing TypeScript type issues in App.tsx
+2. Test the save functionality with both global and local patterns
+3. Verify cache clearing works as expected
+4. Add integration tests for the new handler
 
 2.  **Frontend Call Stack:**
     *   The error trace shows the call originates from `saveIgnorePatterns @ App.tsx:856`.
