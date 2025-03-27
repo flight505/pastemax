@@ -1,15 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Button, Switch } from "./ui";
 import { ErrorBoundary } from './ErrorBoundary';
 import styles from "./IgnorePatterns.module.css";
-import { SYSTEM_PATTERN_CATEGORIES } from "../utils/patternUtils";
-
-// Define the structure for pattern state passed from App
-interface IgnorePatternsState {
-  patterns: string;
-  excludedSystemPatterns: string[];
-}
+import { SYSTEM_PATTERN_CATEGORIES, IgnorePatternsState } from "../utils/patternUtils";
 
 // Props interface - Updated
 interface IgnorePatternsProps {

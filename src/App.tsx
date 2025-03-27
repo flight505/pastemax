@@ -3,7 +3,7 @@ import Sidebar from "./components/Sidebar";
 import FileList from "./components/FileList";
 import UserInstructions from "./components/UserInstructions";
 import ControlContainer from "./components/ControlContainer";
-import { FileData, FileTreeMode, SortOrder, SidebarProps } from "./types/FileTypes";
+import { FileData, FileTreeMode, SortOrder } from "./types/FileTypes";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
@@ -14,9 +14,7 @@ import { ConfirmationDialog } from "./components/ui/ConfirmationDialog";
 import { Button } from "./components/ui/Button";
 import { getSortIcon } from "./utils/sortIcons";
 // Import utilities from patternUtils
-import { SYSTEM_PATTERN_CATEGORIES, parseIgnorePatternsContent } from "./utils/patternUtils";
-import { FileInfo } from "./types/FileInfo";
-import { GlobalPatternsState } from "./types/GlobalPatternsState";
+import { SYSTEM_PATTERN_CATEGORIES, parseIgnorePatternsContent, IgnorePatternsState } from "./utils/patternUtils";
 
 // Access the electron API from the window object
 declare global {
@@ -67,59 +65,10 @@ const DEFAULT_SYSTEM_PATTERNS = [
   "**/*.min.js", "**/*.min.css",
 ];
 
-// Define IgnorePatternsState interface
-interface IgnorePatternsState {
-  patterns: string;
-  excludedSystemPatterns: string[];
-}
-
-// Helper to load ignore state from localStorage
-const loadIgnoreStateFromStorage = (): IgnorePatternsState => {
-  const saved = localStorage.getItem(STORAGE_KEYS.GLOBAL_IGNORE_PATTERNS);
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      // Basic validation
-      if (typeof parsed.patterns === 'string' && Array.isArray(parsed.excludedSystemPatterns)) {
-        return parsed;
-      }
-    } catch (e) {
-      console.error("Failed to parse saved global ignore patterns:", e);
-    }
-  }
-  // Default state if nothing saved or parsing failed
-  return { patterns: '', excludedSystemPatterns: [] };
-};
-
-// Update ExtendedSidebarProps interface
-interface ExtendedSidebarProps extends Omit<SidebarProps, 'allFiles'> {
-  allFiles: Omit<FileData, 'content'>[]; // Explicitly define with new type
-  reloadFolder: () => void;
-  clearSelection: () => void;
-  removeAllFolders: () => void;
-  loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => Promise<void>;
-  saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath?: string) => Promise<void>;
-  resetIgnorePatterns: (isGlobal: boolean, folderPath?: string) => Promise<void>;
-  systemIgnorePatterns: string[];
-  clearIgnorePatterns: (folderPath: string) => Promise<void>;
-  onClearSelectionClick: () => void;
-  onRemoveAllFoldersClick: () => void;
-  onResetPatternsClick: (isGlobal: boolean, folderPath: string) => void;
-  fileTreeSortOrder: SortOrder;
-  onSortOrderChange: (order: SortOrder) => void;
-  globalPatternsState: IgnorePatternsState;
-  localPatternsState: IgnorePatternsState;
-  onExcludedSystemPatternsChange: (patterns: string[]) => void;
-  ignorePatterns: string;
-  setIgnorePatterns: (patterns: string) => void;
-}
-
 const App = () => {
   // Load initial state from localStorage if available
   const savedFolder = localStorage.getItem(STORAGE_KEYS.SELECTED_FOLDER);
   const savedFiles = localStorage.getItem(STORAGE_KEYS.SELECTED_FILES);
-  const savedSortOrder = localStorage.getItem(STORAGE_KEYS.SORT_ORDER);
-  const savedSearchTerm = localStorage.getItem(STORAGE_KEYS.SEARCH_TERM);
   const savedExpandedNodes = localStorage.getItem(STORAGE_KEYS.EXPANDED_NODES);
   const savedShowInstructions = localStorage.getItem('pastemax-show-instructions');
 
@@ -148,7 +97,7 @@ const App = () => {
   }, [savedExpandedNodes]);
 
   const [selectedFolder, setSelectedFolder] = useState<string | null>(savedFolder);
-  const [allFiles, setAllFiles] = useState<FileInfo[]>([]);
+  const [allFiles, setAllFiles] = useState<Omit<FileData, 'content'>[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>(
     savedFiles ? JSON.parse(savedFiles) : []
   );
@@ -168,9 +117,9 @@ const App = () => {
   const [fileTreeSortOrder, setFileTreeSortOrder] = useState<SortOrder>("name-ascending");
 
   // Centralized state for ignore patterns
-  const [globalPatternsState, setGlobalPatternsState] = useState<GlobalPatternsState>({
-    excludedSystemPatterns: [],
-    userPatterns: [],
+  const [globalPatternsState, setGlobalPatternsState] = useState<IgnorePatternsState>({
+    patterns: '',
+    excludedSystemPatterns: []
   });
   const [localIgnorePatterns, setLocalPatterns] = useState<IgnorePatternsState>({ patterns: '', excludedSystemPatterns: [] }); // Local doesn't have excluded system patterns
   const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>(DEFAULT_SYSTEM_PATTERNS);
@@ -410,7 +359,7 @@ const App = () => {
           comparison = aTokens - bTokens;
           break;
         case "date":
-          comparison = aDate - bDate;
+          comparison = Number(aDate) - Number(bDate);
           break;
         default:
           comparison = a.name.localeCompare(b.name);
@@ -423,7 +372,7 @@ const App = () => {
 
   // Re-run applyFiltersAndSort when relevant state changes
   useEffect(() => {
-    applyFiltersAndSort(allFiles, sortOrder, searchTerm);
+    applyFiltersAndSort(allFiles as Omit<FileData, 'content'>[], sortOrder, searchTerm);
   }, [allFiles, sortOrder, searchTerm, applyFiltersAndSort]); // applyFiltersAndSort is stable and doesn't depend on state
 
   // Toggle file selection
@@ -551,7 +500,7 @@ const App = () => {
           switch (sortKey) {
             case "name": comparison = a.name.localeCompare(b.name); break;
             case "tokens": comparison = aTokens - bTokens; break;
-            case "date": comparison = aDate - bDate; break;
+            case "date": comparison = Number(aDate) - Number(bDate); break;
             default: comparison = a.name.localeCompare(b.name);
           }
           return sortDir === "ascending" ? comparison : -comparison;
@@ -621,7 +570,7 @@ const App = () => {
         await window.electron.ipcRenderer.invoke("load-ignore-patterns", { folderPath, isGlobal });
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error(`Error invoking load-ignore-patterns (${isGlobal ? 'global' : 'local'}):`, error);
+        console.error(`Error invoking load-ignore-patterns (${isGlobal ? 'global' : 'local'}): ${errorMessage}`);
         // Set default state on error
         if (isGlobal) {
             setGlobalPatternsState({ patterns: '', excludedSystemPatterns: [] });
@@ -792,7 +741,7 @@ const App = () => {
 
   // Callback for IgnorePatterns component to update global excluded patterns
   const handleExcludedSystemPatternsChange = useCallback((newExcluded: string[]) => {
-    setGlobalPatternsState((prev: GlobalPatternsState) => ({
+    setGlobalPatternsState((prev: IgnorePatternsState) => ({
       ...prev,
       excludedSystemPatterns: newExcluded
     }));

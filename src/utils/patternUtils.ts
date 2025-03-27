@@ -37,7 +37,17 @@ export const SYSTEM_PATTERN_CATEGORIES = {
     ],
   };
   
-  // Parse ignore patterns content to extract disabled patterns and user patterns - Moved from App.tsx
+  /**
+   * Interface for ignore patterns state
+   */
+  export interface IgnorePatternsState {
+    patterns: string;
+    excludedSystemPatterns: string[];
+  }
+  
+  /**
+   * Parse ignore patterns content to extract disabled patterns and user patterns
+   */
   export const parseIgnorePatternsContent = (content: string): { excludedPatterns: string[]; userPatterns: string } => {
     if (!content) {
       return { excludedPatterns: [], userPatterns: '' };
@@ -69,15 +79,34 @@ export const SYSTEM_PATTERN_CATEGORIES = {
     };
   };
   
+  /**
+   * Load ignore patterns state from localStorage
+   */
+  export const loadIgnoreStateFromStorage = (storageKey: string): IgnorePatternsState => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Basic validation
+        if (typeof parsed.patterns === 'string' && Array.isArray(parsed.excludedSystemPatterns)) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error("Failed to parse saved ignore patterns:", e);
+      }
+    }
+    // Default state if nothing saved or parsing failed
+    return { patterns: '', excludedSystemPatterns: [] };
+  };
   
   // --- Keep existing functions below if they are used ---
   
   // Selection handlers (Example, confirm if used or remove)
-  export const handleSelectionChange = (prevSelected: string[], newSelected: string[]) => {
+  export const handleSelectionChange = (prevSelected: string[], newSelected: string[]): string[] => {
     return newSelected;
   };
   
-  export const handleFolderSelect = (prev: string[]) => {
+  export const handleFolderSelect = (prev: string[]): string[] => {
     return prev;
   };
   
@@ -92,7 +121,7 @@ export const SYSTEM_PATTERN_CATEGORIES = {
     setGlobalPatterns: (value: any) => void,
     setLocalPatterns: (value: any) => void,
     folderPath?: string
-  ) => {
+  ): void => {
     const normalizedPatterns = handlePatternStateUpdate(patterns);
   
     if (isGlobal) {
@@ -106,4 +135,18 @@ export const SYSTEM_PATTERN_CATEGORIES = {
         patterns: normalizedPatterns
       }));
     }
+  };
+
+  /**
+   * Format global patterns for saving
+   */
+  export const formatPatternsForSaving = (
+    userPatterns: string,
+    excludedSystemPatterns: string[]
+  ): string => {
+    const disabledLines = excludedSystemPatterns
+      .map(pattern => `# DISABLED:${pattern}`)
+      .join('\n');
+      
+    return disabledLines ? `${disabledLines}\n\n${userPatterns}` : userPatterns;
   };
