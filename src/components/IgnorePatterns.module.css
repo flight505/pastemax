@@ -570,7 +570,7 @@
   display: flex;
   gap: 8px;
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .previewContent {

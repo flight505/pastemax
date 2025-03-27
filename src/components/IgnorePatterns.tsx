@@ -408,6 +408,47 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
             <div className={styles.patternEntrySection}>
                 <h3 className={styles.sectionTitle}> Global Custom Patterns </h3>
                 <textarea ref={textareaRef} className={styles.patternsInput} value={currentGlobalPatterns} onChange={handleTextareaChange} placeholder="Enter global ignore patterns..." disabled={applyingPatterns} />
+                <div className={styles.buttonGroup}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => resetIgnorePatterns(true)}
+                    disabled={applyingPatterns}
+                    title={buttonTooltips.reset}
+                  >
+                    Reset Global
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentGlobalPatterns('');
+                      onExcludedSystemPatternsChange([]);
+                    }}
+                    disabled={applyingPatterns}
+                    title={buttonTooltips.clear}
+                  >
+                    Clear Global
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClose}
+                    disabled={applyingPatterns}
+                    title={buttonTooltips.cancel}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSaveGlobalPatterns}
+                    disabled={applyingPatterns}
+                    title={buttonTooltips.save}
+                  >
+                    {applyingPatterns ? 'Saving...' : 'Save'}
+                  </Button>
+                </div>
             </div>
           </>
         )}
