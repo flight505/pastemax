@@ -15,16 +15,25 @@ interface ExtendedSidebarProps extends SidebarProps {
   removeAllFolders: () => void;
   ignorePatterns: string;
   setIgnorePatterns: (patterns: string) => void;
-  loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => void;
-  saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath: string) => void;
-  resetIgnorePatterns?: (isGlobal: boolean, folderPath: string) => void;
+  loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => Promise<void>;
+  saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath?: string) => Promise<void>;
+  resetIgnorePatterns: (isGlobal: boolean, folderPath?: string) => Promise<void>;
   systemIgnorePatterns: string[];
-  clearIgnorePatterns: (folderPath: string) => void;
-  onClearSelectionClick?: () => void;
-  onRemoveAllFoldersClick?: () => void;
-  onResetPatternsClick?: (isGlobal: boolean, folderPath: string) => void;
-  fileTreeSortOrder?: SortOrder;
-  onSortOrderChange?: (newSortOrder: SortOrder) => void;
+  clearIgnorePatterns: (folderPath: string) => Promise<void>;
+  onClearSelectionClick: () => void;
+  onRemoveAllFoldersClick: () => void;
+  onResetPatternsClick: (isGlobal: boolean, folderPath: string) => void;
+  fileTreeSortOrder: SortOrder;
+  onSortOrderChange: (order: SortOrder) => void;
+  globalPatternsState: IgnorePatternsState;
+  localPatternsState: IgnorePatternsState;
+  onExcludedSystemPatternsChange: (patterns: string[]) => void;
+}
+
+// Define IgnorePatternsState interface
+interface IgnorePatternsState {
+  patterns: string;
+  excludedSystemPatterns: string[];
 }
 
 // Debounce delay in ms
@@ -61,6 +70,9 @@ const Sidebar: React.FC<ExtendedSidebarProps> = ({
   onResetPatternsClick,
   fileTreeSortOrder,
   onSortOrderChange,
+  globalPatternsState,
+  localPatternsState,
+  onExcludedSystemPatternsChange,
 }) => {
   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
   const [sidebarWidth, setSidebarWidth] = useState(300);

@@ -1,7 +1,7 @@
 export interface FileData {
   name: string;
   path: string;
-  content: string;
+  content?: string;
   tokenCount: number;
   size: number;
   isBinary: boolean;
@@ -31,7 +31,7 @@ export interface TreeNode {
 export interface SidebarProps {
   selectedFolder: string | null;
   openFolder: () => void;
-  allFiles: FileData[];
+  allFiles: Omit<FileData, 'content'>[];
   selectedFiles: string[];
   toggleFileSelection: (filePath: string) => void;
   toggleFolderSelection: (folderPath: string, isSelected: boolean) => void;
@@ -44,13 +44,13 @@ export interface SidebarProps {
 }
 
 export interface FileListProps {
-  files: FileData[];
+  files: Omit<FileData, 'content'>[];
   selectedFiles: string[];
   toggleFileSelection: (filePath: string) => void;
 }
 
 export interface FileCardProps {
-  file: FileData;
+  file: Omit<FileData, 'content'>;
   isSelected: boolean;
   toggleSelection: (filePath: string) => void;
 }

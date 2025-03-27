@@ -1,687 +1,426 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, RefreshCw, ChevronDown, Trash2, Check } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import { Button, Switch } from "./ui";
 import { ErrorBoundary } from './ErrorBoundary';
 import styles from "./IgnorePatterns.module.css";
+import { SYSTEM_PATTERN_CATEGORIES } from "../utils/patternUtils";
 
-// Props interface
+// Define the structure for pattern state passed from App
+interface IgnorePatternsState {
+  patterns: string;
+  excludedSystemPatterns: string[];
+}
+
+// Props interface - Updated
 interface IgnorePatternsProps {
   isOpen: boolean;
   onClose: () => void;
-  globalIgnorePatterns: string;
-  localIgnorePatterns: string;
+  // Pass the full state objects
+  globalPatternsState: IgnorePatternsState;
+  localPatternsState: IgnorePatternsState; // Only 'patterns' part is relevant here
   localFolderPath?: string;
   processingStatus?: {
     status: "idle" | "processing" | "complete" | "error";
     message: string;
   };
+  // Callbacks to App.tsx
   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath?: string) => Promise<void>;
   resetIgnorePatterns: (isGlobal: boolean, folderPath?: string) => Promise<void>;
   clearIgnorePatterns: (folderPath: string) => Promise<void>;
-  systemIgnorePatterns: string[];
+  // For controlling excluded system patterns
+  onExcludedSystemPatternsChange: (patterns: string[]) => void;
+  systemIgnorePatterns: string[]; // Full list of available system patterns
   recentFolders: string[];
-  excludedSystemPatterns?: string[];
-  setExcludedSystemPatterns?: (patterns: string[]) => void;
-  systemPatternCategories?: Record<string, string[]>;
 }
 
-/**
- * Custom error for pattern validation
- */
+// Custom error for pattern validation
 class PatternValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'PatternValidationError';
-  }
+ constructor(message: string) {
+  super(message);
+  this.name = 'PatternValidationError';
+ }
 }
 
-/**
- * Validates a glob pattern for syntax errors
- */
+// Validates a glob pattern for syntax errors
 const validatePattern = (pattern: string): boolean => {
-  // Allow all characters in glob patterns - they are valid in .gitignore
-  // Only check for empty patterns
   if (!pattern.trim()) {
-    throw new PatternValidationError(`Invalid pattern: Pattern cannot be empty`);
+   throw new PatternValidationError(`Invalid pattern: Pattern cannot be empty`);
   }
   return true;
 };
 
-/**
- * IgnorePatterns Component wrapped with error boundary
- */
+
 const IgnorePatternsWithErrorBoundary: React.FC<IgnorePatternsProps> = (props) => (
-  <ErrorBoundary
-    fallback={
-      <div className={styles.errorFallback}>
-        <h3>Error in Ignore Patterns</h3>
-        <p>There was an error managing ignore patterns. Please try again.</p>
-        <Button variant="primary" onClick={props.onClose}>Close</Button>
-      </div>
-    }
-  >
+  <ErrorBoundary fallback={ <div>Error loading ignore patterns component.</div> }>
     <IgnorePatterns {...props} />
   </ErrorBoundary>
 );
 
-/**
- * Inner component with actual implementation
- */
 const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   isOpen,
   onClose,
-  globalIgnorePatterns,
-  localIgnorePatterns,
+  globalPatternsState, // Now an object { patterns, excludedSystemPatterns }
+  localPatternsState,  // Now an object { patterns, excludedSystemPatterns } (but we only use patterns)
   localFolderPath,
   processingStatus = { status: "idle", message: "" },
   saveIgnorePatterns,
   resetIgnorePatterns,
   clearIgnorePatterns,
+  onExcludedSystemPatternsChange,
   systemIgnorePatterns,
   recentFolders,
-  excludedSystemPatterns = [],
-  setExcludedSystemPatterns,
-  systemPatternCategories = {
-    versionControl: ["**/.git/**", "**/.svn/**"],
-    buildFiles: ["**/dist/**", "**/build/**"],
-    mediaFiles: ["**/*.png", "**/*.jpg", "**/*.jpeg"],
-    documentation: ["**/*.pdf", "**/*.doc"],
-    dependencies: ["**/node_modules/**", "**/__pycache__/**"]
-  }
 }) => {
   /**
    * Component State Management
    */
-  
-  // Track initialization
   const isInitialized = useRef(false);
-  
-  // Controlled mode detection
-  const isControlled = useRef(typeof setExcludedSystemPatterns === 'function').current;
-  
-  // Pattern management state with memoized initializer
-  const [internalExcludedPatterns, setInternalExcludedPatterns] = useState(() => 
-    excludedSystemPatterns || []
-  );
-  const [globalPatterns, setGlobalPatterns] = useState<string>(globalIgnorePatterns);
-  const [localPatterns, setLocalPatterns] = useState<string>(localIgnorePatterns);
+
+  // Use safe initializers for useState, relying on useEffect for sync
+  const [currentGlobalPatterns, setCurrentGlobalPatterns] = useState<string>('');
+  const [currentLocalPatterns, setCurrentLocalPatterns] = useState<string>('');
   const [mergedPreview, setMergedPreview] = useState<string>("");
-  
-  // UI state
   const [activeTab, setActiveTab] = useState<"global" | "local">("global");
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(localFolderPath);
   const [applyingPatterns, setApplyingPatterns] = useState<boolean>(false);
   const [folderSelectOpen, setFolderSelectOpen] = useState(false);
-  
-  // Category expansion state
+
+  // Derive excluded patterns directly from props for controlled behavior
+  // Add safe fallback for initial render if globalPatternsState is somehow undefined briefly
+  const excludedSystemPatterns = globalPatternsState?.excludedSystemPatterns || [];
+
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
-    Object.keys(systemPatternCategories).reduce((acc, category) => ({
-      ...acc,
-      [category]: true
-    }), {})
+    Object.keys(SYSTEM_PATTERN_CATEGORIES).reduce((acc, category) => ({ ...acc, [category]: true }), {})
   );
-  
-  // Refs
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+
   /**
-   * Initialize component state when modal opens
+   * Sync internal state with props when modal opens or props change
    */
   useEffect(() => {
-    if (!isOpen || isInitialized.current) return;
-    
-    setGlobalPatterns(globalIgnorePatterns);
-    setLocalPatterns(localIgnorePatterns);
-    setSelectedFolder(localFolderPath);
-    setInternalExcludedPatterns(excludedSystemPatterns || []);
-    setApplyingPatterns(false);
-    
-    isInitialized.current = true;
-  }, [isOpen]); // Only depend on isOpen
-  
-  /**
-   * Reset initialization flag when modal closes
-   */
-  useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      // Safely access props, providing defaults if undefined during initial render cycle
+      setCurrentGlobalPatterns(globalPatternsState?.patterns ?? '');
+      if (selectedFolder === localFolderPath) {
+          setCurrentLocalPatterns(localPatternsState?.patterns ?? '');
+      } else if (!isInitialized.current) {
+          setCurrentLocalPatterns(''); // Start fresh if different folder on init
+      }
+      setSelectedFolder(localFolderPath); // Sync selected folder
+      setApplyingPatterns(processingStatus.status === 'processing');
+
+      if (!isInitialized.current) {
+        isInitialized.current = true;
+      }
+    } else {
+      // Reset init flag when closed
       isInitialized.current = false;
     }
-  }, [isOpen]);
-  
-  /**
-   * Sync with parent in controlled mode
-   */
+  }, [isOpen, globalPatternsState, localPatternsState, localFolderPath, processingStatus, selectedFolder]); // Ensure all relevant props are dependencies
+
+
+  // Generate merged preview - depends on local edits and props
   useEffect(() => {
-    if (isControlled && isOpen && setExcludedSystemPatterns) {
-      const currentPatterns = JSON.stringify(internalExcludedPatterns);
-      const propPatterns = JSON.stringify(excludedSystemPatterns || []);
-      
-      if (currentPatterns !== propPatterns) {
-        setExcludedSystemPatterns(internalExcludedPatterns);
-      }
-    }
-  }, [internalExcludedPatterns, isControlled, isOpen, setExcludedSystemPatterns, excludedSystemPatterns]);
-  
-  // Update local patterns when selected folder changes
-  useEffect(() => {
-    if (selectedFolder === localFolderPath) {
-      setLocalPatterns(localIgnorePatterns);
-    } else {
-      // Reset local patterns when a different folder is selected
-      setLocalPatterns('');
-    }
-  }, [selectedFolder, localFolderPath, localIgnorePatterns]);
-  
-  // Update UI based on processing status
-  useEffect(() => {
-    if (!processingStatus) return;
-    
-    if (processingStatus.status === 'processing') {
-      setApplyingPatterns(true);
-    } else if (processingStatus.status === 'complete' || processingStatus.status === 'error') {
-      // Delay resetting to allow for visual feedback
-      setTimeout(() => setApplyingPatterns(false), 500);
-    }
-  }, [processingStatus]);
-  
-  // Generate merged preview
-  useEffect(() => {
-    // Get active patterns based on current tab
-    const userPatterns = activeTab === "global" ? globalPatterns : localPatterns;
-    
-    // Filter system patterns using internal state
+    const userPatterns = activeTab === "global" ? currentGlobalPatterns : currentLocalPatterns;
+    // Ensure excludedSystemPatterns is an array before filtering
+    const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
     const activeSystemPatterns = systemIgnorePatterns.filter(
-      pattern => !internalExcludedPatterns.includes(pattern)
+      pattern => !safeExcluded.includes(pattern)
     );
-    
-    // Split and filter user patterns to remove empty lines
-    const userPatternLines = userPatterns
-      .split("\n")
-      .filter(line => line.trim() !== "");
-    
-    // Combine patterns with system patterns first
-    const mergedLines = [
-      ...activeSystemPatterns,
-      ...userPatternLines
-    ];
-    
-    // Update preview with combined patterns
+    const userPatternLines = userPatterns.split("\n").filter(line => line.trim() !== "");
+    const mergedLines = [...activeSystemPatterns, ...userPatternLines];
     setMergedPreview(mergedLines.join("\n"));
-  }, [
-    activeTab,
-    globalPatterns,
-    localPatterns,
-    systemIgnorePatterns,
-    internalExcludedPatterns
-  ]);
-  
+  }, [activeTab, currentGlobalPatterns, currentLocalPatterns, systemIgnorePatterns, excludedSystemPatterns]); // excludedSystemPatterns comes from props via globalPatternsState
+
   /**
    * Event Handlers
    */
-  
-  // Tab and input handlers
-  const handleTabChange = (isGlobal: boolean) => {
-    setActiveTab(isGlobal ? "global" : "local");
-  };
-  
+  const handleTabChange = (isGlobal: boolean) => setActiveTab(isGlobal ? "global" : "local");
+
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { value } = e.target;
-    if (activeTab === 'global') {
-      setGlobalPatterns(value);
-    } else {
-      setLocalPatterns(value);
-    }
+    if (activeTab === 'global') setCurrentGlobalPatterns(value);
+    else setCurrentLocalPatterns(value);
   };
-  
-  // Folder selection handlers
+
   const handleFolderChange = (folderPath: string) => {
     setSelectedFolder(folderPath);
     setFolderSelectOpen(false);
+    if (folderPath === localFolderPath) {
+       // Safely access patterns from prop state
+       setCurrentLocalPatterns(localPatternsState?.patterns ?? '');
+    } else {
+       setCurrentLocalPatterns('');
+       console.warn("Selecting a different folder than the App's current one. Local patterns shown are temporary until saved for that specific folder.");
+    }
   };
-  
-  // Category management
+
   const toggleCategory = (category: string) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [category]: !prev[category]
-    }));
+    setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
   };
-  
-  // System pattern management
+
+  // System pattern management - Calls the callback prop
   const handleToggleSystemPattern = useCallback((pattern: string) => {
     try {
       validatePattern(pattern);
-      
-      setInternalExcludedPatterns(prev => {
-        const newPatterns = prev.includes(pattern)
-          ? prev.filter(p => p !== pattern)
-          : [...prev, pattern];
-        return newPatterns;
-      });
+       // Ensure excludedSystemPatterns is an array before operating on it
+      const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+      const newExcluded = safeExcluded.includes(pattern)
+        ? safeExcluded.filter(p => p !== pattern)
+        : [...safeExcluded, pattern];
+      onExcludedSystemPatternsChange(newExcluded); // Update App state
 
-      // Visual feedback
+      // Visual feedback (optional)
       const patternElement = document.querySelector(`[data-pattern="${pattern}"]`);
       if (patternElement) {
         patternElement.classList.add(styles.patternToggled);
-        setTimeout(() => {
-          patternElement.classList.remove(styles.patternToggled);
-        }, 300);
+        setTimeout(() => patternElement.classList.remove(styles.patternToggled), 300);
       }
     } catch (error) {
       console.error('Error toggling pattern:', error);
-      // Show error in UI instead of console
-      if (error instanceof PatternValidationError) {
-        // You could add a toast/notification system here
-        console.warn('Pattern validation failed:', error.message);
-      }
+      if (error instanceof PatternValidationError) console.warn('Pattern validation failed:', error.message);
     }
-  }, []);
-  
-  // Pattern saving handlers
-  const handleSaveGlobalPatterns = async () => {
+  }, [excludedSystemPatterns, onExcludedSystemPatternsChange]); // Use derived excludedSystemPatterns
+
+  // Pattern saving handlers - Use current local edits + props
+  const handleSaveGlobalPatterns = useCallback(async () => {
     try {
       setApplyingPatterns(true);
-      
-      // Validate all patterns before saving
-      const userPatterns = globalPatterns.split('\n').filter(p => p.trim());
+      const userPatterns = currentGlobalPatterns.split('\n').filter(p => p.trim());
       userPatterns.forEach(validatePattern);
-      
-      // Format disabled patterns with comments
-      const disabledPatternsSection = internalExcludedPatterns.length > 0
-        ? internalExcludedPatterns
-            .map(pattern => `# DISABLED: ${pattern}`)
-            .join('\n')
-        : '';
-      
-      // Combine disabled patterns with global patterns
-      const patternsWithDisabled = disabledPatternsSection
-        ? `${disabledPatternsSection}\n\n${globalPatterns}`
-        : globalPatterns;
-      
-      // Save patterns and sync state if in controlled mode
-      try {
-        await saveIgnorePatterns(patternsWithDisabled, true);
-        if (isControlled && setExcludedSystemPatterns) {
-          setExcludedSystemPatterns(internalExcludedPatterns);
-        }
-      } catch (error) {
-        // Handle IPC errors
-        if (error instanceof Error && error.message.includes('No handler registered')) {
-          console.error('IPC handler not found:', error);
-          // You could show a user-friendly error message here
-        } else {
-          throw error; // Re-throw other errors
-        }
-      }
+
+      // Format disabled patterns using the derived prop value
+      const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+      const disabledPatternsSection = safeExcluded
+        .map(pattern => `# DISABLED: ${pattern}`)
+        .join('\n');
+
+      const patternsToSave = disabledPatternsSection
+        ? `${disabledPatternsSection}\n\n${currentGlobalPatterns}`
+        : currentGlobalPatterns;
+
+      await saveIgnorePatterns(patternsToSave, true); // Call App's save function
     } catch (error) {
       console.error('Error saving global patterns:', error);
-      if (error instanceof PatternValidationError) {
-        // Handle validation error
-        console.warn('Pattern validation failed:', error.message);
-      }
+      if (error instanceof PatternValidationError) console.warn('Pattern validation failed:', error.message);
     } finally {
-      setApplyingPatterns(false);
+       // Let useEffect watching processingStatus handle resetting applyingPatterns
     }
-  };
-  
-  const handleSaveLocalPatterns = async () => {
+  }, [currentGlobalPatterns, excludedSystemPatterns, saveIgnorePatterns]);
+
+  const handleSaveLocalPatterns = useCallback(async () => {
     if (!selectedFolder) return;
-    
     try {
       setApplyingPatterns(true);
-      
-      // Validate all patterns before saving
-      const userPatterns = localPatterns.split('\n').filter(p => p.trim());
+      const userPatterns = currentLocalPatterns.split('\n').filter(p => p.trim());
       userPatterns.forEach(validatePattern);
-      
-      try {
-        await saveIgnorePatterns(localPatterns, false, selectedFolder);
-      } catch (error) {
-        // Handle IPC errors
-        if (error instanceof Error && error.message.includes('No handler registered')) {
-          console.error('IPC handler not found:', error);
-          // You could show a user-friendly error message here
-        } else {
-          throw error; // Re-throw other errors
-        }
-      }
+      await saveIgnorePatterns(currentLocalPatterns, false, selectedFolder); // Call App's save function
     } catch (error) {
       console.error('Error saving local patterns:', error);
-      if (error instanceof PatternValidationError) {
-        // Handle validation error
-        console.warn('Pattern validation failed:', error.message);
-      }
+      if (error instanceof PatternValidationError) console.warn('Pattern validation failed:', error.message);
     } finally {
-      setApplyingPatterns(false);
+       // Let useEffect watching processingStatus handle resetting applyingPatterns
     }
-  };
-  
-  // Pattern reset handlers
-  const handleResetGlobalPatterns = async () => {
-    setApplyingPatterns(true);
-    await resetIgnorePatterns(true);
-  };
-  
-  const handleResetLocalPatterns = async () => {
-    if (!selectedFolder) return;
-    setApplyingPatterns(true);
-    await resetIgnorePatterns(false, selectedFolder);
-  };
-  
-  const handleClearLocalPatterns = async () => {
-    if (!selectedFolder) return;
-    setApplyingPatterns(true);
-    await clearIgnorePatterns(selectedFolder);
-  };
-  
+  }, [currentLocalPatterns, selectedFolder, saveIgnorePatterns]);
+
+  // Trigger confirmation dialogs via App's handlers - Passed via props
+  const triggerReset = useCallback((isGlobal: boolean) => {
+     // This now correctly calls the prop passed from App, which should show a dialog
+     resetIgnorePatterns(isGlobal, selectedFolder || "");
+  }, [resetIgnorePatterns, selectedFolder]);
+
+  const triggerClear = useCallback(() => {
+    if (selectedFolder) {
+      // This now correctly calls the prop passed from App, which should show a dialog
+      clearIgnorePatterns(selectedFolder);
+    }
+  }, [clearIgnorePatterns, selectedFolder]);
+
+
   // Modal management
-  const handleModalClose = () => {
-    // If controlled, call parent's setter with final state
-    if (isControlled && setExcludedSystemPatterns) {
-      setExcludedSystemPatterns(internalExcludedPatterns);
-    }
-    
-    // Call the original onClose
-    onClose();
-  };
-  
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Save on Ctrl+S / Cmd+S
+  const handleModalClose = useCallback(() => onClose(), [onClose]); // Wrap in useCallback
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => { // Wrap in useCallback
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      if (activeTab === 'global') {
-        handleSaveGlobalPatterns();
-      } else if (selectedFolder) {
-        handleSaveLocalPatterns();
-      }
+      if (activeTab === 'global') handleSaveGlobalPatterns();
+      else if (selectedFolder) handleSaveLocalPatterns();
     }
-    
-    // Close on Escape
-    if (e.key === 'Escape') {
-      handleModalClose();
-    }
-  };
-  
-  /**
-   * Helper Functions
-   */
-  
-  // Status message renderer
-  const renderStatusMessage = () => {
-    if (!processingStatus || processingStatus.status === 'idle') {
-      return null;
-    }
-    
-    let statusClass = styles.statusMessage;
-    switch (processingStatus.status) {
-      case 'processing':
-        statusClass += ` ${styles.processing}`;
-        break;
-      case 'complete':
-        statusClass += ` ${styles.complete}`;
-        break;
-      case 'error':
-        statusClass += ` ${styles.error}`;
-        break;
-      default:
-        statusClass += ` ${styles.idle}`;
-    }
-    
-    return (
-      <div className={statusClass}>
-        {processingStatus.message}
-      </div>
-    );
-  };
-  
-  // Early return if modal is not open
-  if (!isOpen) {
-    return null;
-  }
-  
-  /**
-   * Component Render
-   */
-  
+    if (e.key === 'Escape') handleModalClose();
+  }, [activeTab, selectedFolder, handleSaveGlobalPatterns, handleSaveLocalPatterns, handleModalClose]); // Add dependencies
+
+  // --- Render ---
+  if (!isOpen) return null;
+
   return (
-    <div className={styles.modal}>
+    <div className={styles.modal} onKeyDown={handleKeyDown}> {/* Attach keydown listener here */}
       <div className={styles.content}>
         <div className={styles.header}>
           <h2>
             Ignore Patterns
             {applyingPatterns && <span className={styles.applying}>(Applying...)</span>}
           </h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleModalClose}
-            startIcon={<X size={16} />}
-            title="Close"
-            disabled={applyingPatterns}
-          />
+          <Button variant="ghost" size="sm" onClick={handleModalClose} startIcon={<X size={16} />} title="Close" aria-label="Close" disabled={applyingPatterns} />
         </div>
-        
+
         <div className={styles.description}>
-          Edit ignore patterns. Global patterns apply to all folders, while local patterns apply only to the selected folder.
+            Manage patterns to exclude files from processing. Global patterns apply everywhere, local patterns apply only to the selected folder. System patterns can be toggled on/off globally.
         </div>
-        
+
+        {/* Scope Selector (Tabs) */}
         <div className={styles.scopeSelector}>
-          <Button 
-            variant={activeTab === "local" ? "secondary" : "ghost"}
-            className={`${styles.scopeBtn} ${activeTab === "local" ? styles.active : ""}`}
-            onClick={() => handleTabChange(false)}
-            disabled={applyingPatterns}
-          >
-            Local Folder
-          </Button>
-          <Button 
-            variant={activeTab === "global" ? "secondary" : "ghost"}
-            className={`${styles.scopeBtn} ${activeTab === "global" ? styles.active : ""}`}
-            onClick={() => handleTabChange(true)}
-            disabled={applyingPatterns}
-          >
-            Global Defaults
-          </Button>
+            <Button variant={activeTab === "global" ? "secondary" : "ghost"} className={`${styles.scopeBtn} ${activeTab === "global" ? styles.active : ""}`} onClick={() => handleTabChange(true)} disabled={applyingPatterns}> Global </Button>
+            <Button variant={activeTab === "local" ? "secondary" : "ghost"} className={`${styles.scopeBtn} ${activeTab === "local" ? styles.active : ""}`} onClick={() => handleTabChange(false)} disabled={applyingPatterns}> Local Folder </Button>
         </div>
-        
+
+        {/* Global Tab Content */}
         {activeTab === "global" && (
-          <div className={styles.systemPatternsSection}>
-            <h3 className={styles.sectionTitle}>
-              System Patterns
-              <span className={styles.totalCount}>
-                ({systemIgnorePatterns.length - internalExcludedPatterns.length} active)
-              </span>
-            </h3>
-            
-            {Object.entries(systemPatternCategories).map(([category, patterns]) => (
-              <div 
-                key={category}
-                className={`${styles.patternCategory} ${expandedCategories[category] ? styles.categoryExpanded : ''}`}
-              >
-                <div 
-                  className={styles.categoryHeader} 
-                  onClick={() => toggleCategory(category)}
-                >
-                  <div className={styles.categoryTitle}>
-                    {category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                  </div>
-                  <div className={styles.categoryMeta}>
-                    <span className={styles.categoryCount}>
-                      {patterns.filter(p => !internalExcludedPatterns.includes(p)).length}/{patterns.length}
-                    </span>
-                    <ChevronDown 
-                      size={16} 
-                      className={`${styles.chevron} ${expandedCategories[category] ? styles.chevronRotated : ''}`} 
-                    />
-                  </div>
-                </div>
-                
-                {expandedCategories[category] && (
-                  <div className={styles.categoryItems}>
-                    {patterns.map(pattern => {
-                      const isEnabled = !internalExcludedPatterns.includes(pattern);
-                      return (
-                        <div 
-                          key={pattern} 
-                          className={`${styles.systemPatternItem} ${isEnabled ? styles.enabled : styles.disabled}`}
-                          data-pattern={pattern}
-                        >
-                          <span className={styles.patternText}>{pattern}</span>
-                          <Switch
-                            checked={isEnabled}
-                            onChange={() => handleToggleSystemPattern(pattern)}
-                            className={styles.smallerSwitch}
-                          />
+          <>
+            {/* System Patterns Section */}
+            <div className={styles.systemPatternsSection}>
+              {/* Ensure excludedSystemPatterns is array before calculating length */}
+              <h3 className={styles.sectionTitle}> System Defaults ({systemIgnorePatterns.length - (Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns.length : 0)} active) </h3>
+               {Object.entries(SYSTEM_PATTERN_CATEGORIES).map(([category, patternsInCategory]) => { // Renamed variable
+                    // Ensure excludedSystemPatterns is array before filtering
+                    const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+                    // Filter patterns from the *main* system list that belong to this category
+                    const categoryPatterns = systemIgnorePatterns.filter(p => patternsInCategory.includes(p));
+                    if (categoryPatterns.length === 0) return null; // Skip empty categories
+                    const enabledInCategory = categoryPatterns.filter(p => !safeExcluded.includes(p)).length;
+
+                    return (
+                        <div key={category} className={`${styles.patternCategory} ${expandedCategories[category] ? styles.categoryExpanded : ''}`}>
+                          <div className={styles.categoryHeader} onClick={() => toggleCategory(category)}>
+                            <div className={styles.categoryTitle}> {category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} </div>
+                            <div className={styles.categoryMeta}>
+                              <span className={styles.categoryCount}> {enabledInCategory}/{categoryPatterns.length} </span>
+                              <ChevronDown size={16} className={`${styles.chevron} ${expandedCategories[category] ? styles.chevronRotated : ''}`} />
+                            </div>
+                          </div>
+                          {expandedCategories[category] && (
+                            <div className={styles.categoryItems}>
+                              {categoryPatterns.map(pattern => {
+                                // Ensure excludedSystemPatterns is array before checking includes
+                                const safeExcludedInner = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+                                const isEnabled = !safeExcludedInner.includes(pattern);
+                                return (
+                                  <div key={pattern} className={`${styles.systemPatternItem} ${isEnabled ? '' : styles.disabledPattern}`} data-pattern={pattern}>
+                                    <span className={styles.patternText} title={pattern}>{pattern}</span>
+                                    <Switch
+                                        checked={isEnabled}
+                                        onChange={() => handleToggleSystemPattern(pattern)}
+                                        className={styles.smallerSwitch}
+                                        id={`switch-${pattern}-${category}`} // Make ID more unique
+                                        aria-label={pattern} // Use pattern as label
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                    );
+                })}
+            </div>
+
+            {/* Global Custom Patterns Section */}
+            <div className={styles.patternEntrySection}>
+                <h3 className={styles.sectionTitle}> Global Custom Patterns </h3>
+                <textarea ref={textareaRef} className={styles.patternsInput} value={currentGlobalPatterns} onChange={handleTextareaChange} placeholder="Enter global ignore patterns..." disabled={applyingPatterns} />
+            </div>
+          </>
         )}
-        
-        <div className={styles.patternEntrySection}>
-          <h3 className={styles.sectionTitle}>
-            {activeTab === "global" ? "Global Custom Patterns" : "Local Custom Patterns"}
-          </h3>
-          
-          {activeTab === "local" && (
-            <div className={styles.folderSelector}>
-              <label>Select Folder</label>
-              <div className={styles.customSelect} onClick={() => !applyingPatterns && setFolderSelectOpen(!folderSelectOpen)}>
-                <div className={styles.selectedValue}>
-                  {selectedFolder || 'Select a folder'}
-                  <ChevronDown size={16} className={`${styles.chevron} ${folderSelectOpen ? styles.open : ''}`} />
-                </div>
-                {folderSelectOpen && (
-                  <div className={styles.optionsContainer}>
-                    {recentFolders.length > 0 ? (
-                      recentFolders.map((folder, index) => (
-                        <div 
-                          key={index} 
-                          className={styles.option} 
-                          onClick={() => handleFolderChange(folder)}
-                        >
-                          {folder}
+
+        {/* Local Tab Content */}
+        {activeTab === "local" && (
+            <div className={styles.patternEntrySection}>
+                <h3 className={styles.sectionTitle}> Local Custom Patterns </h3>
+                <div className={styles.folderSelector}>
+                    <label htmlFor="folder-select-dropdown">Select Folder</label> {/* Add label */}
+                    <div id="folder-select-dropdown" className={styles.customSelect} onClick={() => !applyingPatterns && setFolderSelectOpen(!folderSelectOpen)} aria-haspopup="listbox">
+                        <div className={styles.selectedValue} role="button" aria-expanded={folderSelectOpen}>
+                            {selectedFolder || 'Select a folder'}
+                            <ChevronDown size={16} className={`${styles.chevron} ${folderSelectOpen ? styles.open : ''}`} />
                         </div>
-                      ))
-                    ) : (
-                      <div className={styles.option}>{selectedFolder || 'No folders available'}</div>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className={styles.pathDisplay}>
-                {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'No folder selected'}
-              </div>
-            </div>
-          )}
-          
-          <textarea 
-            ref={textareaRef}
-            className={styles.patternsInput}
-            value={activeTab === "global" ? globalPatterns : localPatterns}
-            onChange={handleTextareaChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter ignore patterns, one per line..."
-            disabled={applyingPatterns || (activeTab === "local" && !selectedFolder)}
-          />
-        </div>
-        
-        <div className={styles.previewSection}>
-          <div className={styles.previewContainer}>
-            <div className={styles.previewHeader}>
-              <span>Effective Patterns</span>
-              <span className={styles.patternCount}>
-                {mergedPreview.split('\n').filter(line => line.trim()).length} patterns active
-              </span>
-            </div>
-            {mergedPreview.split('\n').map((line, index) => {
-              if (!line.trim()) return null;
-              
-              const isSystemPattern = systemIgnorePatterns.includes(line);
-              const isGlobalPattern = globalPatterns.includes(line);
-              const isLocalPattern = !isSystemPattern && !isGlobalPattern;
-              
-              return (
-                <div 
-                  key={index} 
-                  className={`${styles.previewLine} ${
-                    isSystemPattern ? styles.previewSystem : 
-                    isGlobalPattern ? styles.previewGlobal : 
-                    styles.previewLocal
-                  }`}
-                >
-                  {line}
-                  <span className={styles.previewBadge}>
-                    {isSystemPattern ? 'system' : isGlobalPattern ? 'global' : 'local'}
-                  </span>
+                        {folderSelectOpen && (
+                        <div className={styles.optionsContainer} role="listbox">
+                            {recentFolders.length > 0 ? (
+                            recentFolders.map((folder, index) => (
+                                <div key={index} className={styles.option} onClick={() => handleFolderChange(folder)} role="option" aria-selected={folder === selectedFolder}> {folder} </div>
+                            ))
+                            ) : (
+                            <div className={styles.option} role="option" aria-disabled="true"> {selectedFolder || 'No recent folders'} </div>
+                            )}
+                        </div>
+                        )}
+                    </div>
+                    <div className={styles.pathDisplay}> Path: {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'N/A'} </div>
                 </div>
-              );
-            })}
-          </div>
+                <textarea ref={textareaRef} className={styles.patternsInput} value={currentLocalPatterns} onChange={handleTextareaChange} placeholder="Enter local ignore patterns..." disabled={applyingPatterns || !selectedFolder} />
+            </div>
+        )}
+
+        {/* Preview Section (Always visible) */}
+        <div className={styles.previewSection}>
+            <div className={styles.previewContainer}>
+                <div className={styles.previewHeader}>
+                    <span>Effective Patterns Preview</span>
+                    <span className={styles.patternCount}>{mergedPreview.split('\n').filter(line => line.trim()).length} active</span>
+                </div>
+                {mergedPreview.split('\n').map((line, index) => {
+                    if (!line.trim()) return null;
+                    const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+                    const isSystem = systemIgnorePatterns.includes(line) && !safeExcluded.includes(line);
+                    // Check against CURRENT edited patterns for the active tab
+                    const isGlobalUser = activeTab === 'global' && currentGlobalPatterns.split('\n').includes(line);
+                    const isLocalUser = activeTab === 'local' && currentLocalPatterns.split('\n').includes(line);
+
+                    let badgeText = 'Unknown';
+                    let badgeClass = ''; // No default class
+                    if (isSystem) {
+                        badgeText = 'System';
+                        badgeClass = styles.previewSystem;
+                    } else if (isGlobalUser || (activeTab === 'local' && globalPatternsState?.patterns?.split('\n').includes(line))) { // Also check prop state for inactive tab preview
+                        badgeText = 'Global';
+                        badgeClass = styles.previewGlobal;
+                    } else if (isLocalUser || (activeTab === 'global' && localPatternsState?.patterns?.split('\n').includes(line))) { // Also check prop state for inactive tab preview
+                        badgeText = 'Local';
+                         badgeClass = styles.previewLocal;
+                    } else if (line.startsWith('#')) {
+                         badgeText = 'Comment'; // Indicate comments if needed
+                         badgeClass = styles.previewComment; // Add style for comments
+                    }
+
+                    return (
+                        <div key={index} className={`${styles.previewLine} ${badgeClass}`}>
+                            {line}
+                             {badgeText !== 'Unknown' && badgeText !== 'Comment' && <span className={styles.previewBadge}> {badgeText} </span>}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
-        
-        {/* Status Message */}
-        {renderStatusMessage()}
-        
+
+        {/* Modal Actions */}
         <div className={styles.modalActions}>
-          {activeTab === "global" ? (
-            <>
-              <Button 
-                variant="primary" 
-                onClick={handleSaveGlobalPatterns}
-                disabled={applyingPatterns}
-              >
-                Save Global Patterns
-              </Button>
-              <Button 
-                variant="secondary" 
-                onClick={handleResetGlobalPatterns}
-                disabled={applyingPatterns}
-              >
-                Reset to Defaults
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button 
-                variant="primary" 
-                onClick={handleSaveLocalPatterns}
-                disabled={!selectedFolder || applyingPatterns}
-              >
-                Save Local Patterns
-              </Button>
-              <Button 
-                variant="secondary" 
-                onClick={handleResetLocalPatterns}
-                disabled={!selectedFolder || applyingPatterns}
-              >
-                Reset to Defaults
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={handleClearLocalPatterns}
-                disabled={!selectedFolder || applyingPatterns}
-              >
-                Clear All Patterns
-              </Button>
-            </>
-          )}
-          
-          <Button 
-            variant="ghost"
-            onClick={handleModalClose}
-            disabled={applyingPatterns}
-          >
-            Cancel
-          </Button>
+            {activeTab === "global" ? (
+                <>
+                    <Button variant="primary" onClick={handleSaveGlobalPatterns} disabled={applyingPatterns}> Save Global </Button>
+                    {/* Button now triggers confirmation dialog via App prop */}
+                    <Button variant="secondary" onClick={() => resetIgnorePatterns(true, '')} disabled={applyingPatterns}> Reset Global </Button>
+                </>
+            ) : (
+                <>
+                    <Button variant="primary" onClick={handleSaveLocalPatterns} disabled={!selectedFolder || applyingPatterns}> Save Local </Button>
+                    {/* Button now triggers confirmation dialog via App prop */}
+                    <Button variant="secondary" onClick={() => resetIgnorePatterns(false, selectedFolder || '')} disabled={!selectedFolder || applyingPatterns}> Reset Local </Button>
+                    <Button variant="destructive" onClick={() => clearIgnorePatterns(selectedFolder || '')} disabled={!selectedFolder || applyingPatterns}> Clear Local </Button>
+                </>
+            )}
+            <Button variant="ghost" onClick={handleModalClose} disabled={applyingPatterns}> Cancel </Button>
         </div>
       </div>
     </div>
   );
 };
 
-export default IgnorePatternsWithErrorBoundary; 
+export default IgnorePatternsWithErrorBoundary;

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react'; // Import useCallback
 import { FileTreeMode } from '../types';
 import { Switch, Button, ButtonGroup } from './ui';
-import { Copy, Download, Check } from 'lucide-react';
+import { Copy, Download, Check, Loader2 } from 'lucide-react'; // Added Loader2
 import styles from './ControlContainer.module.css';
 
 interface ControlContainerProps {
@@ -9,18 +9,9 @@ interface ControlContainerProps {
   setFileTreeMode: (value: FileTreeMode) => void;
   showUserInstructions: boolean;
   setShowUserInstructions: (value: boolean) => void;
-  getSelectedFilesContent: () => string;
+  getSelectedFilesContent: () => Promise<string>; // Make async
   selectedFilesCount: number;
-  fileTreeSortOrder?: "name-asc" | "name-desc" | "ext-asc" | "ext-desc" | "date-newest";
-  setFileTreeSortOrder?: (value: "name-asc" | "name-desc" | "ext-asc" | "ext-desc" | "date-newest") => void;
-  ignorePatterns?: string;
-  setIgnorePatterns?: (patterns: string) => void;
-  loadIgnorePatterns?: (folderPath: string, isGlobal?: boolean) => void;
-  saveIgnorePatterns?: (patterns: string, isGlobal: boolean, folderPath: string) => void;
-  resetIgnorePatterns?: (isGlobal: boolean, folderPath: string) => void;
-  reloadFolder?: () => void;
-  clearSelection?: () => void;
-  removeAllFolders?: () => void;
+  // Removed unused props (previously prefixed with _)
 }
 
 const ControlContainer: React.FC<ControlContainerProps> = ({
@@ -30,42 +21,51 @@ const ControlContainer: React.FC<ControlContainerProps> = ({
   setShowUserInstructions,
   getSelectedFilesContent,
   selectedFilesCount,
-  fileTreeSortOrder,
-  setFileTreeSortOrder,
-  ignorePatterns,
-  setIgnorePatterns,
-  loadIgnorePatterns,
-  saveIgnorePatterns,
-  resetIgnorePatterns,
-  reloadFolder,
-  clearSelection,
-  removeAllFolders,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [isCopying, setIsCopying] = useState(false); // Add loading state for copy
+  const [isDownloading, setIsDownloading] = useState(false); // Add loading state for download
 
-  const handleCopy = async () => {
-    const content = getSelectedFilesContent();
+  const handleCopy = useCallback(async () => {
+    if (selectedFilesCount === 0 || isCopying) return;
+    setIsCopying(true);
+    setCopied(false); // Reset copied state
     try {
+      const content = await getSelectedFilesContent(); // Await the async function
       await navigator.clipboard.writeText(content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
+      // TODO: Show user error feedback
+    } finally {
+      setIsCopying(false);
     }
-  };
+  }, [getSelectedFilesContent, selectedFilesCount, isCopying]); // Add dependencies
 
-  const handleDownload = () => {
-    const content = getSelectedFilesContent();
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'selected-files.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  const handleDownload = useCallback(async () => {
+    if (selectedFilesCount === 0 || isDownloading) return;
+    setIsDownloading(true);
+    try {
+        const content = await getSelectedFilesContent(); // Await the async function
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' }); // Specify charset
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        // Generate filename based on current context if possible
+        const filename = `pastemax_output_${new Date().toISOString().split('T')[0]}.txt`;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error('Failed to download:', err);
+        // TODO: Show user error feedback
+    } finally {
+        setIsDownloading(false);
+    }
+  }, [getSelectedFilesContent, selectedFilesCount, isDownloading]); // Add dependencies
 
   return (
     <div className={styles.controlContainer}>
@@ -74,53 +74,42 @@ const ControlContainer: React.FC<ControlContainerProps> = ({
         {/* Display Options Group */}
         <div className={styles.controlGroup}>
           <div className={styles.controlGroupTitle}>Display Options</div>
-          
           <div className={styles.controlItem}>
-            <Switch
-              checked={showUserInstructions}
-              onChange={() => setShowUserInstructions(!showUserInstructions)}
-              label="Show User Instructions"
-              id="user-instructions-toggle"
-            />
+            <Switch checked={showUserInstructions} onChange={() => setShowUserInstructions(!showUserInstructions)} label="Show User Instructions" id="user-instructions-toggle" />
           </div>
-          
           <div className={styles.controlItem}>
             <label className={styles.controlSelectLabel} htmlFor="file-tree-mode">File Tree:</label>
-            <select
-              id="file-tree-mode"
-              value={fileTreeMode}
-              onChange={(e) => setFileTreeMode(e.target.value as FileTreeMode)}
-              className={styles.controlSelect}
-            >
+            <select id="file-tree-mode" value={fileTreeMode} onChange={(e) => setFileTreeMode(e.target.value as FileTreeMode)} className={styles.controlSelect}>
               <option value="none">None</option>
               <option value="selected">Selected Files Only</option>
               <option value="selected-with-roots">Selected Files with Path</option>
-              <option value="complete">Complete Tree</option>
+              <option value="complete">Complete Tree (Mark Selected)</option>
             </select>
           </div>
         </div>
-        
+
         {/* Output Options Group */}
         <div className={styles.controlGroup}>
-          <div className={styles.controlGroupTitle}>Output Options</div>
-          
+          <div className={styles.controlGroupTitle}>Output</div>
           <div className={styles.controlItem}>
             <ButtonGroup size="sm">
               <Button
                 variant="secondary"
                 onClick={handleCopy}
-                startIcon={copied ? <Check size={16} /> : <Copy size={16} />}
-                disabled={selectedFilesCount === 0}
+                startIcon={isCopying ? <Loader2 size={16} className="animate-spin" /> : copied ? <Check size={16} /> : <Copy size={16} />}
+                disabled={selectedFilesCount === 0 || isCopying || isDownloading}
+                title={isCopying ? "Copying..." : copied ? "Copied!" : `Copy ${selectedFilesCount} selected files to clipboard`}
               >
-                {copied ? 'Copied!' : `Copy (${selectedFilesCount})`}
+                {isCopying ? 'Copying...' : copied ? 'Copied!' : `Copy (${selectedFilesCount})`}
               </Button>
               <Button
                 variant="secondary"
                 onClick={handleDownload}
-                startIcon={<Download size={16} />}
-                disabled={selectedFilesCount === 0}
+                startIcon={isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                disabled={selectedFilesCount === 0 || isCopying || isDownloading}
+                title={isDownloading ? "Saving..." : "Save selected files content"}
               >
-                Save
+                {isDownloading ? 'Saving...' : 'Save'}
               </Button>
             </ButtonGroup>
           </div>
@@ -130,4 +119,4 @@ const ControlContainer: React.FC<ControlContainerProps> = ({
   );
 };
 
-export default ControlContainer; 
+export default ControlContainer;
