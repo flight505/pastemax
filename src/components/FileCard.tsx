@@ -88,7 +88,7 @@ const FileCard = ({
 
         <div className={styles.fileCardActions}>
           <Button
-            variant="ghost"
+            variant="icon"
             size="sm"
             iconOnly
             onClick={() => toggleSelection(filePath)}
@@ -97,7 +97,7 @@ const FileCard = ({
             className={styles.fileCardAction}
           />
           <Button
-            variant="ghost"
+            variant="icon"
             size="sm"
             iconOnly
             onClick={handleCopy}

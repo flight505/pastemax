@@ -105,6 +105,13 @@
   width: 24px !important;
   height: 24px !important;
   padding: 0 !important;
+  color: var(--text-secondary);
+  transition: color 0.2s ease !important;
+}
+
+.fileCardAction:hover {
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
 }
 
 .copySuccess {
