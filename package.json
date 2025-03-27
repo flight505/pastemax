@@ -133,6 +133,7 @@
     "vite": {
       "esbuild": "^0.25.0"
     },
-    "@babel/helpers": "^7.26.10"
+    "@babel/helpers": "^7.26.10",
+    "typescript": "5.3.3"
   }
 }
