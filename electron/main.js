@@ -200,10 +200,37 @@ const unlink = promisify(fs.unlink);
 // 3. Current user patterns: Stored in global_patterns.ignore or .repo_ignore files
 
 // Category 1: System-level exclusions (not user-editable)
-const SYSTEM_EXCLUSIONS = systemExclusions;
+const SYSTEM_EXCLUSIONS = [
+  // Version control
+  "**/.git/**",
+  "**/.svn/**",
+  "**/.hg/**",
+  
+  // Build artifacts and dependencies
+  "**/node_modules/**", 
+  "**/dist/**",
+  "**/build/**",
+  "**/.next/**",
+  
+  // Cache files
+  "**/.cache/**",
+  "**/__pycache__/**",
+  
+  // Logs
+  "**/logs/**",
+  "**/*.log",
+  
+  // IDE files
+  "**/.idea/**",
+  "**/.vscode/**",
+  
+  // OS files
+  "**/.DS_Store",
+  "**/Thumbs.db"
+];
 
 // Category 2: Default user patterns (user-editable, used when resetting to defaults)
-const DEFAULT_USER_PATTERNS = defaultUserPatterns;
+const DEFAULT_USER_PATTERNS = ""; // Start with empty patterns
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -1280,8 +1307,13 @@ function shouldExcludeByDefault(filePath, rootDir) {
     
     // If any pattern that would match this file is disabled, don't ignore it
     for (const pattern of allExcluded) {
-      if (minimatch(relativePath, pattern)) {
-        return false;
+      try {
+        if (minimatch(relativePath, pattern)) {
+          return false;
+        }
+      } catch (e) {
+        console.error(`Error with minimatch for pattern "${pattern}":`, e);
+        // Continue processing other patterns if one fails
       }
     }
   }
@@ -1493,6 +1525,42 @@ ipcMain.handle('save-ignore-patterns', async (event, { patterns, isGlobal, folde
     }
   } catch (error) {
     console.error('Error in save-ignore-patterns handler:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Add handlers for file reading operations
+ipcMain.handle('read-file', async (event, filePath) => {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: 'File does not exist' };
+    }
+    
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    return { success: true, content };
+  } catch (error) {
+    console.error('Error reading file:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-file-content', async (event, filePath) => {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: 'File does not exist' };
+    }
+    
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    const stats = await fs.promises.stat(filePath);
+    
+    return { 
+      success: true, 
+      content,
+      size: stats.size,
+      lastModified: stats.mtime.getTime()
+    };
+  } catch (error) {
+    console.error('Error getting file content:', error);
     return { success: false, error: error.message };
   }
 });

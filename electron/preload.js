@@ -25,7 +25,9 @@ const VALID_CHANNELS = {
     "save-ignore-patterns",
     "load-ignore-patterns",
     "reset-ignore-patterns",
-    "clear-ignore-patterns",
+    "clear-local-ignore-patterns",
+    "read-file",
+    "get-file-content"
   ]
 };
 
