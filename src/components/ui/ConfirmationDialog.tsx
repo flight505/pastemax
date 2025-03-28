@@ -1,6 +1,7 @@
 import React from 'react';
-import { Dialog } from './Dialog';
+import { Dialog } from './Dialog'; // Use the updated Dialog
 import { Button } from './Button';
+import styles from './Dialog/Dialog.module.css'; // Can use styles if needed, but footer handles centering
 
 interface ConfirmationDialogProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ interface ConfirmationDialogProps {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  variant?: 'default' | 'destructive';
+  variant?: 'default' | 'destructive'; // Semantic variant for the dialog itself
 }
 
 export function ConfirmationDialog({
@@ -21,11 +22,11 @@ export function ConfirmationDialog({
   description,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
-  variant = 'default'
+  variant = 'default' // This prop influences the overall dialog but not buttons directly here
 }: ConfirmationDialogProps) {
   const handleConfirm = () => {
     onConfirm();
-    onClose();
+    onClose(); // Typically close after confirm
   };
 
   return (
@@ -34,24 +35,29 @@ export function ConfirmationDialog({
       onClose={onClose}
       title={title}
       description={description}
-      size="sm"
+      size="sm" // Keep it small for confirmations
+      footer={ // Pass buttons as the footer content
+        <>
+          <Button
+            variant="ghost" // Standard cancel button
+            size="sm"
+            onClick={onClose}
+          >
+            {cancelLabel}
+          </Button>
+          <Button
+            variant="primary" // Standard confirm button (not destructive red)
+            size="sm"
+            onClick={handleConfirm}
+          >
+            {confirmLabel}
+          </Button>
+        </>
+      }
     >
-      <div className="flex justify-center gap-3 mt-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-        >
-          {cancelLabel}
-        </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleConfirm}
-        >
-          {confirmLabel}
-        </Button>
-      </div>
+      {/* No children needed if description covers the content */}
+      {/* If there was more complex content, it would go here */}
+      <div style={{ minHeight: '20px' }}></div> {/* Add some minimal height if description is short */}
     </Dialog>
   );
-} 
+}

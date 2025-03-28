@@ -71,6 +71,10 @@ src/
         index.ts
         Input.module.css
         Input.tsx
+      StatusAlert/
+        index.ts
+        StatusAlert.module.css
+        StatusAlert.tsx
       Switch/
         index.ts
         Switch.module.css
@@ -112,8 +116,11 @@ src/
   types/
     css.d.ts
     electron.d.ts
+    FileInfo.ts
     FileTypes.ts
+    GlobalPatternsState.ts
     index.ts
+    SortOrder.ts
   utils/
     cn.ts
     create-variants.ts
@@ -183,168 +190,6 @@ src/
 36:   takeRecords: jest.fn(),
 37:   unobserve: jest.fn(),
 38: }));
-```
-
-## File: src/components/__tests__/IgnorePatterns.test.tsx
-```typescript
-  1: import React from 'react';
-  2: import { render, screen, fireEvent } from '@testing-library/react';
-  3: import '@testing-library/jest-dom';
-  4: import IgnorePatterns from '../IgnorePatterns';
-  5: 
-  6: describe('IgnorePatterns Component', () => {
-  7:   const defaultProps = {
-  8:     isOpen: true,
-  9:     onClose: jest.fn(),
- 10:     globalIgnorePatterns: '',
- 11:     localIgnorePatterns: '',
- 12:     systemIgnorePatterns: ['**/.git/**', '**/node_modules/**'],
- 13:     recentFolders: ['/test/folder1', '/test/folder2'],
- 14:     saveIgnorePatterns: jest.fn(),
- 15:     resetIgnorePatterns: jest.fn(),
- 16:     clearIgnorePatterns: jest.fn(),
- 17:   };
- 18: 
- 19:   beforeEach(() => {
- 20:     jest.clearAllMocks();
- 21:   });
- 22: 
- 23:   describe('Controlled Mode Tests', () => {
- 24:     const mockSetExcludedPatterns = jest.fn();
- 25: 
- 26:     it('initializes with provided excluded patterns', () => {
- 27:       render(
- 28:         <IgnorePatterns
- 29:           {...defaultProps}
- 30:           excludedSystemPatterns={['**/.git/**']}
- 31:           setExcludedSystemPatterns={mockSetExcludedPatterns}
- 32:         />
- 33:       );
- 34: 
- 35:       const gitSwitch = screen.getByLabelText('**/.git/**');
- 36:       const nodeModulesSwitch = screen.getByLabelText('**/node_modules/**');
- 37: 
- 38:       expect(gitSwitch).not.toBeChecked();
- 39:       expect(nodeModulesSwitch).toBeChecked();
- 40:     });
- 41: 
- 42:     it('syncs state with parent on pattern toggle', () => {
- 43:       render(
- 44:         <IgnorePatterns
- 45:           {...defaultProps}
- 46:           excludedSystemPatterns={[]}
- 47:           setExcludedSystemPatterns={mockSetExcludedPatterns}
- 48:         />
- 49:       );
- 50: 
- 51:       const nodeModulesPattern = screen.getByText('**/node_modules/**');
- 52:       const toggleButton = nodeModulesPattern.closest('div')?.querySelector('button');
- 53:       
- 54:       if (!toggleButton) {
- 55:         throw new Error('Toggle button not found');
- 56:       }
- 57: 
- 58:       fireEvent.click(toggleButton);
- 59:       expect(mockSetExcludedPatterns).toHaveBeenCalledWith(['**/node_modules/**']);
- 60:     });
- 61: 
- 62:     it('syncs state with parent on modal close', () => {
- 63:       render(
- 64:         <IgnorePatterns
- 65:           {...defaultProps}
- 66:           excludedSystemPatterns={[]}
- 67:           setExcludedSystemPatterns={mockSetExcludedPatterns}
- 68:         />
- 69:       );
- 70: 
- 71:       const closeButton = screen.getByLabelText('Close');
- 72:       fireEvent.click(closeButton);
- 73: 
- 74:       expect(mockSetExcludedPatterns).toHaveBeenCalledWith([]);
- 75:       expect(defaultProps.onClose).toHaveBeenCalled();
- 76:     });
- 77:   });
- 78: 
- 79:   describe('Uncontrolled Mode Tests', () => {
- 80:     it('works with only excludedSystemPatterns (no setter)', () => {
- 81:       render(
- 82:         <IgnorePatterns
- 83:           {...defaultProps}
- 84:           excludedSystemPatterns={['**/.git/**']}
- 85:         />
- 86:       );
- 87: 
- 88:       const nodeModulesPattern = screen.getByText('**/node_modules/**');
- 89:       const toggleButton = nodeModulesPattern.closest('div')?.querySelector('button');
- 90:       
- 91:       if (!toggleButton) {
- 92:         throw new Error('Toggle button not found');
- 93:       }
- 94: 
- 95:       fireEvent.click(toggleButton);
- 96:       expect(defaultProps.saveIgnorePatterns).not.toHaveBeenCalled();
- 97:     });
- 98: 
- 99:     it('works with neither prop', () => {
-100:       render(<IgnorePatterns {...defaultProps} />);
-101: 
-102:       const nodeModulesPattern = screen.getByText('**/node_modules/**');
-103:       const toggleButton = nodeModulesPattern.closest('div')?.querySelector('button');
-104:       
-105:       if (!toggleButton) {
-106:         throw new Error('Toggle button not found');
-107:       }
-108: 
-109:       fireEvent.click(toggleButton);
-110:       expect(defaultProps.saveIgnorePatterns).not.toHaveBeenCalled();
-111:     });
-112:   });
-113: 
-114:   describe('Pattern Management Tests', () => {
-115:     it('saves global patterns correctly', async () => {
-116:       render(<IgnorePatterns {...defaultProps} />);
-117: 
-118:       const saveButton = screen.getByText('Save');
-119:       fireEvent.click(saveButton);
-120: 
-121:       expect(defaultProps.saveIgnorePatterns).toHaveBeenCalledWith('', true);
-122:     });
-123: 
-124:     it('handles keyboard shortcuts', () => {
-125:       render(<IgnorePatterns {...defaultProps} />);
-126: 
-127:       fireEvent.keyDown(window, { key: 's', ctrlKey: true });
-128:       expect(defaultProps.saveIgnorePatterns).toHaveBeenCalled();
-129:     });
-130:   });
-131: 
-132:   describe('UI Interaction Tests', () => {
-133:     it('toggles pattern categories', () => {
-134:       render(<IgnorePatterns {...defaultProps} />);
-135: 
-136:       const categoryHeader = screen.getByText('Version Control').closest('div');
-137:       
-138:       if (!categoryHeader) {
-139:         throw new Error('Category header not found');
-140:       }
-141: 
-142:       fireEvent.click(categoryHeader);
-143:       expect(categoryHeader.parentElement).not.toHaveClass('categoryExpanded');
-144: 
-145:       fireEvent.click(categoryHeader);
-146:       expect(categoryHeader.parentElement).toHaveClass('categoryExpanded');
-147:     });
-148: 
-149:     it('switches between global and local tabs', () => {
-150:       render(<IgnorePatterns {...defaultProps} />);
-151: 
-152:       const localTab = screen.getByText('Local');
-153:       fireEvent.click(localTab);
-154: 
-155:       expect(screen.getByLabelText('Folder select')).toBeInTheDocument();
-156:     });
-157:   });
-158: });
 ```
 
 ## File: src/components/ui/ButtonGroup/ButtonGroup.module.css
@@ -643,121 +488,6 @@ src/
 1: export * from './Card';
 ```
 
-## File: src/components/ui/Dialog/Dialog.module.css
-```css
-  1: .backdrop {
-  2:   position: fixed;
-  3:   top: 0;
-  4:   left: 0;
-  5:   right: 0;
-  6:   bottom: 0;
-  7:   background-color: hsl(var(--background) / 0.8);
-  8:   display: flex;
-  9:   justify-content: center;
- 10:   align-items: center;
- 11:   z-index: var(--z-index-modal, 50);
- 12:   backdrop-filter: blur(4px);
- 13:   animation: fadeIn 0.15s ease-out;
- 14: }
- 15: 
- 16: .dialogOverlay {
- 17:   position: fixed;
- 18:   inset: 0;
- 19:   background: rgba(0, 0, 0, 0.4);
- 20:   backdrop-filter: blur(4px);
- 21:   z-index: var(--z-index-modal);
- 22:   transition: opacity 0.15s ease-out;
- 23: }
- 24: 
- 25: .dialogContent {
- 26:   position: fixed;
- 27:   top: 50%;
- 28:   left: 50%;
- 29:   transform: translate(-50%, -50%);
- 30:   width: 90vw;
- 31:   max-width: 500px;
- 32:   max-height: 85vh;
- 33:   padding: 1.5rem;
- 34:   background: var(--background-primary);
- 35:   border: 1px solid var(--border-color);
- 36:   border-radius: var(--radius);
- 37:   box-shadow: var(--shadow-lg);
- 38:   z-index: var(--z-index-modal);
- 39:   transition: all 0.15s ease-out;
- 40:   overflow-y: auto;
- 41: }
- 42: 
- 43: /* Size variants */
- 44: .sm {
- 45:   max-width: 400px;
- 46: }
- 47: 
- 48: .md {
- 49:   max-width: 600px;
- 50: }
- 51: 
- 52: .lg {
- 53:   max-width: 800px;
- 54: }
- 55: 
- 56: .header {
- 57:   display: flex;
- 58:   justify-content: space-between;
- 59:   align-items: center;
- 60:   padding: 16px 20px;
- 61:   border-bottom: 1px solid hsl(var(--border));
- 62: }
- 63: 
- 64: .title {
- 65:   margin: 0;
- 66:   font-size: 18px;
- 67:   font-weight: 600;
- 68:   color: hsl(var(--foreground));
- 69:   line-height: 1.4;
- 70: }
- 71: 
- 72: .description {
- 73:   padding: 12px 20px 0;
- 74:   font-size: 14px;
- 75:   color: hsl(var(--muted-foreground));
- 76:   line-height: 1.5;
- 77: }
- 78: 
- 79: .content {
- 80:   padding: 20px;
- 81: }
- 82: 
- 83: .footer {
- 84:   display: flex;
- 85:   justify-content: flex-end;
- 86:   gap: 12px;
- 87:   padding: 16px 20px;
- 88:   border-top: 1px solid hsl(var(--border));
- 89:   background-color: hsl(var(--muted) / 0.5);
- 90: }
- 91: 
- 92: /* Animations */
- 93: @keyframes fadeIn {
- 94:   from {
- 95:     opacity: 0;
- 96:   }
- 97:   to {
- 98:     opacity: 1;
- 99:   }
-100: }
-101: 
-102: @keyframes slideIn {
-103:   from {
-104:     opacity: 0;
-105:     transform: translateY(-2px) scale(0.98);
-106:   }
-107:   to {
-108:     opacity: 1;
-109:     transform: translateY(0) scale(1);
-110:   }
-111: }
-```
-
 ## File: src/components/ui/Dialog/Dialog.tsx
 ```typescript
   1: import React, { useEffect, useRef } from 'react';
@@ -771,38 +501,38 @@ src/
   9:    * Whether the dialog is open
  10:    */
  11:   isOpen: boolean;
- 12:   
+ 12: 
  13:   /**
  14:    * Callback when the dialog should close
  15:    */
  16:   onClose: () => void;
- 17:   
+ 17: 
  18:   /**
  19:    * Dialog title
  20:    */
  21:   title: string;
- 22:   
+ 22: 
  23:   /**
  24:    * Optional description text below the title
  25:    */
  26:   description?: string;
- 27:   
+ 27: 
  28:   /**
  29:    * Dialog content
  30:    */
  31:   children: React.ReactNode;
- 32:   
+ 32: 
  33:   /**
  34:    * Optional footer content (usually action buttons)
  35:    */
  36:   footer?: React.ReactNode;
- 37:   
+ 37: 
  38:   /**
  39:    * Optional size variant
  40:    * @default 'md'
  41:    */
  42:   size?: 'sm' | 'md' | 'lg';
- 43:   
+ 43: 
  44:   /**
  45:    * Optional custom class name
  46:    */
@@ -824,89 +554,99 @@ src/
  62:   className,
  63: }) => {
  64:   const dialogRef = useRef<HTMLDivElement>(null);
- 65:   
- 66:   // Handle ESC key to close dialog
- 67:   useEffect(() => {
- 68:     const handleKeyDown = (e: KeyboardEvent) => {
- 69:       if (e.key === 'Escape' && isOpen) {
- 70:         onClose();
- 71:       }
- 72:     };
- 73:     
- 74:     window.addEventListener('keydown', handleKeyDown);
- 75:     return () => window.removeEventListener('keydown', handleKeyDown);
- 76:   }, [isOpen, onClose]);
- 77:   
- 78:   // Handle click outside to close
- 79:   useEffect(() => {
- 80:     const handleClickOutside = (e: MouseEvent) => {
- 81:       if (dialogRef.current && !dialogRef.current.contains(e.target as Node)) {
- 82:         onClose();
- 83:       }
- 84:     };
- 85:     
- 86:     if (isOpen) {
- 87:       document.addEventListener('mousedown', handleClickOutside);
- 88:       return () => document.removeEventListener('mousedown', handleClickOutside);
- 89:     }
- 90:   }, [isOpen, onClose]);
- 91:   
- 92:   // Prevent body scroll when dialog is open
- 93:   useEffect(() => {
- 94:     if (isOpen) {
- 95:       document.body.style.overflow = 'hidden';
- 96:       return () => {
- 97:         document.body.style.overflow = 'unset';
- 98:       };
- 99:     }
-100:   }, [isOpen]);
-101:   
-102:   if (!isOpen) return null;
-103:   
-104:   return (
-105:     <div className={styles.backdrop}>
-106:       <div 
-107:         ref={dialogRef}
-108:         className={cn(
-109:           styles.dialog,
-110:           styles[size],
-111:           className
-112:         )}
-113:         role="dialog"
-114:         aria-modal="true"
-115:         aria-labelledby="dialog-title"
-116:       >
-117:         <div className={styles.header}>
-118:           <h2 id="dialog-title" className={styles.title}>{title}</h2>
-119:           <Button 
-120:             variant="ghost"
-121:             size="sm"
-122:             iconOnly
-123:             onClick={onClose}
-124:             startIcon={<X size={16} />}
-125:             title="Close dialog"
-126:           />
-127:         </div>
-128:         
-129:         {description && (
-130:           <div className={styles.description}>
-131:             {description}
-132:           </div>
-133:         )}
-134:         
-135:         <div className={styles.content}>
-136:           {children}
+ 65:   const backdropRef = useRef<HTMLDivElement>(null); // Ref for the backdrop
+ 66: 
+ 67:   // Handle ESC key to close dialog
+ 68:   useEffect(() => {
+ 69:     const handleKeyDown = (e: KeyboardEvent) => {
+ 70:       if (e.key === 'Escape' && isOpen) {
+ 71:         onClose();
+ 72:       }
+ 73:     };
+ 74: 
+ 75:     window.addEventListener('keydown', handleKeyDown);
+ 76:     return () => window.removeEventListener('keydown', handleKeyDown);
+ 77:   }, [isOpen, onClose]);
+ 78: 
+ 79:   // Handle click outside (on backdrop) to close
+ 80:   useEffect(() => {
+ 81:     const handleClickOutside = (e: MouseEvent) => {
+ 82:       // Only close if clicking directly on the backdrop
+ 83:       if (backdropRef.current === e.target) {
+ 84:         onClose();
+ 85:       }
+ 86:     };
+ 87: 
+ 88:     if (isOpen) {
+ 89:       document.addEventListener('mousedown', handleClickOutside);
+ 90:       return () => document.removeEventListener('mousedown', handleClickOutside);
+ 91:     }
+ 92:   }, [isOpen, onClose]);
+ 93: 
+ 94:   // Prevent body scroll when dialog is open
+ 95:   useEffect(() => {
+ 96:     if (isOpen) {
+ 97:       document.body.style.overflow = 'hidden';
+ 98:       // Focus the dialog container or first focusable element on open
+ 99:       dialogRef.current?.focus();
+100:       return () => {
+101:         document.body.style.overflow = 'unset';
+102:       };
+103:     }
+104:   }, [isOpen]);
+105: 
+106:   if (!isOpen) return null;
+107: 
+108:   return (
+109:     <div
+110:       ref={backdropRef} // Add ref to backdrop
+111:       className={styles.backdrop}
+112:       role="presentation" // Backdrop is presentational
+113:     >
+114:       <div
+115:         ref={dialogRef}
+116:         className={cn(
+117:           styles.dialog, // Use .dialog for the main container
+118:           styles[size],
+119:           className
+120:         )}
+121:         role="dialog"
+122:         aria-modal="true"
+123:         aria-labelledby="dialog-title"
+124:         tabIndex={-1} // Make the dialog focusable
+125:       >
+126:         <div className={styles.header}>
+127:           <h2 id="dialog-title" className={styles.title}>{title}</h2>
+128:           <Button
+129:             variant="ghost"
+130:             size="sm"
+131:             iconOnly
+132:             onClick={onClose}
+133:             startIcon={<X size={16} />} // Correctly uses Button component
+134:             title="Close dialog"
+135:             aria-label="Close dialog" // Add aria-label
+136:           />
 137:         </div>
-138:         
-139:         {footer && (
-140:           <div className={styles.footer}>
-141:             {footer}
+138: 
+139:         {description && (
+140:           <div className={styles.description}>
+141:             {description}
 142:           </div>
 143:         )}
-144:       </div>
-145:     </div>
-146:   );
-147: };
+144: 
+145:         <div className={styles.content}>
+146:           {children}
+147:         </div>
+148: 
+149:         {footer && (
+150:           <div className={styles.footer}>
+151:             {footer}
+152:           </div>
+153:         )}
+154:       </div>
+155:     </div>
+156:   );
+157: };
 ```
 
 ## File: src/components/ui/Dialog/index.ts
@@ -923,6 +663,12 @@ src/
 ## File: src/components/ui/Input/index.ts
 ```typescript
 1: export * from './Input';
+```
+
+## File: src/components/ui/StatusAlert/index.ts
+```typescript
+1: export { default as StatusAlert } from './StatusAlert';
+2: export * from './StatusAlert';
 ```
 
 ## File: src/components/ui/Switch/index.ts
@@ -1017,67 +763,6 @@ src/
 83: Switch.displayName = 'Switch';
 ```
 
-## File: src/components/ui/ConfirmationDialog.tsx
-```typescript
- 1: import React from 'react';
- 2: import { Dialog } from './Dialog';
- 3: import { Button } from './Button';
- 4: 
- 5: interface ConfirmationDialogProps {
- 6:   isOpen: boolean;
- 7:   onClose: () => void;
- 8:   onConfirm: () => void;
- 9:   title: string;
-10:   description: string;
-11:   confirmLabel?: string;
-12:   cancelLabel?: string;
-13:   variant?: 'default' | 'destructive';
-14: }
-15: 
-16: export function ConfirmationDialog({
-17:   isOpen,
-18:   onClose,
-19:   onConfirm,
-20:   title,
-21:   description,
-22:   confirmLabel = 'Confirm',
-23:   cancelLabel = 'Cancel',
-24:   variant = 'default'
-25: }: ConfirmationDialogProps) {
-26:   const handleConfirm = () => {
-27:     onConfirm();
-28:     onClose();
-29:   };
-30: 
-31:   return (
-32:     <Dialog
-33:       isOpen={isOpen}
-34:       onClose={onClose}
-35:       title={title}
-36:       description={description}
-37:       size="sm"
-38:     >
-39:       <div className="flex justify-end gap-3 mt-6">
-40:         <Button
-41:           variant="ghost"
-42:           size="sm"
-43:           onClick={onClose}
-44:         >
-45:           {cancelLabel}
-46:         </Button>
-47:         <Button
-48:           variant={variant === 'destructive' ? 'destructive' : 'primary'}
-49:           size="sm"
-50:           onClick={handleConfirm}
-51:         >
-52:           {confirmLabel}
-53:         </Button>
-54:       </div>
-55:     </Dialog>
-56:   );
-57: }
-```
-
 ## File: src/components/ErrorBoundary.tsx
 ```typescript
  1: import React, { Component, ErrorInfo } from 'react';
@@ -1133,471 +818,6 @@ src/
 51:     return this.props.children;
 52:   }
 53: }
-```
-
-## File: src/components/SearchBar.tsx
-```typescript
-  1: import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-  2: import { SidebarProps, TreeNode, SortOrder, FileData } from "../types/FileTypes";
-  3: import TreeItem from "./TreeItem";
-  4: import FileTreeHeader from "./FileTreeHeader";
-  5: import IgnorePatterns from "./IgnorePatterns"; // Keep import if modal is triggered here
-  6: import { FolderPlus } from "lucide-react";
-  7: import { Button } from "./ui";
-  8: import SearchBar from "./SearchBar";
-  9: import styles from "./Sidebar.module.css";
- 10: import { normalizePath } from "../utils/pathUtils"; // Import normalizePath
- 11: 
- 12: // Define the structure for pattern state passed from App
- 13: interface IgnorePatternsState {
- 14:   patterns: string;
- 15:   excludedSystemPatterns: string[];
- 16: }
- 17: 
- 18: // Extend the existing SidebarProps from FileTypes
- 19: interface ExtendedSidebarProps extends SidebarProps {
- 20:   reloadFolder: () => void;
- 21:   clearSelection: () => void; // Used by FileTreeHeader -> Dropdown
- 22:   removeAllFolders: () => void; // Used by FileTreeHeader -> Dropdown
- 23:   // Ignore pattern related props passed down from App
- 24:   loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => Promise<void>; // Changed return type
- 25:   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath?: string) => Promise<void>;
- 26:   resetIgnorePatterns: (isGlobal: boolean, folderPath?: string) => Promise<void>; // Changed prop name to match App
- 27:   systemIgnorePatterns: string[];
- 28:   clearIgnorePatterns: (folderPath: string) => Promise<void>; // Changed prop name to match App
- 29:   onClearSelectionClick: () => void; // Keep for dialog trigger
- 30:   onRemoveAllFoldersClick: () => void; // Keep for dialog trigger
- 31:   onResetPatternsClick: (isGlobal: boolean, folderPath: string) => void; // Prop to trigger dialog in App
- 32:   fileTreeSortOrder?: SortOrder;
- 33:   onSortOrderChange?: (newSortOrder: SortOrder) => void;
- 34:   // New props for controlled IgnorePatterns modal
- 35:   globalPatternsState: IgnorePatternsState;
- 36:   localPatternsState: IgnorePatternsState;
- 37:   onExcludedSystemPatternsChange: (patterns: string[]) => void;
- 38: }
- 39: 
- 40: // Debounce delay in ms
- 41: const DEBOUNCE_DELAY = 250; // Slightly increased debounce
- 42: 
- 43: // Use a timeout to prevent infinite tree building loops
- 44: const TREE_BUILD_TIMEOUT = 7000; // Increased timeout
- 45: 
- 46: const Sidebar: React.FC<ExtendedSidebarProps> = ({
- 47:   selectedFolder,
- 48:   openFolder,
- 49:   allFiles, // Contains only metadata now
- 50:   selectedFiles,
- 51:   toggleFileSelection,
- 52:   toggleFolderSelection,
- 53:   searchTerm,
- 54:   onSearchChange,
- 55:   selectAllFiles,
- 56:   deselectAllFiles,
- 57:   expandedNodes,
- 58:   toggleExpanded,
- 59:   reloadFolder,
- 60:   clearSelection, // Renamed prop from App
- 61:   removeAllFolders, // Renamed prop from App
- 62:   loadIgnorePatterns,
- 63:   saveIgnorePatterns,
- 64:   resetIgnorePatterns, // Prop for triggering App's reset logic (via confirmation)
- 65:   systemIgnorePatterns,
- 66:   clearIgnorePatterns, // Prop for triggering App's clear logic (via confirmation)
- 67:   onClearSelectionClick, // Prop to trigger confirmation dialog in App
- 68:   onRemoveAllFoldersClick, // Prop to trigger confirmation dialog in App
- 69:   onResetPatternsClick, // Prop to trigger confirmation dialog in App
- 70:   fileTreeSortOrder,
- 71:   onSortOrderChange,
- 72:   // Pass through new props for IgnorePatterns
- 73:   globalPatternsState,
- 74:   localPatternsState,
- 75:   onExcludedSystemPatternsChange,
- 76: }) => {
- 77:   const [fileTree, setFileTree] = useState<TreeNode[]>([]);
- 78:   const [sidebarWidth, setSidebarWidth] = useState(300);
- 79:   const [isResizing, setIsResizing] = useState(false);
- 80: 
- 81:   // State for ignore patterns modal visibility
- 82:   const [ignoreModalOpen, setIgnoreModalOpen] = useState(false);
- 83: 
- 84:   const MIN_SIDEBAR_WIDTH = 200;
- 85:   const MAX_SIDEBAR_WIDTH = 600; // Increased max width slightly
- 86: 
- 87:   // Refs
- 88:   const isBuildingTreeRef = useRef(false);
- 89:   const buildTimeoutRef = useRef<NodeJS.Timeout | null>(null);
- 90:   // const lastSelectedFilesRef = useRef<string[]>([]); // Maybe not needed
- 91: 
- 92:   // useEffect(() => { lastSelectedFilesRef.current = selectedFiles; }, [selectedFiles]); // Maybe not needed
- 93: 
- 94:   // Helper: Flatten tree (Iterative)
- 95:   const flattenTree = useCallback((nodes: TreeNode[]): TreeNode[] => {
- 96:     const result: TreeNode[] = [];
- 97:     const stack: TreeNode[] = [...nodes].reverse(); // Use reverse for depth-first correct order
- 98: 
- 99:     while (stack.length > 0) {
-100:         const node = stack.pop(); // Get the last node
-101:         if (!node) continue;
-102: 
-103:         result.push(node);
-104: 
-105:         // If expanded and has children, add children to the stack (in reverse order to process them correctly)
-106:         if (node.type === "directory" && node.isExpanded && node.children?.length) {
-107:             // Add children in reverse order so they are popped in the correct order
-108:             for (let i = node.children.length - 1; i >= 0; i--) {
-109:                  stack.push(node.children[i]);
-110:             }
-111:         }
-112:     }
-113:     return result;
-114:   }, []);
-115: 
-116: 
-117:   // Helper: Filter tree (no changes needed)
-118:   const filterTree = useCallback((nodes: TreeNode[], term: string): TreeNode[] => {
-119:      if (!term) return nodes;
-120:      const lowerTerm = term.toLowerCase();
-121:      const hasMatch = (node: TreeNode): boolean => {
-122:         if (node.name.toLowerCase().includes(lowerTerm)) return true;
-123:         return node.type === "directory" && !!node.children?.some(hasMatch);
-124:      };
-125:      const filterNode = (node: TreeNode): TreeNode | null => {
-126:         if (!hasMatch(node)) return null;
-127:         if (node.type === "file") return node;
-128:         if (node.type === "directory") {
-129:             const filteredChildren = node.children?.map(filterNode).filter((n): n is TreeNode => n !== null) || [];
-130:              if (node.name.toLowerCase().includes(lowerTerm) || filteredChildren.length > 0) {
-131:                  return { ...node, isExpanded: true, children: filteredChildren };
-132:              }
-133:              return null;
-134:         }
-135:         return null;
-136:      };
-137:      return nodes.map(filterNode).filter((n): n is TreeNode => n !== null);
-138:   }, []);
-139: 
-140:   const memoizedFilteredTree = useMemo(() => {
-141:     return searchTerm ? filterTree(fileTree, searchTerm) : fileTree;
-142:   }, [fileTree, searchTerm, filterTree]);
-143: 
-144:   const memoizedFlattenedTree = useMemo(() => {
-145:     return flattenTree(memoizedFilteredTree);
-146:   }, [memoizedFilteredTree, flattenTree]);
-147: 
-148:   // Resize handlers (no changes needed)
-149:   const handleResizeStart = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-150:     e.preventDefault(); setIsResizing(true);
-151:   }, []);
-152:   useEffect(() => {
-153:     const handleResize = (e: globalThis.MouseEvent) => {
-154:       if (isResizing) {
-155:         const newWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(e.clientX, MAX_SIDEBAR_WIDTH));
-156:         setSidebarWidth(newWidth);
-157:       }
-158:     };
-159:     const handleResizeEnd = () => setIsResizing(false);
-160:     if (isResizing) {
-161:         document.addEventListener("mousemove", handleResize);
-162:         document.addEventListener("mouseup", handleResizeEnd);
-163:     }
-164:     return () => {
-165:       document.removeEventListener("mousemove", handleResize);
-166:       document.removeEventListener("mouseup", handleResizeEnd);
-167:     };
-168:   }, [isResizing]); // MAX_SIDEBAR_WIDTH removed as it's constant
-169: 
-170:   // --- Tree Sorting Logic ---
-171:   const sortFileTreeNodes = useCallback((nodes: TreeNode[]): TreeNode[] => {
-172:     if (!nodes) return [];
-173:     return [...nodes].sort((a, b) => {
-174:       if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
-175:       const order = fileTreeSortOrder || "name-ascending"; // Default sort
-176:       const [key, dir] = order.split('-');
-177:       let comparison = 0;
-178:       // Use optional chaining and default values safely
-179:       const aVal = key === 'tokens' ? (a.fileData?.tokenCount ?? 0) : key === 'date' ? (a.fileData?.lastModified ?? 0) : a.name;
-180:       const bVal = key === 'tokens' ? (b.fileData?.tokenCount ?? 0) : key === 'date' ? (b.fileData?.lastModified ?? 0) : b.name;
-181: 
-182:       if (typeof aVal === 'string' && typeof bVal === 'string') comparison = aVal.localeCompare(bVal);
-183:       else if (typeof aVal === 'number' && typeof bVal === 'number') comparison = aVal - bVal;
-184: 
-185:       return dir === 'ascending' ? comparison : -comparison;
-186:     });
-187:   }, [fileTreeSortOrder]);
-188: 
-189:   const sortNodesRecursively = useCallback((nodes: TreeNode[]): TreeNode[] => {
-190:     if (!nodes) return [];
-191:     const sorted = sortFileTreeNodes(nodes);
-192:     return sorted.map(node =>
-193:       node.type === 'directory' && node.children
-194:         ? { ...node, children: sortNodesRecursively(node.children) }
-195:         : node
-196:     );
-197:   }, [sortFileTreeNodes]);
-198: 
-199:   // --- Tree Building Logic ---
-200:   const buildFileTree = useCallback((files: FileData[], rootFolder: string): TreeNode[] => {
-201:      if (!files || files.length === 0 || !rootFolder) return [];
-202:      const fileMap: Record<string, any> = {};
-203:      const normalizedRoot = normalizePath(rootFolder); // Normalize root path once
-204: 
-205:      files.forEach(file => {
-206:         const normalizedPath = normalizePath(file.path);
-207:         // Basic check if the path starts with the root. More robust checks might be needed for edge cases like symlinks outside root.
-208:         if (!normalizedPath.startsWith(normalizedRoot)) {
-209:             // console.warn(`File path ${normalizedPath} does not start with root ${normalizedRoot}, skipping.`);
-210:             return; // Skip files not strictly within the root
-211:         }
-212: 
-213: 
-214:         const relativePath = normalizedPath.substring(normalizedRoot.length).replace(/^[/\\]/, '');
-215:         if (!relativePath) return; // Skip root itself if listed
-216: 
-217:         const parts = relativePath.split(/[/\\]/);
-218:         let currentLevel = fileMap;
-219:         let currentPath = normalizedRoot;
-220: 
-221:         parts.forEach((part, index) => {
-222:           // Handle cases where part might be empty string if there are multiple slashes
-223:           if (!part) return;
-224: 
-225:           currentPath += '/' + part;
-226:           const isLastPart = index === parts.length - 1;
-227:           if (!currentLevel[part]) {
-228:             currentLevel[part] = {
-229:               name: part,
-230:               path: currentPath,
-231:               id: currentPath, // Use path as unique ID
-232:               type: isLastPart ? "file" : "directory",
-233:               children: {},
-234:               fileData: isLastPart ? file : undefined, // Assign metadata only to file nodes
-235:             };
-236:           }
-237:            // Ensure directory type if intermediate part already exists as file (edge case)
-238:           if (!isLastPart && currentLevel[part].type === 'file') {
-239:               console.warn(`Path conflict: ${currentPath} exists as both file and directory. Treating as directory.`);
-240:               currentLevel[part].type = 'directory';
-241:               currentLevel[part].fileData = undefined; // Remove file data if it's actually a dir
-242:               if (!currentLevel[part].children) { // Ensure children object exists
-243:                   currentLevel[part].children = {};
-244:               }
-245:           }
-246:           // Ensure we move down the tree correctly, even if fixing type conflict
-247:           currentLevel = currentLevel[part].children;
-248:         });
-249:      });
-250: 
-251:      const convertToNodes = (obj: Record<string, any>, depth = 0): TreeNode[] => {
-252:         return Object.values(obj).map((item: any): TreeNode => {
-253:           const nodeId = item.id;
-254:           // Check expanded state from the map passed via props
-255:           const isExpanded = expandedNodes.get(nodeId) ?? (depth < 1); // Auto-expand first level
-256:           if (item.type === "directory") {
-257:             return {
-258:               ...item, // Spread existing item properties
-259:               children: convertToNodes(item.children || {}, depth + 1), // Ensure children is an object
-260:               isExpanded: isExpanded,
-261:               depth: depth,
-262:               fileData: undefined, // Explicitly remove fileData for directories
-263:             };
-264:           }
-265:           // For files, fileData is already assigned during map creation
-266:           return { ...item, depth: depth, children: undefined }; // Explicitly remove children for files
-267:         });
-268:      };
-269: 
-270:      const tree = convertToNodes(fileMap);
-271:      return sortNodesRecursively(tree); // Sort after building
-272: 
-273:   }, [expandedNodes, sortNodesRecursively]); // Dependencies: expandedNodes, sortNodesRecursively
-274: 
-275:   // Effect to build tree
-276:   useEffect(() => {
-277:     if (!allFiles || !selectedFolder) {
-278:       setFileTree([]);
-279:       return;
-280:     }
-281:     if (isBuildingTreeRef.current) {
-282:         console.log("Tree build already in progress, skipping new request.");
-283:         return; // Prevent multiple concurrent builds
-284:     }
-285: 
-286:     isBuildingTreeRef.current = true;
-287:     if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
-288: 
-289:     const buildId = Math.random().toString(36).substring(2, 9);
-290:     console.log(`Scheduling tree build ${buildId}...`);
-291: 
-292:     const buildWork = () => {
-293:         console.log(`Starting tree build ${buildId}...`);
-294:         // Use Promise.resolve().then() to ensure async break and prevent blocking UI
-295:         Promise.resolve().then(() => {
-296:             try {
-297:                 // Safety check: limit number of files processed if necessary
-298:                 const filesToProcess = allFiles.length > 10000 ? allFiles.slice(0, 10000) : allFiles;
-299:                 if (allFiles.length > 10000) {
-300:                     console.warn(`Processing only the first 10,000 files out of ${allFiles.length} due to performance limits.`);
-301:                 }
-302:                 const newTree = buildFileTree(filesToProcess, selectedFolder);
-303:                 setFileTree(newTree);
-304:                 console.log(`Tree build ${buildId} completed.`);
-305:             } catch (error) {
-306:                 console.error(`Tree build ${buildId} failed:`, error);
-307:                 setFileTree([]); // Reset on error
-308:             } finally {
-309:                 isBuildingTreeRef.current = false;
-310:                 // Clear timeout reference only if it matches the one we set
-311:                 if (buildTimeoutRef.current === timeoutId) {
-312:                     buildTimeoutRef.current = null;
-313:                 }
-314:             }
-315:         }).catch(error => {
-316:             // Catch errors from the Promise itself (less likely here)
-317:              console.error(`Error in tree build Promise ${buildId}:`, error);
-318:              isBuildingTreeRef.current = false;
-319:              if (buildTimeoutRef.current === timeoutId) {
-320:                 buildTimeoutRef.current = null;
-321:              }
-322:         });
-323:     };
-324: 
-325:      // Set timeout for actual work
-326:     const timeoutId = setTimeout(buildWork, DEBOUNCE_DELAY);
-327:     buildTimeoutRef.current = timeoutId; // Store timeout ID
-328: 
-329:     return () => {
-330:       console.log(`Cleaning up tree build ${buildId}`);
-331:       clearTimeout(timeoutId);
-332:       // Reset flag only if this cleanup corresponds to the currently running/scheduled build
-333:       if (buildTimeoutRef.current === timeoutId) {
-334:           isBuildingTreeRef.current = false; // Ensure flag is reset if component unmounts or effect re-runs
-335:           buildTimeoutRef.current = null;
-336:       }
-337:     };
-338:   }, [allFiles, selectedFolder, buildFileTree]); // Rebuild when files or folder change
-339: 
-340:   // --- Ignore Patterns Modal ---
-341:   const handleOpenIgnorePatterns = useCallback(() => {
-342:     setIgnoreModalOpen(true);
-343:   }, []);
-344: 
-345: 
-346:   // Get available folders (memoized)
-347:   const getAvailableFolders = useMemo(() => {
-348:     const folders = new Set<string>();
-349:     const rootPath = selectedFolder ? normalizePath(selectedFolder) : null;
-350:     if (!rootPath) return [];
-351: 
-352:     // Use a map for potentially faster lookups if allFiles is huge
-353:     const filePaths = allFiles.map(f => normalizePath(f.path));
-354: 
-355:     filePaths.forEach(normPath => {
-356:         // Ensure path comparison is robust
-357:         if (normPath.startsWith(rootPath + '/') || normPath === rootPath) {
-358:             const parts = normPath.substring(rootPath.length).split('/').filter(p => p);
-359:             let currentSubPath = rootPath;
-360:             // Iterate up to the parent directory of the file
-361:             for (let i = 0; i < parts.length - 1; i++) {
-362:                 currentSubPath += '/' + parts[i];
-363:                 folders.add(currentSubPath);
-364:             }
-365:         }
-366:     });
-367:      // Add the root folder itself
-368:     folders.add(rootPath);
-369:     return Array.from(folders).sort(); // Sort for consistent display
-370:   }, [allFiles, selectedFolder]);
-371: 
-372:   // Count excluded files (memoized)
-373:   const countExcludedFiles = useMemo(() => {
-374:     // Check the 'excluded' flag set by the main process based on combined patterns
-375:     return allFiles.filter(file => file.excluded === true).length;
-376:   }, [allFiles]);
-377: 
-378:   // Handle sort change - Call prop passed from App
-379:   const handleSortChange = useCallback((newSortOrder: SortOrder) => {
-380:     if (onSortOrderChange) {
-381:       onSortOrderChange(newSortOrder);
-382:     }
-383:   }, [onSortOrderChange]);
-384: 
-385:   return (
-386:     <div className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>
-387:       <FileTreeHeader
-388:         onOpenFolder={openFolder}
-389:         onSortChange={handleSortChange}
-390:         onClearSelection={onClearSelectionClick} // Use prop for dialog trigger
-391:         onRemoveAllFolders={onRemoveAllFoldersClick} // Use prop for dialog trigger
-392:         onReloadFileTree={reloadFolder}
-393:         onOpenIgnorePatterns={handleOpenIgnorePatterns} // Opens the modal
-394:         excludedFilesCount={countExcludedFiles}
-395:         currentSortOrder={fileTreeSortOrder}
-396:       />
-397: 
-398:       {selectedFolder ? (
-399:         <>
-400:           <div className={styles.sidebarSearch}>
-401:             <SearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
-402:           </div>
-403:           <div className={styles.sidebarActions}>
-404:             <Button variant="secondary" size="sm" onClick={selectAllFiles}> Select All </Button>
-405:             <Button variant="secondary" size="sm" onClick={deselectAllFiles}> Deselect All </Button>
-406:           </div>
-407:           <div className={styles.fileTree}>
-408:             {isBuildingTreeRef.current ? (
-409:                <div className={styles.treeLoading}><div className={styles.spinner}></div>Building tree...</div>
-410:             ) : memoizedFlattenedTree.length > 0 ? (
-411:               memoizedFlattenedTree.map((node) => (
-412:                 <TreeItem
-413:                   key={node.id}
-414:                   node={node}
-415:                   selectedFiles={selectedFiles}
-416:                   toggleFileSelection={toggleFileSelection}
-417:                   toggleFolderSelection={toggleFolderSelection}
-418:                   toggleExpanded={toggleExpanded}
-419:                 />
-420:               ))
-421:             ) : (
-422:               <div className={styles.treeEmpty}>
-423:                 {searchTerm ? "No files match search." : "No files found or folder is empty."}
-424:               </div>
-425:             )}
-426:           </div>
-427:         </>
-428:       ) : (
-429:         <div className={styles.sidebarEmptyState}>
-430:           <FolderPlus size={48} className={styles.sidebarEmptyIcon} />
-431:           <h3>No Folder Selected</h3>
-432:           <p>Click the folder icon above to select a project folder.</p>
-433:         </div>
-434:       )}
-435: 
-436:       <div className={styles.sidebarResizeHandle} onMouseDown={handleResizeStart} title="Resize sidebar" />
-437: 
-438:       {/* Ignore Patterns Modal - Renders based on ignoreModalOpen state */}
-439:       {ignoreModalOpen && (
-440:         <IgnorePatterns
-441:           isOpen={ignoreModalOpen}
-442:           onClose={() => setIgnoreModalOpen(false)}
-443:           // Pass full state objects from App
-444:           globalPatternsState={globalPatternsState}
-445:           localPatternsState={localPatternsState}
-446:           localFolderPath={selectedFolder || ""}
-447:           // Pass callbacks from App
-448:           saveIgnorePatterns={saveIgnorePatterns}
-449:           resetIgnorePatterns={onResetPatternsClick} // Pass the DIALOG TRIGGER prop
-450:           clearIgnorePatterns={clearIgnorePatterns} // Pass clear function trigger
-451:           onExcludedSystemPatternsChange={onExcludedSystemPatternsChange} // Pass handler to update App state
-452:           systemIgnorePatterns={systemIgnorePatterns}
-453:           recentFolders={getAvailableFolders} // Pass memoized folders
-454:           // processingStatus prop can be added if needed from App
-455:         />
-456:       )}
-457:     </div>
-458:   );
-459: };
-460: 
-461: export default Sidebar;
 ```
 
 ## File: src/components/Sidebar.module.css.d.ts
@@ -1783,10 +1003,34 @@ src/
 50: export {};
 ```
 
+## File: src/types/FileInfo.ts
+```typescript
+1: export interface FileInfo {
+2:   path: string;
+3:   name: string;
+4:   type: 'file' | 'directory';
+5:   size?: number;
+6:   lastModified?: Date;
+7: }
+```
+
+## File: src/types/GlobalPatternsState.ts
+```typescript
+1: export interface GlobalPatternsState {
+2:   excludedSystemPatterns: string[];
+3:   userPatterns: string[];
+4: }
+```
+
 ## File: src/types/index.ts
 ```typescript
 1: // Re-export all types from FileTypes.ts
 2: export * from './FileTypes';
+```
+
+## File: src/types/SortOrder.ts
+```typescript
+1: export type SortOrder = 'name-asc' | 'name-desc' | 'date-asc' | 'date-desc' | 'size-asc' | 'size-desc';
 ```
 
 ## File: src/utils/create-variants.ts
@@ -1809,772 +1053,6 @@ src/
 16:     getVariantClass: (variant: T) => variantMap[variant] || ''
 17:   };
 18: }
-```
-
-## File: src/utils/patternUtils.ts
-```typescript
-  1: // System pattern categories - Moved from App.tsx
-  2: export const SYSTEM_PATTERN_CATEGORIES = {
-  3:     versionControl: [
-  4:       "**/.git/**",
-  5:       "**/.svn/**",
-  6:       "**/.hg/**",
-  7:       "**/.cvs/**" // Added .cvs
-  8:     ],
-  9:     buildOutput: [
- 10:       "**/node_modules/**",
- 11:       "**/dist/**",
- 12:       "**/build/**",
- 13:       "**/.output/**", // Added .output
- 14:       "**/.next/**",
- 15:     ],
- 16:     caches: [
- 17:       "**/.cache/**",
- 18:       "**/__pycache__/**",
- 19:       "**/.pytest_cache/**",
- 20:     ],
- 21:     logs: [
- 22:       "**/logs/**",
- 23:       "**/*.log",
- 24:     ],
- 25:     ide: [
- 26:       "**/.idea/**",
- 27:       "**/.vscode/**",
- 28:       "**/.vs/**",
- 29:     ],
- 30:     temp: [
- 31:       "**/tmp/**",
- 32:       "**/temp/**",
- 33:     ],
- 34:     os: [
- 35:       "**/.DS_Store",
- 36:       "**/Thumbs.db",
- 37:     ],
- 38:   };
- 39:   
- 40:   // Parse ignore patterns content to extract disabled patterns and user patterns - Moved from App.tsx
- 41:   export const parseIgnorePatternsContent = (content: string): { excludedPatterns: string[]; userPatterns: string } => {
- 42:     if (!content) {
- 43:       return { excludedPatterns: [], userPatterns: '' };
- 44:     }
- 45:     const lines = content.split('\n');
- 46:     const excludedPatterns: string[] = [];
- 47:     const userPatterns: string[] = [];
- 48:   
- 49:     lines.forEach(line => {
- 50:       const trimmedLine = line.trim();
- 51:       if (trimmedLine.startsWith('# DISABLED:')) {
- 52:         const pattern = trimmedLine.substring('# DISABLED:'.length).trim();
- 53:         if (pattern) {
- 54:           excludedPatterns.push(pattern);
- 55:         }
- 56:       } else if (trimmedLine !== '' && !trimmedLine.startsWith('#')) {
- 57:         // Add non-empty, non-comment lines to user patterns
- 58:         userPatterns.push(line); // Keep original line to preserve indentation/whitespace if any
- 59:       }
- 60:       // Ignore empty lines and regular comments
- 61:     });
- 62:   
- 63:     // Ensure excluded patterns are unique
- 64:     const uniqueExcluded = Array.from(new Set(excludedPatterns));
- 65:   
- 66:     return {
- 67:       excludedPatterns: uniqueExcluded,
- 68:       userPatterns: userPatterns.join('\n')
- 69:     };
- 70:   };
- 71:   
- 72:   
- 73:   // --- Keep existing functions below if they are used ---
- 74:   
- 75:   // Selection handlers (Example, confirm if used or remove)
- 76:   export const handleSelectionChange = (prevSelected: string[], newSelected: string[]) => {
- 77:     return newSelected;
- 78:   };
- 79:   
- 80:   export const handleFolderSelect = (prev: string[]) => {
- 81:     return prev;
- 82:   };
- 83:   
- 84:   // Pattern state update function (Example, confirm if used or remove)
- 85:   export const handlePatternStateUpdate = (patterns: string | string[]): string => {
- 86:     return Array.isArray(patterns) ? patterns.join('\n') : patterns;
- 87:   };
- 88:   
- 89:   export const updatePatternState = (
- 90:     patterns: string | string[],
- 91:     isGlobal: boolean,
- 92:     setGlobalPatterns: (value: any) => void,
- 93:     setLocalPatterns: (value: any) => void,
- 94:     folderPath?: string
- 95:   ) => {
- 96:     const normalizedPatterns = handlePatternStateUpdate(patterns);
- 97:   
- 98:     if (isGlobal) {
- 99:       setGlobalPatterns((prev: any) => ({
-100:         ...prev,
-101:         patterns: normalizedPatterns
-102:       }));
-103:     } else if (folderPath) {
-104:       setLocalPatterns((prev: any) => ({
-105:         ...prev,
-106:         patterns: normalizedPatterns
-107:       }));
-108:     }
-109:   };
-```
-
-## File: src/utils/sortIcons.tsx
-```typescript
- 1: import React from 'react';
- 2: import type { LucideIcon } from 'lucide-react';
- 3: import { 
- 4:   ArrowUpDown,        // Default icon
- 5:   ArrowDownAZ,        // For name-ascending
- 6:   ArrowUpZA,          // For name-descending
- 7:   ArrowUp01,          // For tokens-ascending
- 8:   ArrowDown10,        // For tokens-descending
- 9:   ArrowUpNarrowWide,  // For date-ascending
-10:   ArrowDownWideNarrow // For date-descending
-11: } from "lucide-react";
-12: 
-13: // Map sort options to corresponding Lucide icons
-14: export const sortIconMap = {
-15:   "name-ascending": "ArrowDownAZ",
-16:   "name-descending": "ArrowUpZA",
-17:   "tokens-ascending": "ArrowUp01",
-18:   "tokens-descending": "ArrowDown10",
-19:   "date-ascending": "ArrowUpNarrowWide",
-20:   "date-descending": "ArrowDownWideNarrow"
-21: } as const;
-22: 
-23: // Icon component lookup for direct reference
-24: export const iconComponents: Record<string, LucideIcon> = {
-25:   "ArrowDownAZ": ArrowDownAZ,
-26:   "ArrowUpZA": ArrowUpZA,
-27:   "ArrowUp01": ArrowUp01,
-28:   "ArrowDown10": ArrowDown10,
-29:   "ArrowUpNarrowWide": ArrowUpNarrowWide,
-30:   "ArrowDownWideNarrow": ArrowDownWideNarrow,
-31:   "ArrowUpDown": ArrowUpDown  // Default
-32: };
-33: 
-34: // Helper function to get the appropriate icon component
-35: export const getSortIcon = (sortOrder?: string, size: number = 16): JSX.Element => {
-36:   try {
-37:     const iconName = sortOrder && sortIconMap[sortOrder as keyof typeof sortIconMap] 
-38:       ? sortIconMap[sortOrder as keyof typeof sortIconMap] 
-39:       : "ArrowUpDown";
-40:     
-41:     const IconComponent = iconComponents[iconName];
-42:     return <IconComponent size={size} />;
-43:   } catch (error) {
-44:     console.error("Error rendering sort icon:", error);
-45:     return <ArrowUpDown size={size} />;
-46:   }
-47: };
-```
-
-## File: src/components/ui/Card/Card.module.css
-```css
- 1: .card {
- 2:   border: 1px solid var(--border-color);
- 3:   border-radius: var(--radius);
- 4:   background-color: var(--card-background);
- 5:   color: var(--text-primary);
- 6:   transition: border-color 0.2s ease, box-shadow 0.2s ease;
- 7: }
- 8: 
- 9: .card:hover {
-10:   border-color: var(--accent-color);
-11:   box-shadow: var(--shadow-sm);
-12: }
-13: 
-14: .cardSelected {
-15:   border-color: var(--accent-color);
-16:   box-shadow: var(--shadow-md);
-17: }
-18: 
-19: .cardInteractive {
-20:   cursor: pointer;
-21: }
-22: 
-23: .cardInteractive:hover {
-24:   box-shadow: var(--shadow-md);
-25: }
-26: 
-27: .cardHeader {
-28:   display: flex;
-29:   align-items: center;
-30:   justify-content: space-between;
-31:   padding: 12px 16px;
-32:   border-bottom: 1px solid var(--border-color);
-33: }
-34: 
-35: .cardTitle {
-36:   font-weight: 600;
-37:   font-size: 16px;
-38:   margin: 0;
-39:   color: var(--text-primary);
-40: }
-41: 
-42: .cardDescription {
-43:   color: var(--text-secondary);
-44:   font-size: 14px;
-45:   margin-top: 4px;
-46: }
-47: 
-48: .cardContent {
-49:   padding: 16px;
-50: }
-51: 
-52: .cardFooter {
-53:   display: flex;
-54:   align-items: center;
-55:   justify-content: flex-end;
-56:   padding: 12px 16px;
-57:   border-top: 1px solid var(--border-color);
-58: }
-```
-
-## File: src/components/ui/Dropdown/DropdownDemo.tsx
-```typescript
- 1: import React, { useState } from 'react';
- 2: import { Dropdown, DropdownOption } from './';
- 3: import { FileIcon, FolderIcon, SettingsIcon } from 'lucide-react';
- 4: 
- 5: const demoOptions: DropdownOption[] = [
- 6:   { value: 'file', label: 'New File', icon: <FileIcon size={16} /> },
- 7:   { value: 'folder', label: 'New Folder', icon: <FolderIcon size={16} /> },
- 8:   { value: 'settings', label: 'Settings', icon: <SettingsIcon size={16} /> },
- 9:   { value: 'disabled', label: 'Disabled Option', disabled: true },
-10: ];
-11: 
-12: export const DropdownDemo: React.FC = () => {
-13:   const [singleValue, setSingleValue] = useState<string>();
-14:   const [multiValue, setMultiValue] = useState<string[]>([]);
-15: 
-16:   // Properly typed onChange handlers
-17:   const handleSingleChange = (value: string | string[]) => {
-18:     if (typeof value === 'string') {
-19:       setSingleValue(value);
-20:     }
-21:   };
-22: 
-23:   const handleMultiChange = (value: string | string[]) => {
-24:     if (Array.isArray(value)) {
-25:       setMultiValue(value);
-26:     }
-27:   };
-28: 
-29:   const noopHandler = (_value: string | string[]) => {
-30:     // No operation
-31:   };
-32: 
-33:   return (
-34:     <div className="space-y-4 p-4">
-35:       <div>
-36:         <h3 className="mb-2 text-sm font-medium">Single Select</h3>
-37:         <Dropdown
-38:           options={demoOptions}
-39:           value={singleValue}
-40:           onChange={handleSingleChange}
-41:           placeholder="Select an action"
-42:         />
-43:       </div>
-44: 
-45:       <div>
-46:         <h3 className="mb-2 text-sm font-medium">Multi Select</h3>
-47:         <Dropdown
-48:           options={demoOptions}
-49:           value={multiValue}
-50:           onChange={handleMultiChange}
-51:           placeholder="Select actions"
-52:           multiple
-53:         />
-54:       </div>
-55: 
-56:       <div>
-57:         <h3 className="mb-2 text-sm font-medium">Size Variants</h3>
-58:         <div className="space-y-2">
-59:           <Dropdown
-60:             options={demoOptions}
-61:             placeholder="Small Dropdown"
-62:             size="sm"
-63:             onChange={noopHandler}
-64:           />
-65:           <Dropdown
-66:             options={demoOptions}
-67:             placeholder="Medium Dropdown (default)"
-68:             size="md"
-69:             onChange={noopHandler}
-70:           />
-71:           <Dropdown
-72:             options={demoOptions}
-73:             placeholder="Large Dropdown"
-74:             size="lg"
-75:             onChange={noopHandler}
-76:           />
-77:         </div>
-78:       </div>
-79: 
-80:       <div>
-81:         <h3 className="mb-2 text-sm font-medium">Disabled State</h3>
-82:         <Dropdown
-83:           options={demoOptions}
-84:           placeholder="Disabled Dropdown"
-85:           disabled
-86:           onChange={noopHandler}
-87:         />
-88:       </div>
-89:     </div>
-90:   );
-91: };
-```
-
-## File: src/components/ui/Input/Input.module.css
-```css
- 1: .inputWrapper {
- 2:   position: relative;
- 3:   display: flex;
- 4:   width: 100%;
- 5: }
- 6: 
- 7: .input {
- 8:   width: 100%;
- 9:   height: var(--button-height-md);
-10:   padding: 0 12px;
-11:   border: 1px solid var(--border-color);
-12:   border-radius: var(--radius);
-13:   font-family: inherit;
-14:   font-size: 14px;
-15:   outline: none;
-16:   background-color: var(--background-primary);
-17:   color: var(--text-primary);
-18:   transition: all 0.2s ease;
-19: }
-20: 
-21: .input:hover:not(:disabled) {
-22:   border-color: var(--text-secondary);
-23: }
-24: 
-25: .input:focus {
-26:   outline: none;
-27:   border-color: var(--ring-color);
-28:   box-shadow: 0 0 0 2px var(--background-primary),
-29:               0 0 0 4px var(--ring-color);
-30: }
-31: 
-32: .input:disabled {
-33:   opacity: 0.5;
-34:   cursor: not-allowed;
-35:   background-color: var(--background-secondary);
-36: }
-37: 
-38: .withStartIcon {
-39:   padding-left: 36px;
-40: }
-41: 
-42: .withEndIcon {
-43:   padding-right: 36px;
-44: }
-45: 
-46: .startIcon,
-47: .endIcon {
-48:   position: absolute;
-49:   top: 50%;
-50:   transform: translateY(-50%);
-51:   color: var(--text-secondary);
-52:   display: flex;
-53:   align-items: center;
-54:   justify-content: center;
-55:   pointer-events: none;
-56:   width: 36px;
-57: }
-58: 
-59: .startIcon {
-60:   left: 0;
-61: }
-62: 
-63: .endIcon {
-64:   right: 0;
-65: }
-66: 
-67: .inputError {
-68:   border-color: var(--error-color);
-69: }
-70: 
-71: .inputError:focus {
-72:   border-color: var(--error-color);
-73:   box-shadow: 0 0 0 2px var(--background-primary),
-74:               0 0 0 4px var(--error-color);
-75: }
-76: 
-77: /* Search input specific styles */
-78: .searchInput {
-79:   padding-left: 36px;
-80:   background-color: var(--background-secondary);
-81:   border-color: transparent;
-82: }
-83: 
-84: .searchInput:focus {
-85:   background-color: var(--background-primary);
-86:   border-color: var(--ring-color);
-87: }
-```
-
-## File: src/components/ui/Input/Input.tsx
-```typescript
- 1: import React from 'react';
- 2: import { cn } from '../../../utils/cn';
- 3: import styles from './Input.module.css';
- 4: 
- 5: export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
- 6:   /**
- 7:    * Shows error styling
- 8:    */
- 9:   error?: boolean;
-10:   
-11:   /**
-12:    * Icon to display at the start of the input
-13:    */
-14:   startIcon?: React.ReactNode;
-15:   
-16:   /**
-17:    * Icon to display at the end of the input
-18:    */
-19:   endIcon?: React.ReactNode;
-20:   
-21:   /**
-22:    * Applies search input styling
-23:    */
-24:   isSearchInput?: boolean;
-25: }
-26: 
-27: /**
-28:  * Input component for text entry
-29:  */
-30: export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-31:   ({ className, error, startIcon, endIcon, isSearchInput, ...props }, ref) => {
-32:     return (
-33:       <div className={styles.inputWrapper}>
-34:         {startIcon && <div className={styles.startIcon}>{startIcon}</div>}
-35:         <input
-36:           className={cn(
-37:             styles.input,
-38:             startIcon ? styles.withStartIcon : null,
-39:             endIcon ? styles.withEndIcon : null,
-40:             isSearchInput ? styles.searchInput : null,
-41:             error ? styles.inputError : null,
-42:             className
-43:           )}
-44:           ref={ref}
-45:           {...props}
-46:         />
-47:         {endIcon && <div className={styles.endIcon}>{endIcon}</div>}
-48:       </div>
-49:     );
-50:   }
-51: );
-52: 
-53: Input.displayName = 'Input';
-```
-
-## File: src/components/FileList.module.css
-```css
- 1: .fileListContainer {
- 2:   flex: 1;
- 3:   overflow: hidden;
- 4:   display: flex;
- 5:   flex-direction: column;
- 6: }
- 7: 
- 8: .fileList {
- 9:   flex: 1;
-10:   overflow-y: auto;
-11:   padding: 1.25rem;
-12:   display: grid;
-13:   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-14:   grid-auto-rows: max-content;
-15:   align-content: start;
-16:   gap: 1rem;
-17:   background-color: var(--background-primary);
-18: }
-19: 
-20: /* Specific scrollbar styling for file list */
-21: .fileList::-webkit-scrollbar-track {
-22:   background-color: var(--scrollbar-track-color);
-23: }
-24: 
-25: .fileList::-webkit-scrollbar-thumb {
-26:   background-color: var(--scrollbar-thumb-color);
-27:   border-radius: var(--radius-full);
-28: }
-29: 
-30: .fileList::-webkit-scrollbar-thumb:hover {
-31:   background-color: var(--scrollbar-thumb-hover-color);
-32: }
-33: 
-34: .fileListEmpty {
-35:   display: flex;
-36:   align-items: center;
-37:   justify-content: center;
-38:   height: 100%;
-39:   color: var(--text-secondary);
-40:   font-size: 16px;
-41:   padding: 32px;
-42:   text-align: center;
-43: }
-```
-
-## File: src/components/FileList.tsx
-```typescript
- 1: import React from "react";
- 2: import { FileListProps, FileData } from "../types/FileTypes";
- 3: import FileCard from "./FileCard";
- 4: import { arePathsEqual } from "../utils/pathUtils";
- 5: import styles from "./FileList.module.css";
- 6: 
- 7: const FileList = ({
- 8:   files,
- 9:   selectedFiles,
-10:   toggleFileSelection,
-11: }: FileListProps) => {
-12:   // Only show files that are in the selectedFiles array and not binary/skipped
-13:   const displayableFiles = files.filter(
-14:     (file: FileData) =>
-15:       selectedFiles.some(selectedPath => arePathsEqual(selectedPath, file.path)) && 
-16:       !file.isBinary && 
-17:       !file.isSkipped,
-18:   );
-19: 
-20:   // Find the maximum token count for relative scaling
-21:   const maxTokenCount = displayableFiles.length > 0
-22:     ? Math.max(...displayableFiles.map(file => file.tokenCount))
-23:     : 5000; // Default if no files
-24: 
-25:   return (
-26:     <div className={styles.fileListContainer}>
-27:       {displayableFiles.length > 0 ? (
-28:         <div className={styles.fileList}>
-29:           {displayableFiles.map((file) => (
-30:             <FileCard
-31:               key={file.path}
-32:               file={file}
-33:               isSelected={true} // Always true since we're already filtering for selected files
-34:               toggleSelection={toggleFileSelection}
-35:               maxTokenCount={maxTokenCount}
-36:             />
-37:           ))}
-38:         </div>
-39:       ) : (
-40:         <div className={styles.fileListEmpty}>
-41:           No files selected. Select files from the sidebar to see them here.
-42:         </div>
-43:       )}
-44:     </div>
-45:   );
-46: };
-47: 
-48: export default FileList;
-```
-
-## File: src/components/ThemeToggle.module.css
-```css
- 1: .themeSegmentedControl {
- 2:   display: flex;
- 3:   background-color: var(--background-secondary);
- 4:   border-radius: 9999px;
- 5:   padding: 2px;
- 6:   width: fit-content;
- 7:   position: relative;
- 8:   height: 28px;
- 9:   border: 1px solid hsla(240, 5.9%, 90%, 0.3);
-10:   gap: 1px;
-11:   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-12:   overflow: hidden;
-13: }
-14: 
-15: .themeSegmentsBackground {
-16:   position: absolute;
-17:   top: 2px;
-18:   left: 2px;
-19:   width: calc(33.33% - 2px);
-20:   height: calc(100% - 4px);
-21:   background-color: var(--background-primary);
-22:   border-radius: 9999px;
-23:   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
-24:   z-index: 0;
-25:   transform: translateX(0);
-26: }
-27: 
-28: .themeSegmentsBackground.animated {
-29:   transition-property: transform, box-shadow;
-30: }
-31: 
-32: .themeSegmentsBackground.light {
-33:   transform: translateX(0);
-34: }
-35: 
-36: .themeSegmentsBackground.dark {
-37:   transform: translateX(100%);
-38: }
-39: 
-40: .themeSegmentsBackground.system {
-41:   transform: translateX(200%);
-42: }
-43: 
-44: .themeSegment {
-45:   display: flex;
-46:   align-items: center;
-47:   justify-content: center;
-48:   width: 28px;
-49:   height: 24px;
-50:   border: none;
-51:   background: none;
-52:   color: var(--text-secondary);
-53:   position: relative;
-54:   z-index: 1;
-55:   transition: color 0.2s ease;
-56:   border-radius: 9999px;
-57:   cursor: pointer;
-58:   padding: 0;
-59: }
-60: 
-61: .themeSegment:hover {
-62:   color: var(--text-primary);
-63:   background: none;
-64: }
-65: 
-66: .themeSegment:focus {
-67:   outline: none;
-68:   box-shadow: none;
-69: }
-70: 
-71: .themeSegment:focus-visible {
-72:   outline: none;
-73:   box-shadow: 0 0 0 1px var(--accent-color);
-74: }
-75: 
-76: .themeSegment.active {
-77:   color: var(--text-primary);
-78: }
-79: 
-80: /* Dark mode adjustments */
-81: :global(.dark-mode) .themeSegmentedControl {
-82:   border-color: hsla(240, 3.7%, 25%, 0.3);
-83:   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-84: }
-85: 
-86: :global(.dark-mode) .themeSegmentsBackground {
-87:   background-color: var(--background-selected);
-88:   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
-89: }
-```
-
-## File: src/components/UserInstructions.module.css
-```css
- 1: .userInstructionsContainer {
- 2:   padding: 1rem 0.75rem 0.75rem 0.75rem;
- 3:   display: flex;
- 4:   flex-direction: column;
- 5:   background-color: var(--instructions-background);
- 6:   border-bottom: 1px solid var(--instructions-border);
- 7:   border-top: 1px solid var(--instructions-border);
- 8:   margin: 0.5rem 1rem;
- 9:   border-radius: var(--radius);
-10:   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-11: }
-12: 
-13: .userInstructions {
-14:   display: flex;
-15:   flex-direction: column;
-16: }
-17: 
-18: .textarea {
-19:   width: 100%;
-20:   resize: vertical;
-21:   padding: 1rem;
-22:   border: 1px solid var(--border-color);
-23:   border-radius: var(--radius);
-24:   font-family: inherit;
-25:   font-size: 1rem;
-26:   background-color: var(--card-background);
-27:   color: var(--text-primary);
-28:   min-height: 100px;
-29:   line-height: 1.5;
-30:   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-31:   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-32: }
-33: 
-34: .textarea:focus {
-35:   outline: none;
-36:   border-color: var(--accent-color);
-37:   box-shadow: 0 0 0 1px var(--accent-color);
-38: }
-39: 
-40: .userInstructionsHeader {
-41:   display: flex;
-42:   justify-content: space-between;
-43:   align-items: center;
-44:   padding: 0.75rem 1rem;
-45:   margin-bottom: 0.5rem;
-46:   background-color: var(--instructions-background);
-47:   font-weight: 500;
-48: }
-```
-
-## File: src/components/UserInstructions.tsx
-```typescript
- 1: import React from "react";
- 2: import styles from "./UserInstructions.module.css";
- 3: 
- 4: interface UserInstructionsProps {
- 5:   instructions: string;
- 6:   setInstructions: (value: string) => void;
- 7: }
- 8: 
- 9: const UserInstructions = ({
-10:   instructions,
-11:   setInstructions,
-12: }: UserInstructionsProps): JSX.Element => {
-13:   return (
-14:     <>
-15:       <div className={styles.userInstructionsHeader}>
-16:         <label className="content-title" htmlFor="userInstructionsInput">
-17:           User Instructions
-18:         </label>
-19:       </div>
-20:       <div className={styles.userInstructionsContainer}>
-21:         <div className={styles.userInstructions}>
-22:           <textarea
-23:             id="userInstructionsInput"
-24:             value={instructions}
-25:             onChange={(e) => setInstructions(e.target.value)}
-26:             placeholder="Add instructions to pass to the LLM about how to transform the content..."
-27:             className={styles.textarea}
-28:           />
-29:         </div>
-30:       </div>
-31:     </>
-32:   );
-33: };
-34: 
-35: export default UserInstructions;
-```
-
-## File: src/hooks/useTheme.ts
-```typescript
- 1: import { useContext } from "react";
- 2: import { ThemeContext } from "../context/ThemeContextType";
- 3: 
- 4: export const useTheme = () => {
- 5:   const context = useContext(ThemeContext);
- 6:   if (context === undefined) {
- 7:     throw new Error("useTheme must be used within a ThemeProvider");
- 8:   }
- 9:   return context;
-10: };
 ```
 
 ## File: src/utils/pathUtils.ts
@@ -2852,6 +1330,1136 @@ src/
 271: }
 ```
 
+## File: src/utils/sortIcons.tsx
+```typescript
+ 1: import React from 'react';
+ 2: import type { LucideIcon } from 'lucide-react';
+ 3: import { 
+ 4:   ArrowUpDown,        // Default icon
+ 5:   ArrowDownAZ,        // For name-ascending
+ 6:   ArrowUpZA,          // For name-descending
+ 7:   ArrowUp01,          // For tokens-ascending
+ 8:   ArrowDown10,        // For tokens-descending
+ 9:   ArrowUpNarrowWide,  // For date-ascending
+10:   ArrowDownWideNarrow // For date-descending
+11: } from "lucide-react";
+12: 
+13: // Map sort options to corresponding Lucide icons
+14: export const sortIconMap = {
+15:   "name-ascending": "ArrowDownAZ",
+16:   "name-descending": "ArrowUpZA",
+17:   "tokens-ascending": "ArrowUp01",
+18:   "tokens-descending": "ArrowDown10",
+19:   "date-ascending": "ArrowUpNarrowWide",
+20:   "date-descending": "ArrowDownWideNarrow"
+21: } as const;
+22: 
+23: // Icon component lookup for direct reference
+24: export const iconComponents: Record<string, LucideIcon> = {
+25:   "ArrowDownAZ": ArrowDownAZ,
+26:   "ArrowUpZA": ArrowUpZA,
+27:   "ArrowUp01": ArrowUp01,
+28:   "ArrowDown10": ArrowDown10,
+29:   "ArrowUpNarrowWide": ArrowUpNarrowWide,
+30:   "ArrowDownWideNarrow": ArrowDownWideNarrow,
+31:   "ArrowUpDown": ArrowUpDown  // Default
+32: };
+33: 
+34: // Helper function to get the appropriate icon component
+35: export const getSortIcon = (sortOrder?: string, size: number = 16): JSX.Element => {
+36:   try {
+37:     const iconName = sortOrder && sortIconMap[sortOrder as keyof typeof sortIconMap] 
+38:       ? sortIconMap[sortOrder as keyof typeof sortIconMap] 
+39:       : "ArrowUpDown";
+40:     
+41:     const IconComponent = iconComponents[iconName];
+42:     return <IconComponent size={size} />;
+43:   } catch (error) {
+44:     console.error("Error rendering sort icon:", error);
+45:     return <ArrowUpDown size={size} />;
+46:   }
+47: };
+```
+
+## File: src/components/__tests__/IgnorePatterns.test.tsx
+```typescript
+  1: import React from 'react';
+  2: import { render, screen, fireEvent } from '@testing-library/react';
+  3: import '@testing-library/jest-dom';
+  4: import IgnorePatterns from '../IgnorePatterns';
+  5: 
+  6: describe('IgnorePatterns Component', () => {
+  7:   const defaultProps = {
+  8:     isOpen: true,
+  9:     onClose: jest.fn(),
+ 10:     globalPatternsState: {
+ 11:       patterns: '',
+ 12:       excludedSystemPatterns: []
+ 13:     },
+ 14:     localPatternsState: {
+ 15:       patterns: '',
+ 16:       excludedSystemPatterns: []
+ 17:     },
+ 18:     systemIgnorePatterns: ['**/.git/**', '**/node_modules/**'],
+ 19:     recentFolders: ['/test/folder1', '/test/folder2'],
+ 20:     saveIgnorePatterns: jest.fn(),
+ 21:     resetIgnorePatterns: jest.fn(),
+ 22:     clearIgnorePatterns: jest.fn(),
+ 23:     onExcludedSystemPatternsChange: jest.fn(),
+ 24:   };
+ 25: 
+ 26:   beforeEach(() => {
+ 27:     jest.clearAllMocks();
+ 28:   });
+ 29: 
+ 30:   describe('Controlled Mode Tests', () => {
+ 31:     it('initializes with provided excluded patterns', () => {
+ 32:       render(
+ 33:         <IgnorePatterns
+ 34:           {...defaultProps}
+ 35:           globalPatternsState={{
+ 36:             patterns: '',
+ 37:             excludedSystemPatterns: ['**/.git/**']
+ 38:           }}
+ 39:         />
+ 40:       );
+ 41: 
+ 42:       const gitSwitch = screen.getByLabelText('**/.git/**');
+ 43:       const nodeModulesSwitch = screen.getByLabelText('**/node_modules/**');
+ 44: 
+ 45:       expect(gitSwitch).not.toBeChecked();
+ 46:       expect(nodeModulesSwitch).toBeChecked();
+ 47:     });
+ 48: 
+ 49:     it('syncs state with parent on pattern toggle', () => {
+ 50:       render(
+ 51:         <IgnorePatterns
+ 52:           {...defaultProps}
+ 53:           globalPatternsState={{
+ 54:             patterns: '',
+ 55:             excludedSystemPatterns: []
+ 56:           }}
+ 57:         />
+ 58:       );
+ 59: 
+ 60:       const nodeModulesPattern = screen.getByText('**/node_modules/**');
+ 61:       const toggleButton = nodeModulesPattern.closest('div')?.querySelector('button');
+ 62:       
+ 63:       if (!toggleButton) {
+ 64:         throw new Error('Toggle button not found');
+ 65:       }
+ 66: 
+ 67:       fireEvent.click(toggleButton);
+ 68:       expect(defaultProps.onExcludedSystemPatternsChange).toHaveBeenCalledWith(['**/node_modules/**']);
+ 69:     });
+ 70: 
+ 71:     it('syncs state with parent on modal close', () => {
+ 72:       render(
+ 73:         <IgnorePatterns
+ 74:           {...defaultProps}
+ 75:           globalPatternsState={{
+ 76:             patterns: '',
+ 77:             excludedSystemPatterns: []
+ 78:           }}
+ 79:         />
+ 80:       );
+ 81: 
+ 82:       const closeButton = screen.getByLabelText('Close');
+ 83:       fireEvent.click(closeButton);
+ 84: 
+ 85:       expect(defaultProps.onClose).toHaveBeenCalled();
+ 86:     });
+ 87:   });
+ 88: 
+ 89:   describe('Uncontrolled Mode Tests', () => {
+ 90:     it('works with only excludedSystemPatterns (no setter)', () => {
+ 91:       render(
+ 92:         <IgnorePatterns
+ 93:           {...defaultProps}
+ 94:           globalPatternsState={{
+ 95:             patterns: '',
+ 96:             excludedSystemPatterns: ['**/.git/**']
+ 97:           }}
+ 98:         />
+ 99:       );
+100: 
+101:       const nodeModulesPattern = screen.getByText('**/node_modules/**');
+102:       const toggleButton = nodeModulesPattern.closest('div')?.querySelector('button');
+103:       
+104:       if (!toggleButton) {
+105:         throw new Error('Toggle button not found');
+106:       }
+107: 
+108:       fireEvent.click(toggleButton);
+109:       expect(defaultProps.saveIgnorePatterns).not.toHaveBeenCalled();
+110:     });
+111: 
+112:     it('works with neither prop', () => {
+113:       render(<IgnorePatterns {...defaultProps} />);
+114: 
+115:       const nodeModulesPattern = screen.getByText('**/node_modules/**');
+116:       const toggleButton = nodeModulesPattern.closest('div')?.querySelector('button');
+117:       
+118:       if (!toggleButton) {
+119:         throw new Error('Toggle button not found');
+120:       }
+121: 
+122:       fireEvent.click(toggleButton);
+123:       expect(defaultProps.saveIgnorePatterns).not.toHaveBeenCalled();
+124:     });
+125:   });
+126: 
+127:   describe('Pattern Management Tests', () => {
+128:     it('saves global patterns correctly', async () => {
+129:       render(<IgnorePatterns {...defaultProps} />);
+130: 
+131:       const saveButton = screen.getByText('Save');
+132:       fireEvent.click(saveButton);
+133: 
+134:       expect(defaultProps.saveIgnorePatterns).toHaveBeenCalledWith('', true);
+135:     });
+136: 
+137:     it('handles keyboard shortcuts', () => {
+138:       render(<IgnorePatterns {...defaultProps} />);
+139: 
+140:       fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+141:       expect(defaultProps.saveIgnorePatterns).toHaveBeenCalled();
+142:     });
+143:   });
+144: 
+145:   describe('UI Interaction Tests', () => {
+146:     it('toggles pattern categories', () => {
+147:       render(<IgnorePatterns {...defaultProps} />);
+148: 
+149:       const categoryHeader = screen.getByText('Version Control').closest('div');
+150:       
+151:       if (!categoryHeader) {
+152:         throw new Error('Category header not found');
+153:       }
+154: 
+155:       fireEvent.click(categoryHeader);
+156:       expect(categoryHeader.parentElement).not.toHaveClass('categoryExpanded');
+157: 
+158:       fireEvent.click(categoryHeader);
+159:       expect(categoryHeader.parentElement).toHaveClass('categoryExpanded');
+160:     });
+161: 
+162:     it('switches between global and local tabs', () => {
+163:       render(<IgnorePatterns {...defaultProps} />);
+164: 
+165:       const localTab = screen.getByText('Local');
+166:       fireEvent.click(localTab);
+167: 
+168:       expect(screen.getByLabelText('Folder select')).toBeInTheDocument();
+169:     });
+170:   });
+171: });
+```
+
+## File: src/components/ui/Card/Card.module.css
+```css
+ 1: .card {
+ 2:   border: 1px solid var(--border-color);
+ 3:   border-radius: var(--radius);
+ 4:   background-color: var(--card-background);
+ 5:   color: var(--text-primary);
+ 6:   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+ 7: }
+ 8: 
+ 9: .card:hover {
+10:   border-color: var(--accent-color);
+11:   box-shadow: var(--shadow-sm);
+12: }
+13: 
+14: .cardSelected {
+15:   border-color: var(--accent-color);
+16:   box-shadow: var(--shadow-md);
+17: }
+18: 
+19: .cardInteractive {
+20:   cursor: pointer;
+21: }
+22: 
+23: .cardInteractive:hover {
+24:   box-shadow: var(--shadow-md);
+25: }
+26: 
+27: .cardHeader {
+28:   display: flex;
+29:   align-items: center;
+30:   justify-content: space-between;
+31:   padding: 12px 16px;
+32:   border-bottom: 1px solid var(--border-color);
+33: }
+34: 
+35: .cardTitle {
+36:   font-weight: 600;
+37:   font-size: 16px;
+38:   margin: 0;
+39:   color: var(--text-primary);
+40: }
+41: 
+42: .cardDescription {
+43:   color: var(--text-secondary);
+44:   font-size: 14px;
+45:   margin-top: 4px;
+46: }
+47: 
+48: .cardContent {
+49:   padding: 16px;
+50: }
+51: 
+52: .cardFooter {
+53:   display: flex;
+54:   align-items: center;
+55:   justify-content: flex-end;
+56:   padding: 12px 16px;
+57:   border-top: 1px solid var(--border-color);
+58: }
+```
+
+## File: src/components/ui/Dialog/Dialog.module.css
+```css
+  1: .backdrop {
+  2:   position: fixed;
+  3:   top: 0;
+  4:   left: 0;
+  5:   right: 0;
+  6:   bottom: 0;
+  7:   background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  8:   display: flex;
+  9:   justify-content: center;
+ 10:   align-items: center;
+ 11:   z-index: var(--z-index-modal, 50);
+ 12:   backdrop-filter: blur(4px); /* Background blur */
+ 13:   animation: fadeIn 0.15s ease-out;
+ 14: }
+ 15: 
+ 16: .dialog { /* Style the main dialog container */
+ 17:   background-color: var(--background-primary);
+ 18:   border: 1px solid var(--border-color); /* Added border */
+ 19:   border-radius: var(--radius-lg, 8px); /* Use variable or default */
+ 20:   box-shadow: var(--shadow-lg);
+ 21:   width: 90vw; /* Responsive width */
+ 22:   max-width: 500px; /* Default max-width (size 'md') */
+ 23:   max-height: 85vh;
+ 24:   display: flex; /* Use flexbox for layout */
+ 25:   flex-direction: column;
+ 26:   overflow: hidden; /* Prevent content overflow issues */
+ 27:   animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); /* Optional: entry animation */
+ 28: }
+ 29: 
+ 30: /* Remove fixed positioning and transform, rely on backdrop flexbox for centering */
+ 31: /* .dialogContent { ... } */
+ 32: 
+ 33: /* Size variants for .dialog */
+ 34: .sm {
+ 35:   max-width: 400px;
+ 36: }
+ 37: 
+ 38: .md {
+ 39:   max-width: 500px; /* Consistent with above */
+ 40: }
+ 41: 
+ 42: .lg {
+ 43:   max-width: 800px;
+ 44: }
+ 45: 
+ 46: .header {
+ 47:   display: flex;
+ 48:   justify-content: space-between;
+ 49:   align-items: center;
+ 50:   padding: 16px 20px;
+ 51:   border-bottom: 1px solid var(--border-color);
+ 52:   flex-shrink: 0; /* Prevent header from shrinking */
+ 53: }
+ 54: 
+ 55: .title {
+ 56:   margin: 0;
+ 57:   font-size: 18px;
+ 58:   font-weight: 600;
+ 59:   color: var(--text-primary);
+ 60:   line-height: 1.4;
+ 61: }
+ 62: 
+ 63: /* Removed .closeButton - handled by Button component */
+ 64: 
+ 65: .description {
+ 66:   padding: 12px 20px 0;
+ 67:   font-size: 14px;
+ 68:   color: var(--text-secondary);
+ 69:   line-height: 1.5;
+ 70:   flex-shrink: 0; /* Prevent shrinking */
+ 71: }
+ 72: 
+ 73: .content {
+ 74:   padding: 20px;
+ 75:   overflow-y: auto; /* Allow content to scroll if needed */
+ 76:   flex-grow: 1; /* Allow content to take available space */
+ 77: }
+ 78: 
+ 79: .footer {
+ 80:   display: flex;
+ 81:   justify-content: center; /* Center buttons */
+ 82:   align-items: center;
+ 83:   gap: 12px;
+ 84:   padding: 16px 20px;
+ 85:   border-top: 1px solid var(--border-color);
+ 86:   background-color: var(--background-secondary);
+ 87:   flex-shrink: 0; /* Prevent footer from shrinking */
+ 88: }
+ 89: 
+ 90: /* Animations */
+ 91: @keyframes fadeIn {
+ 92:   from { opacity: 0; }
+ 93:   to { opacity: 1; }
+ 94: }
+ 95: 
+ 96: @keyframes slideIn {
+ 97:   from {
+ 98:     opacity: 0;
+ 99:     transform: translateY(10px) scale(0.98);
+100:   }
+101:   to {
+102:     opacity: 1;
+103:     transform: translateY(0) scale(1);
+104:   }
+105: }
+```
+
+## File: src/components/ui/Dropdown/DropdownDemo.tsx
+```typescript
+ 1: import React, { useState } from 'react';
+ 2: import { Dropdown, DropdownOption } from './';
+ 3: import { FileIcon, FolderIcon, SettingsIcon } from 'lucide-react';
+ 4: 
+ 5: const demoOptions: DropdownOption[] = [
+ 6:   { value: 'file', label: 'New File', icon: <FileIcon size={16} /> },
+ 7:   { value: 'folder', label: 'New Folder', icon: <FolderIcon size={16} /> },
+ 8:   { value: 'settings', label: 'Settings', icon: <SettingsIcon size={16} /> },
+ 9:   { value: 'disabled', label: 'Disabled Option', disabled: true },
+10: ];
+11: 
+12: export const DropdownDemo: React.FC = () => {
+13:   const [singleValue, setSingleValue] = useState<string>();
+14:   const [multiValue, setMultiValue] = useState<string[]>([]);
+15: 
+16:   // Properly typed onChange handlers
+17:   const handleSingleChange = (value: string | string[]) => {
+18:     if (typeof value === 'string') {
+19:       setSingleValue(value);
+20:     }
+21:   };
+22: 
+23:   const handleMultiChange = (value: string | string[]) => {
+24:     if (Array.isArray(value)) {
+25:       setMultiValue(value);
+26:     }
+27:   };
+28: 
+29:   const noopHandler = (_value: string | string[]) => {
+30:     // No operation
+31:   };
+32: 
+33:   return (
+34:     <div className="space-y-4 p-4">
+35:       <div>
+36:         <h3 className="mb-2 text-sm font-medium">Single Select</h3>
+37:         <Dropdown
+38:           options={demoOptions}
+39:           value={singleValue}
+40:           onChange={handleSingleChange}
+41:           placeholder="Select an action"
+42:         />
+43:       </div>
+44: 
+45:       <div>
+46:         <h3 className="mb-2 text-sm font-medium">Multi Select</h3>
+47:         <Dropdown
+48:           options={demoOptions}
+49:           value={multiValue}
+50:           onChange={handleMultiChange}
+51:           placeholder="Select actions"
+52:           multiple
+53:         />
+54:       </div>
+55: 
+56:       <div>
+57:         <h3 className="mb-2 text-sm font-medium">Size Variants</h3>
+58:         <div className="space-y-2">
+59:           <Dropdown
+60:             options={demoOptions}
+61:             placeholder="Small Dropdown"
+62:             size="sm"
+63:             onChange={noopHandler}
+64:           />
+65:           <Dropdown
+66:             options={demoOptions}
+67:             placeholder="Medium Dropdown (default)"
+68:             size="md"
+69:             onChange={noopHandler}
+70:           />
+71:           <Dropdown
+72:             options={demoOptions}
+73:             placeholder="Large Dropdown"
+74:             size="lg"
+75:             onChange={noopHandler}
+76:           />
+77:         </div>
+78:       </div>
+79: 
+80:       <div>
+81:         <h3 className="mb-2 text-sm font-medium">Disabled State</h3>
+82:         <Dropdown
+83:           options={demoOptions}
+84:           placeholder="Disabled Dropdown"
+85:           disabled
+86:           onChange={noopHandler}
+87:         />
+88:       </div>
+89:     </div>
+90:   );
+91: };
+```
+
+## File: src/components/ui/Input/Input.module.css
+```css
+ 1: .inputWrapper {
+ 2:   position: relative;
+ 3:   display: flex;
+ 4:   width: 100%;
+ 5: }
+ 6: 
+ 7: .input {
+ 8:   width: 100%;
+ 9:   height: var(--button-height-md);
+10:   padding: 0 12px;
+11:   border: 1px solid var(--border-color);
+12:   border-radius: var(--radius);
+13:   font-family: inherit;
+14:   font-size: 14px;
+15:   outline: none;
+16:   background-color: var(--background-primary);
+17:   color: var(--text-primary);
+18:   transition: all 0.2s ease;
+19: }
+20: 
+21: .input:hover:not(:disabled) {
+22:   border-color: var(--text-secondary);
+23: }
+24: 
+25: .input:focus {
+26:   outline: none;
+27:   border-color: var(--ring-color);
+28:   box-shadow: 0 0 0 2px var(--background-primary),
+29:               0 0 0 4px var(--ring-color);
+30: }
+31: 
+32: .input:disabled {
+33:   opacity: 0.5;
+34:   cursor: not-allowed;
+35:   background-color: var(--background-secondary);
+36: }
+37: 
+38: .withStartIcon {
+39:   padding-left: 36px;
+40: }
+41: 
+42: .withEndIcon {
+43:   padding-right: 36px;
+44: }
+45: 
+46: .startIcon,
+47: .endIcon {
+48:   position: absolute;
+49:   top: 50%;
+50:   transform: translateY(-50%);
+51:   color: var(--text-secondary);
+52:   display: flex;
+53:   align-items: center;
+54:   justify-content: center;
+55:   pointer-events: none;
+56:   width: 36px;
+57: }
+58: 
+59: .startIcon {
+60:   left: 0;
+61: }
+62: 
+63: .endIcon {
+64:   right: 0;
+65: }
+66: 
+67: .inputError {
+68:   border-color: var(--error-color);
+69: }
+70: 
+71: .inputError:focus {
+72:   border-color: var(--error-color);
+73:   box-shadow: 0 0 0 2px var(--background-primary),
+74:               0 0 0 4px var(--error-color);
+75: }
+76: 
+77: /* Search input specific styles */
+78: .searchInput {
+79:   padding-left: 36px;
+80:   background-color: var(--background-secondary);
+81:   border-color: transparent;
+82: }
+83: 
+84: .searchInput:focus {
+85:   background-color: var(--background-primary);
+86:   border-color: var(--ring-color);
+87: }
+```
+
+## File: src/components/ui/Input/Input.tsx
+```typescript
+ 1: import React from 'react';
+ 2: import { cn } from '../../../utils/cn';
+ 3: import styles from './Input.module.css';
+ 4: 
+ 5: export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+ 6:   /**
+ 7:    * Shows error styling
+ 8:    */
+ 9:   error?: boolean;
+10:   
+11:   /**
+12:    * Icon to display at the start of the input
+13:    */
+14:   startIcon?: React.ReactNode;
+15:   
+16:   /**
+17:    * Icon to display at the end of the input
+18:    */
+19:   endIcon?: React.ReactNode;
+20:   
+21:   /**
+22:    * Applies search input styling
+23:    */
+24:   isSearchInput?: boolean;
+25: }
+26: 
+27: /**
+28:  * Input component for text entry
+29:  */
+30: export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+31:   ({ className, error, startIcon, endIcon, isSearchInput, ...props }, ref) => {
+32:     return (
+33:       <div className={styles.inputWrapper}>
+34:         {startIcon && <div className={styles.startIcon}>{startIcon}</div>}
+35:         <input
+36:           className={cn(
+37:             styles.input,
+38:             startIcon ? styles.withStartIcon : null,
+39:             endIcon ? styles.withEndIcon : null,
+40:             isSearchInput ? styles.searchInput : null,
+41:             error ? styles.inputError : null,
+42:             className
+43:           )}
+44:           ref={ref}
+45:           {...props}
+46:         />
+47:         {endIcon && <div className={styles.endIcon}>{endIcon}</div>}
+48:       </div>
+49:     );
+50:   }
+51: );
+52: 
+53: Input.displayName = 'Input';
+```
+
+## File: src/components/ui/StatusAlert/StatusAlert.module.css
+```css
+ 1: .alertContainer {
+ 2:     position: relative;
+ 3:     width: 100%;
+ 4:     padding: 0.5rem 1rem;
+ 5:     transition: opacity 200ms ease-out, transform 200ms ease-out;
+ 6:     display: flex;
+ 7:     align-items: center;
+ 8:     background-color: var(--background-secondary);
+ 9:     border-bottom: 1px solid var(--border);
+10:     margin-bottom: 0;
+11:     height: 36px;
+12:     overflow: hidden;
+13:   }
+14:   
+15:   .enter {
+16:     opacity: 1;
+17:     transform: translateY(0);
+18:   }
+19:   
+20:   .exit {
+21:     opacity: 0;
+22:     transform: translateY(-5px);
+23:   }
+24:   
+25:   .alertContent {
+26:     display: flex;
+27:     gap: 0.5rem;
+28:     width: 100%;
+29:     align-items: center;
+30:   }
+31:   
+32:   .messageContent {
+33:     flex: 1;
+34:     display: flex;
+35:     align-items: center;
+36:     gap: 0.5rem;
+37:     font-size: 14px;
+38:     font-family: monospace;
+39:   }
+40:   
+41:   .terminalPrefix {
+42:     font-family: 'Courier New', Courier, monospace;
+43:     color: var(--text-secondary);
+44:     margin-right: 0.25rem;
+45:   }
+46:   
+47:   .alertTitle {
+48:     font-weight: 500;
+49:     margin: 0;
+50:     font-size: 12px;
+51:   }
+52:   
+53:   .alertDescription {
+54:     font-size: 12px;
+55:     color: var(--text-secondary);
+56:     margin: 0;
+57:   }
+58:   
+59:   /* Status-specific styles */
+60:   .processing {
+61:     background-color: var(--background-secondary);
+62:   }
+63:   
+64:   .complete {
+65:     background-color: var(--background-secondary);
+66:   }
+67:   
+68:   .error {
+69:     background-color: var(--background-secondary);
+70:   }
+71:   
+72:   .closeButton {
+73:     background: transparent;
+74:     border: none;
+75:     cursor: pointer;
+76:     color: var(--text-secondary);
+77:     padding: 0;
+78:     margin-left: auto;
+79:     display: flex;
+80:     align-items: center;
+81:     justify-content: center;
+82:     height: 16px;
+83:     width: 16px;
+84:   }
+85:   
+86:   .closeButton:hover {
+87:     color: var(--text-primary);
+88:   }
+```
+
+## File: src/components/ui/StatusAlert/StatusAlert.tsx
+```typescript
+ 1: import React, { useState, useEffect } from 'react';
+ 2: import { Loader2, Check, AlertTriangle, X } from 'lucide-react';
+ 3: import styles from './StatusAlert.module.css';
+ 4: 
+ 5: // Core structure with TypeScript props
+ 6: interface StatusAlertProps {
+ 7:     status: "idle" | "processing" | "complete" | "error";
+ 8:     message: string;
+ 9:     autoDismissTime?: number; // in milliseconds, default for success/complete
+10:     onClose?: () => void;     // callback when dismissed
+11:   }
+12:   
+13:   const StatusAlert: React.FC<StatusAlertProps> = ({
+14:     status,
+15:     message,
+16:     autoDismissTime = 5000, // longer default than current 3000ms
+17:     onClose
+18:   }) => {
+19:     // States
+20:     const [isVisible, setIsVisible] = useState(status !== "idle");
+21:     const [isExiting, setIsExiting] = useState(false);
+22:     
+23:     // Icon mapping based on status
+24:     const statusIcons = {
+25:       processing: <Loader2 className="animate-spin" size={14} />,
+26:       complete: <Check size={14} />,
+27:       error: <AlertTriangle size={14} />,
+28:       idle: null
+29:     };
+30:     
+31:     // Style mapping based on status
+32:     const statusClasses = {
+33:       processing: styles.processing,
+34:       complete: styles.complete,
+35:       error: styles.error,
+36:       idle: ''
+37:     };
+38:     
+39:     // Auto-dismiss logic for successful operations
+40:     useEffect(() => {
+41:       if (status === "idle") {
+42:         handleExit();
+43:         return;
+44:       }
+45:       
+46:       setIsVisible(true);
+47:       setIsExiting(false);
+48:       
+49:       // Only auto-dismiss for complete status
+50:       if (status === "complete" && autoDismissTime) {
+51:         const timer = setTimeout(() => {
+52:           handleExit();
+53:         }, autoDismissTime);
+54:         
+55:         return () => clearTimeout(timer);
+56:       }
+57:     }, [status, message, autoDismissTime]);
+58:     
+59:     // Handle exit animation
+60:     const handleExit = () => {
+61:       setIsExiting(true);
+62:       // Wait for animation to complete
+63:       setTimeout(() => {
+64:         setIsVisible(false);
+65:         if (onClose) onClose();
+66:       }, 200); // Match transition duration
+67:     };
+68:     
+69:     if (!isVisible && status === "idle") return null;
+70:     
+71:     return (
+72:       <div
+73:         className={`${styles.alertContainer} ${isExiting ? styles.exit : styles.enter} ${statusClasses[status]}`}
+74:         role="alert"
+75:       >
+76:         <div className={styles.alertContent}>
+77:           <div className={styles.messageContent}>
+78:             <span className={styles.terminalPrefix}>&gt;_</span>
+79:             <div className={styles.alertDescription}>{message}</div>
+80:           </div>
+81:           {status === "error" && (
+82:             <button 
+83:               className={styles.closeButton} 
+84:               onClick={handleExit}
+85:               aria-label="Close"
+86:             >
+87:               <X size={14} />
+88:             </button>
+89:           )}
+90:         </div>
+91:       </div>
+92:     );
+93:   };
+94: 
+95: export default StatusAlert;
+```
+
+## File: src/components/ui/ConfirmationDialog.tsx
+```typescript
+ 1: import React from 'react';
+ 2: import { Dialog } from './Dialog'; // Use the updated Dialog
+ 3: import { Button } from './Button';
+ 4: import styles from './Dialog/Dialog.module.css'; // Can use styles if needed, but footer handles centering
+ 5: 
+ 6: interface ConfirmationDialogProps {
+ 7:   isOpen: boolean;
+ 8:   onClose: () => void;
+ 9:   onConfirm: () => void;
+10:   title: string;
+11:   description: string;
+12:   confirmLabel?: string;
+13:   cancelLabel?: string;
+14:   variant?: 'default' | 'destructive'; // Semantic variant for the dialog itself
+15: }
+16: 
+17: export function ConfirmationDialog({
+18:   isOpen,
+19:   onClose,
+20:   onConfirm,
+21:   title,
+22:   description,
+23:   confirmLabel = 'Confirm',
+24:   cancelLabel = 'Cancel',
+25:   variant = 'default' // This prop influences the overall dialog but not buttons directly here
+26: }: ConfirmationDialogProps) {
+27:   const handleConfirm = () => {
+28:     onConfirm();
+29:     onClose(); // Typically close after confirm
+30:   };
+31: 
+32:   return (
+33:     <Dialog
+34:       isOpen={isOpen}
+35:       onClose={onClose}
+36:       title={title}
+37:       description={description}
+38:       size="sm" // Keep it small for confirmations
+39:       footer={ // Pass buttons as the footer content
+40:         <>
+41:           <Button
+42:             variant="ghost" // Standard cancel button
+43:             size="sm"
+44:             onClick={onClose}
+45:           >
+46:             {cancelLabel}
+47:           </Button>
+48:           <Button
+49:             variant="primary" // Standard confirm button (not destructive red)
+50:             size="sm"
+51:             onClick={handleConfirm}
+52:           >
+53:             {confirmLabel}
+54:           </Button>
+55:         </>
+56:       }
+57:     >
+58:       {/* No children needed if description covers the content */}
+59:       {/* If there was more complex content, it would go here */}
+60:       <div style={{ minHeight: '20px' }}></div> {/* Add some minimal height if description is short */}
+61:     </Dialog>
+62:   );
+63: }
+```
+
+## File: src/components/FileList.module.css
+```css
+ 1: .fileListContainer {
+ 2:   flex: 1;
+ 3:   overflow: hidden;
+ 4:   display: flex;
+ 5:   flex-direction: column;
+ 6: }
+ 7: 
+ 8: .fileList {
+ 9:   flex: 1;
+10:   overflow-y: auto;
+11:   padding: 1.25rem;
+12:   display: grid;
+13:   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+14:   grid-auto-rows: max-content;
+15:   align-content: start;
+16:   gap: 1rem;
+17:   background-color: var(--background-primary);
+18: }
+19: 
+20: /* Specific scrollbar styling for file list */
+21: .fileList::-webkit-scrollbar-track {
+22:   background-color: var(--scrollbar-track-color);
+23: }
+24: 
+25: .fileList::-webkit-scrollbar-thumb {
+26:   background-color: var(--scrollbar-thumb-color);
+27:   border-radius: var(--radius-full);
+28: }
+29: 
+30: .fileList::-webkit-scrollbar-thumb:hover {
+31:   background-color: var(--scrollbar-thumb-hover-color);
+32: }
+33: 
+34: .fileListEmpty {
+35:   display: flex;
+36:   align-items: center;
+37:   justify-content: center;
+38:   height: 100%;
+39:   color: var(--text-secondary);
+40:   font-size: 16px;
+41:   padding: 32px;
+42:   text-align: center;
+43: }
+```
+
+## File: src/components/FileList.tsx
+```typescript
+ 1: import React, { useState, useEffect } from "react";
+ 2: import { FileListProps, FileData } from "../types/FileTypes";
+ 3: import FileCard from "./FileCard";
+ 4: import { arePathsEqual } from "../utils/pathUtils";
+ 5: import styles from "./FileList.module.css";
+ 6: 
+ 7: const FileList = ({
+ 8:   files,
+ 9:   selectedFiles,
+10:   toggleFileSelection,
+11: }: FileListProps) => {
+12:   const [fileContents, setFileContents] = useState<Record<string, string>>({});
+13: 
+14:   // Only show files that are in the selectedFiles array and not binary/skipped
+15:   const displayableFiles = files.filter(
+16:     (file: FileData) =>
+17:       selectedFiles.some(selectedPath => arePathsEqual(selectedPath, file.path)) && 
+18:       !file.isBinary && 
+19:       !file.isSkipped,
+20:   );
+21: 
+22:   // Find the maximum token count for relative scaling
+23:   const maxTokenCount = displayableFiles.length > 0
+24:     ? Math.max(...displayableFiles.map(file => file.tokenCount))
+25:     : 5000; // Default if no files
+26: 
+27:   // Fetch file contents when needed
+28:   useEffect(() => {
+29:     const fetchContents = async () => {
+30:       const newContents: Record<string, string> = {};
+31:       for (const file of displayableFiles) {
+32:         if (!fileContents[file.path]) {
+33:           try {
+34:             const content = await window.electron.ipcRenderer.invoke("read-file", file.path);
+35:             newContents[file.path] = content;
+36:           } catch (error) {
+37:             console.error(`Error reading file ${file.path}:`, error);
+38:             newContents[file.path] = "Error loading file content";
+39:           }
+40:         }
+41:       }
+42:       if (Object.keys(newContents).length > 0) {
+43:         setFileContents(prev => ({ ...prev, ...newContents }));
+44:       }
+45:     };
+46: 
+47:     fetchContents();
+48:   }, [displayableFiles, fileContents]);
+49: 
+50:   return (
+51:     <div className={styles.fileListContainer}>
+52:       {displayableFiles.length > 0 ? (
+53:         <div className={styles.fileList}>
+54:           {displayableFiles.map((file) => (
+55:             <FileCard
+56:               key={file.path}
+57:               file={{
+58:                 ...file,
+59:                 content: fileContents[file.path] || "Loading..."
+60:               }}
+61:               isSelected={true} // Always true since we're already filtering for selected files
+62:               toggleSelection={toggleFileSelection}
+63:               maxTokenCount={maxTokenCount}
+64:             />
+65:           ))}
+66:         </div>
+67:       ) : (
+68:         <div className={styles.fileListEmpty}>
+69:           No files selected. Select files from the sidebar to see them here.
+70:         </div>
+71:       )}
+72:     </div>
+73:   );
+74: };
+75: 
+76: export default FileList;
+```
+
+## File: src/components/UserInstructions.module.css
+```css
+ 1: .userInstructionsContainer {
+ 2:   padding: 1rem 0.75rem 0.75rem 0.75rem;
+ 3:   display: flex;
+ 4:   flex-direction: column;
+ 5:   background-color: var(--instructions-background);
+ 6:   border-bottom: 1px solid var(--instructions-border);
+ 7:   border-top: 1px solid var(--instructions-border);
+ 8:   margin: 0.5rem 1rem;
+ 9:   border-radius: var(--radius);
+10:   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+11: }
+12: 
+13: .userInstructions {
+14:   display: flex;
+15:   flex-direction: column;
+16: }
+17: 
+18: .textarea {
+19:   width: 100%;
+20:   resize: vertical;
+21:   padding: 1rem;
+22:   border: 1px solid var(--border-color);
+23:   border-radius: var(--radius);
+24:   font-family: inherit;
+25:   font-size: 1rem;
+26:   background-color: var(--card-background);
+27:   color: var(--text-primary);
+28:   min-height: 100px;
+29:   line-height: 1.5;
+30:   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+31:   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+32: }
+33: 
+34: .textarea:focus {
+35:   outline: none;
+36:   border-color: var(--accent-color);
+37:   box-shadow: 0 0 0 1px var(--accent-color);
+38: }
+39: 
+40: .userInstructionsHeader {
+41:   display: flex;
+42:   justify-content: space-between;
+43:   align-items: center;
+44:   padding: 0.75rem 1rem;
+45:   margin-bottom: 0.5rem;
+46:   background-color: var(--instructions-background);
+47:   font-weight: 500;
+48: }
+```
+
+## File: src/components/UserInstructions.tsx
+```typescript
+ 1: import React from "react";
+ 2: import styles from "./UserInstructions.module.css";
+ 3: 
+ 4: interface UserInstructionsProps {
+ 5:   instructions: string;
+ 6:   setInstructions: (value: string) => void;
+ 7: }
+ 8: 
+ 9: const UserInstructions = ({
+10:   instructions,
+11:   setInstructions,
+12: }: UserInstructionsProps): JSX.Element => {
+13:   return (
+14:     <>
+15:       <div className={styles.userInstructionsHeader}>
+16:         <label className="content-title" htmlFor="userInstructionsInput">
+17:           User Instructions
+18:         </label>
+19:       </div>
+20:       <div className={styles.userInstructionsContainer}>
+21:         <div className={styles.userInstructions}>
+22:           <textarea
+23:             id="userInstructionsInput"
+24:             value={instructions}
+25:             onChange={(e) => setInstructions(e.target.value)}
+26:             placeholder="Add instructions to pass to the LLM about how to transform the content..."
+27:             className={styles.textarea}
+28:           />
+29:         </div>
+30:       </div>
+31:     </>
+32:   );
+33: };
+34: 
+35: export default UserInstructions;
+```
+
+## File: src/hooks/useTheme.ts
+```typescript
+ 1: import { useContext } from "react";
+ 2: import { ThemeContext } from "../context/ThemeContextType";
+ 3: 
+ 4: export const useTheme = () => {
+ 5:   const context = useContext(ThemeContext);
+ 6:   if (context === undefined) {
+ 7:     throw new Error("useTheme must be used within a ThemeProvider");
+ 8:   }
+ 9:   return context;
+10: };
+```
+
 ## File: src/components/ui/Button/index.ts
 ```typescript
 1: export * from './Button';
@@ -3077,135 +2685,6 @@ src/
 160: }
 ```
 
-## File: src/components/FileCard.module.css
-```css
-  1: .fileCard {
-  2:   display: flex;
-  3:   flex-direction: column;
-  4:   margin-bottom: 8px;
-  5:   transition: all 0.2s ease;
-  6:   border: 1px solid var(--border-color);
-  7:   border-radius: var(--radius);
-  8:   position: relative;
-  9:   height: auto;
- 10:   min-height: 100px;
- 11:   background-color: var(--card-background);
- 12:   color: var(--card-foreground);
- 13:   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
- 14: }
- 15: 
- 16: .fileCard:hover {
- 17:   background-color: var(--card-background);
- 18:   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
- 19:   border-color: var(--border-color);
- 20:   transform: translateY(-1px);
- 21: }
- 22: 
- 23: .fileCard.selected {
- 24:   border-color: var(--file-card-selected-border);
- 25:   box-shadow: 0 0 0 1px var(--file-card-selected-border);
- 26: }
- 27: 
- 28: .fileCardContent {
- 29:   padding: 12px !important;
- 30: }
- 31: 
- 32: .fileCardHeader {
- 33:   display: flex;
- 34:   align-items: center;
- 35:   gap: 8px;
- 36:   margin-bottom: 8px;
- 37: }
- 38: 
- 39: .fileCardIcon {
- 40:   color: var(--text-secondary);
- 41:   display: flex;
- 42:   align-items: center;
- 43:   margin-right: 0.5rem;
- 44:   flex-shrink: 0;
- 45: }
- 46: 
- 47: .fileCardName {
- 48:   flex: 1;
- 49:   font-family: monospace;
- 50:   white-space: nowrap;
- 51:   overflow: hidden;
- 52:   text-overflow: ellipsis;
- 53:   font-weight: 500;
- 54:   color: var(--card-foreground);
- 55: }
- 56: 
- 57: .fileCardInfo {
- 58:   display: flex;
- 59:   flex-direction: column;
- 60:   margin-bottom: 24px;
- 61:   flex-grow: 1;
- 62: }
- 63: 
- 64: .fileCardTokens {
- 65:   font-size: 12px;
- 66:   color: var(--text-secondary);
- 67:   margin-bottom: 4px;
- 68: }
- 69: 
- 70: .fileCardStatus {
- 71:   font-size: 13px;
- 72:   color: var(--text-secondary);
- 73: }
- 74: 
- 75: .tokenBarContainer {
- 76:   width: 100%;
- 77:   height: 4px;
- 78:   background-color: var(--background-secondary);
- 79:   border-radius: 2px;
- 80:   overflow: hidden;
- 81: }
- 82: 
- 83: .tokenBar {
- 84:   height: 100%;
- 85:   background-color: var(--accent-color);
- 86:   border-radius: 2px;
- 87:   transition: width 0.3s ease;
- 88: }
- 89: 
- 90: .fileCardActions {
- 91:   display: flex;
- 92:   gap: 2px;
- 93:   position: absolute;
- 94:   bottom: 8px;
- 95:   right: 12px;
- 96:   opacity: 0;
- 97:   transition: opacity 0.2s ease;
- 98: }
- 99: 
-100: .fileCard:hover .fileCardActions {
-101:   opacity: 1;
-102: }
-103: 
-104: .fileCardAction {
-105:   width: 24px !important;
-106:   height: 24px !important;
-107:   padding: 0 !important;
-108: }
-109: 
-110: .copySuccess {
-111:   color: var(--success-color);
-112:   animation: pulse 1s ease-in-out;
-113: }
-114: 
-115: @keyframes pulse {
-116:   0% {
-117:     transform: scale(1);
-118:   }
-119:   50% {
-120:     transform: scale(1.2);
-121:   }
-122:   100% {
-123:     transform: scale(1);
-124:   }
-125: }
-```
-
 ## File: src/components/FileCard.tsx
 ```typescript
   1: import React, { useEffect, useState } from "react";
@@ -3298,7 +2777,7 @@ src/
  88: 
  89:         <div className={styles.fileCardActions}>
  90:           <Button
- 91:             variant="ghost"
+ 91:             variant="icon"
  92:             size="sm"
  93:             iconOnly
  94:             onClick={() => toggleSelection(filePath)}
@@ -3307,7 +2786,7 @@ src/
  97:             className={styles.fileCardAction}
  98:           />
  99:           <Button
-100:             variant="ghost"
+100:             variant="icon"
 101:             size="sm"
 102:             iconOnly
 103:             onClick={handleCopy}
@@ -3324,80 +2803,97 @@ src/
 114: export default FileCard;
 ```
 
-## File: src/components/SearchBar.module.css
+## File: src/components/ThemeToggle.module.css
 ```css
- 1: .searchBarWrapper {
- 2:   width: 100%;
- 3:   position: relative;
- 4:   display: flex;
- 5:   align-items: center;
- 6:   background-color: var(--background-primary);
- 7:   border: 1px solid var(--border-color);
- 8:   border-radius: var(--radius);
- 9:   height: 28px; /* Fixed height to fit in sidebar */
-10:   transition: border-color 0.2s, box-shadow 0.2s;
-11: }
-12: 
-13: .searchBarWrapper.focused {
-14:   border-color: var(--accent-color);
-15: }
-16: 
-17: .searchIcon {
-18:   position: absolute;
-19:   left: 8px;
-20:   top: 50%;
-21:   transform: translateY(-50%);
-22:   color: var(--icon-color);
-23:   display: flex;
-24:   align-items: center;
-25:   justify-content: center;
-26:   pointer-events: none;
-27:   z-index: 2;
-28:   width: 14px;
-29:   height: 14px;
+ 1: .themeSegmentedControl {
+ 2:   display: flex;
+ 3:   background-color: var(--background-secondary);
+ 4:   border-radius: 9999px;
+ 5:   padding: 2px;
+ 6:   width: fit-content;
+ 7:   position: relative;
+ 8:   height: 28px;
+ 9:   border: 1px solid hsla(240, 6%, 90%, 0.6);
+10:   gap: 1px;
+11:   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+12:   overflow: hidden;
+13: }
+14: 
+15: .themeSegmentsBackground {
+16:   position: absolute;
+17:   top: 2px;
+18:   left: 2px;
+19:   width: calc(33.33% - 2px);
+20:   height: calc(100% - 4px);
+21:   background-color: var(--background-primary);
+22:   border-radius: 9999px;
+23:   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.056), 0 0 0 1px rgba(0, 0, 0, 0.04);
+24:   z-index: 0;
+25:   transform: translateX(0);
+26: }
+27: 
+28: .themeSegmentsBackground.animated {
+29:   transition-property: transform, box-shadow;
 30: }
 31: 
-32: .searchInput {
-33:   width: 100%;
-34:   padding: 0 28px 0 30px !important;
-35:   height: 26px;
-36:   border: none;
-37:   border-radius: var(--radius);
-38:   font-size: 13px;
-39:   outline: none;
-40:   background-color: transparent;
-41:   color: var(--text-primary);
+32: .themeSegmentsBackground.light {
+33:   transform: translateX(0);
+34: }
+35: 
+36: .themeSegmentsBackground.dark {
+37:   transform: translateX(100%);
+38: }
+39: 
+40: .themeSegmentsBackground.system {
+41:   transform: translateX(200%);
 42: }
 43: 
-44: .searchInput:focus {
-45:   border-color: var(--accent-color);
-46:   box-shadow: 0 0 0 1px var(--accent-color);
-47: }
-48: 
-49: .clearButton {
-50:   position: absolute;
-51:   right: 6px;
-52:   top: 50%;
-53:   transform: translateY(-50%);
-54:   background: none;
-55:   border: none;
-56:   padding: 2px;
-57:   color: var(--text-secondary);
-58:   display: flex;
-59:   align-items: center;
-60:   justify-content: center;
-61:   border-radius: 50%;
-62:   cursor: pointer;
-63:   z-index: 2;
-64:   width: 16px;
-65:   height: 16px;
-66:   transition: color 0.2s ease, background-color 0.2s ease;
-67: }
-68: 
-69: .clearButton:hover {
-70:   color: var(--text-primary);
-71:   background-color: var(--hover-color);
-72: }
+44: .themeSegment {
+45:   display: flex;
+46:   align-items: center;
+47:   justify-content: center;
+48:   width: 28px;
+49:   height: 24px;
+50:   border: none;
+51:   background: none;
+52:   color: var(--text-secondary);
+53:   position: relative;
+54:   z-index: 1;
+55:   transition: color 0.2s ease;
+56:   border-radius: 9999px;
+57:   cursor: pointer;
+58:   padding: 0;
+59: }
+60: 
+61: .themeSegment:hover {
+62:   color: var(--text-primary);
+63:   background: none;
+64: }
+65: 
+66: .themeSegment:focus {
+67:   outline: none;
+68:   box-shadow: none;
+69: }
+70: 
+71: .themeSegment:focus-visible {
+72:   outline: none;
+73:   box-shadow: 0 0 0 1px var(--accent-color);
+74: }
+75: 
+76: .themeSegment.active {
+77:   color: var(--text-primary);
+78: }
+79: 
+80: /* Dark mode adjustments */
+81: :global(.dark-mode) .themeSegmentedControl {
+82:   border-color: hsla(240, 3.7%, 25%, 0.3);
+83:   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+84: }
+85: 
+86: :global(.dark-mode) .themeSegmentsBackground {
+87:   background-color: var(--background-selected);
+88:   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
+89: }
 ```
 
 ## File: src/components/TreeItem.module.css
@@ -3597,124 +3093,253 @@ src/
 52: }
 ```
 
-## File: src/components/Sidebar.module.css
+## File: src/components/FileCard.module.css
 ```css
-  1: .sidebar {
+  1: .fileCard {
   2:   display: flex;
   3:   flex-direction: column;
-  4:   height: 100%;
-  5:   border-right: 1px solid var(--border-color);
-  6:   background: var(--background-primary);
-  7:   position: relative;
-  8: }
-  9: 
- 10: .sidebarSearch {
- 11:   padding: 6px 8px;
- 12:   border-bottom: 1px solid var(--border-color);
- 13:   height: 40px;
- 14:   display: flex;
- 15:   align-items: center;
- 16: }
- 17: 
- 18: .sidebarActions {
- 19:   display: flex;
- 20:   padding: 6px 8px;
- 21:   gap: 8px;
- 22:   border-bottom: 1px solid var(--border-color);
- 23:   justify-content: center;
- 24:   align-items: center;
- 25:   height: 40px;
+  4:   margin-bottom: 8px;
+  5:   transition: all 0.2s ease;
+  6:   border: 1px solid var(--border-color);
+  7:   border-radius: var(--radius);
+  8:   position: relative;
+  9:   height: auto;
+ 10:   min-height: 100px;
+ 11:   background-color: var(--card-background);
+ 12:   color: var(--card-foreground);
+ 13:   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+ 14: }
+ 15: 
+ 16: .fileCard:hover {
+ 17:   background-color: var(--card-background);
+ 18:   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+ 19:   border-color: var(--border-color);
+ 20:   transform: translateY(-1px);
+ 21: }
+ 22: 
+ 23: .fileCard.selected {
+ 24:   border-color: var(--file-card-selected-border);
+ 25:   box-shadow: 0 0 0 1px var(--file-card-selected-border);
  26: }
  27: 
- 28: .fileTree {
- 29:   flex: 1;
- 30:   overflow-y: auto;
- 31:   padding: 8px 0;
- 32: }
- 33: 
- 34: .treeEmpty {
- 35:   padding: 16px;
- 36:   text-align: center;
- 37:   color: var(--text-secondary);
- 38: }
- 39: 
- 40: .treeLoading {
+ 28: .fileCardContent {
+ 29:   padding: 12px !important;
+ 30: }
+ 31: 
+ 32: .fileCardHeader {
+ 33:   display: flex;
+ 34:   align-items: center;
+ 35:   gap: 8px;
+ 36:   margin-bottom: 8px;
+ 37: }
+ 38: 
+ 39: .fileCardIcon {
+ 40:   color: var(--text-secondary);
  41:   display: flex;
- 42:   flex-direction: column;
- 43:   align-items: center;
- 44:   justify-content: center;
- 45:   padding: 32px;
- 46:   gap: 16px;
- 47:   color: var(--text-secondary);
- 48: }
- 49: 
- 50: .spinner {
- 51:   border: 2px solid var(--border-color);
- 52:   border-top: 2px solid var(--text-primary);
- 53:   border-radius: 50%;
- 54:   width: 24px;
- 55:   height: 24px;
- 56:   animation: spin 1s linear infinite;
- 57: }
- 58: 
- 59: .sidebarEmptyState {
- 60:   display: flex;
- 61:   flex-direction: column;
- 62:   align-items: center;
- 63:   justify-content: center;
- 64:   height: 100%;
- 65:   padding: 32px;
- 66:   text-align: center;
- 67:   gap: 16px;
- 68:   color: var(--text-secondary);
- 69: }
- 70: 
- 71: .sidebarEmptyIcon {
+ 42:   align-items: center;
+ 43:   margin-right: 0.5rem;
+ 44:   flex-shrink: 0;
+ 45: }
+ 46: 
+ 47: .fileCardName {
+ 48:   flex: 1;
+ 49:   font-family: monospace;
+ 50:   white-space: nowrap;
+ 51:   overflow: hidden;
+ 52:   text-overflow: ellipsis;
+ 53:   font-weight: 500;
+ 54:   color: var(--card-foreground);
+ 55: }
+ 56: 
+ 57: .fileCardInfo {
+ 58:   display: flex;
+ 59:   flex-direction: column;
+ 60:   margin-bottom: 24px;
+ 61:   flex-grow: 1;
+ 62: }
+ 63: 
+ 64: .fileCardTokens {
+ 65:   font-size: 12px;
+ 66:   color: var(--text-secondary);
+ 67:   margin-bottom: 4px;
+ 68: }
+ 69: 
+ 70: .fileCardStatus {
+ 71:   font-size: 13px;
  72:   color: var(--text-secondary);
- 73:   opacity: 0.5;
- 74: }
- 75: 
- 76: .sidebarResizeHandle {
- 77:   position: absolute;
- 78:   right: -4px;
- 79:   top: 0;
- 80:   bottom: 0;
- 81:   width: 8px;
- 82:   cursor: col-resize;
- 83:   background: transparent;
- 84:   transition: background-color 0.2s;
- 85: }
- 86: 
- 87: .sidebarResizeHandle:hover {
- 88:   background: var(--accent);
- 89: }
- 90: 
- 91: @keyframes spin {
- 92:   0% { transform: rotate(0deg); }
- 93:   100% { transform: rotate(360deg); }
- 94: }
- 95: 
- 96: .excludedFilesIndicator {
- 97:   font-size: 0.75rem;
- 98:   color: var(--text-secondary);
- 99:   padding: 6px 8px;
-100:   margin: 4px 8px;
-101:   text-align: center;
-102:   font-style: italic;
-103:   opacity: 0.7;
-104:   background-color: var(--background-secondary);
-105:   border-radius: var(--radius);
-106: }
-107: 
-108: .excludedFilesMessage {
-109:   font-size: 0.75rem;
-110:   color: var(--text-secondary);
-111:   padding: 4px 8px;
-112:   text-align: center;
-113:   font-style: italic;
-114:   opacity: 0.7;
-115:   border-bottom: 1px solid var(--border-color);
-116: }
+ 73: }
+ 74: 
+ 75: .tokenBarContainer {
+ 76:   width: 100%;
+ 77:   height: 4px;
+ 78:   background-color: var(--background-secondary);
+ 79:   border-radius: 2px;
+ 80:   overflow: hidden;
+ 81: }
+ 82: 
+ 83: .tokenBar {
+ 84:   height: 100%;
+ 85:   background-color: var(--accent-color);
+ 86:   border-radius: 2px;
+ 87:   transition: width 0.3s ease;
+ 88: }
+ 89: 
+ 90: .fileCardActions {
+ 91:   display: flex;
+ 92:   gap: 2px;
+ 93:   position: absolute;
+ 94:   bottom: 8px;
+ 95:   right: 12px;
+ 96:   opacity: 0;
+ 97:   transition: opacity 0.2s ease;
+ 98: }
+ 99: 
+100: .fileCard:hover .fileCardActions {
+101:   opacity: 1;
+102: }
+103: 
+104: .fileCardAction {
+105:   width: 24px !important;
+106:   height: 24px !important;
+107:   padding: 0 !important;
+108:   color: var(--text-secondary);
+109:   transition: color 0.2s ease !important;
+110: }
+111: 
+112: .fileCardAction:hover {
+113:   background-color: transparent !important;
+114:   color: var(--text-primary) !important;
+115: }
+116: 
+117: .copySuccess {
+118:   color: var(--success-color);
+119:   animation: pulse 1s ease-in-out;
+120: }
+121: 
+122: @keyframes pulse {
+123:   0% {
+124:     transform: scale(1);
+125:   }
+126:   50% {
+127:     transform: scale(1.2);
+128:   }
+129:   100% {
+130:     transform: scale(1);
+131:   }
+132: }
+```
+
+## File: src/components/SearchBar.module.css
+```css
+ 1: .searchBarWrapper {
+ 2:   width: 100%;
+ 3:   position: relative;
+ 4:   display: flex;
+ 5:   align-items: center;
+ 6:   background-color: var(--background-primary);
+ 7:   border: 1px solid var(--border-color);
+ 8:   border-radius: var(--radius);
+ 9:   height: 28px; /* Fixed height to fit in sidebar */
+10:   transition: border-color 0.2s, box-shadow 0.2s;
+11: }
+12: 
+13: .searchBarWrapper.focused {
+14:   border-color: var(--accent-color);
+15: }
+16: 
+17: .searchContainer {
+18:   position: relative;
+19:   display: flex;
+20:   align-items: center;
+21:   width: 100%;
+22: }
+23: 
+24: .searchIcon {
+25:   position: absolute;
+26:   left: 8px;
+27:   color: var(--text-secondary);
+28:   pointer-events: none;
+29:   width: 14px;
+30:   height: 14px;
+31: }
+32: 
+33: .searchInput {
+34:   width: 100%;
+35:   padding: 4px 10px 4px 26px;
+36:   border: 1px solid var(--border-color);
+37:   border-radius: 16px;
+38:   font-size: 0.75rem;
+39:   background: var(--background-secondary);
+40:   color: var(--text-primary);
+41:   transition: all 0.15s ease;
+42:   outline: none;
+43:   height: 24px;
+44:   line-height: 1;
+45: }
+46: 
+47: .searchInput:focus {
+48:   border-color: var(--accent-color);
+49:   box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.2);
+50: }
+51: 
+52: .searchInput::placeholder {
+53:   color: var(--text-tertiary, var(--text-secondary));
+54:   opacity: 0.6;
+55: }
+56: 
+57: .clearButton {
+58:   position: absolute;
+59:   right: 6px;
+60:   top: 50%;
+61:   transform: translateY(-50%);
+62:   background: none;
+63:   border: none;
+64:   padding: 2px;
+65:   color: var(--text-secondary);
+66:   display: flex;
+67:   align-items: center;
+68:   justify-content: center;
+69:   border-radius: 50%;
+70:   cursor: pointer;
+71:   z-index: 2;
+72:   width: 16px;
+73:   height: 16px;
+74:   transition: color 0.2s ease, background-color 0.2s ease;
+75: }
+76: 
+77: .clearButton:hover {
+78:   color: var(--text-primary);
+79:   background-color: var(--hover-color);
+80: }
+```
+
+## File: src/components/SearchBar.tsx
+```typescript
+ 1: import React from "react";
+ 2: import { Search } from "lucide-react";
+ 3: import styles from "./SearchBar.module.css";
+ 4: 
+ 5: interface SearchBarProps {
+ 6:   searchTerm: string;
+ 7:   onSearchChange: (term: string) => void;
+ 8: }
+ 9: 
+10: const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, onSearchChange }) => {
+11:   return (
+12:     <div className={styles.searchContainer}>
+13:       <Search size={14} className={styles.searchIcon} />
+14:       <input
+15:         type="text"
+16:         value={searchTerm}
+17:         onChange={(e) => onSearchChange(e.target.value)}
+18:         placeholder="Search files..."
+19:         className={styles.searchInput}
+20:       />
+21:     </div>
+22:   );
+23: };
+24: 
+25: export default SearchBar;
 ```
 
 ## File: src/context/ThemeContext.tsx
@@ -3783,6 +3408,176 @@ src/
 62:     </ThemeContext.Provider>
 63:   );
 64: };
+```
+
+## File: src/utils/patternUtils.ts
+```typescript
+  1: // System pattern categories - Moved from App.tsx
+  2: export const SYSTEM_PATTERN_CATEGORIES = {
+  3:     versionControl: [
+  4:       "**/.git/**",
+  5:       "**/.svn/**",
+  6:       "**/.hg/**",
+  7:       "**/.cvs/**" // Added .cvs
+  8:     ],
+  9:     buildOutput: [
+ 10:       "**/node_modules/**",
+ 11:       "**/dist/**",
+ 12:       "**/build/**",
+ 13:       "**/.output/**", // Added .output
+ 14:       "**/.next/**",
+ 15:     ],
+ 16:     caches: [
+ 17:       "**/.cache/**",
+ 18:       "**/__pycache__/**",
+ 19:       "**/.pytest_cache/**",
+ 20:     ],
+ 21:     logs: [
+ 22:       "**/logs/**",
+ 23:       "**/*.log",
+ 24:     ],
+ 25:     ide: [
+ 26:       "**/.idea/**",
+ 27:       "**/.vscode/**",
+ 28:       "**/.vs/**",
+ 29:     ],
+ 30:     temp: [
+ 31:       "**/tmp/**",
+ 32:       "**/temp/**",
+ 33:     ],
+ 34:     os: [
+ 35:       "**/.DS_Store",
+ 36:       "**/Thumbs.db",
+ 37:     ],
+ 38:   };
+ 39:   
+ 40:   /**
+ 41:    * Interface for ignore patterns state
+ 42:    */
+ 43:   export interface IgnorePatternsState {
+ 44:     patterns: string;
+ 45:     excludedSystemPatterns: string[];
+ 46:   }
+ 47:   
+ 48:   /**
+ 49:    * Parse ignore patterns content to extract disabled patterns and user patterns
+ 50:    */
+ 51:   export const parseIgnorePatternsContent = (content: string): { excludedPatterns: string[]; userPatterns: string } => {
+ 52:     if (!content) {
+ 53:       return { excludedPatterns: [], userPatterns: '' };
+ 54:     }
+ 55:     const lines = content.split('\n');
+ 56:     const excludedPatterns: string[] = [];
+ 57:     const userPatterns: string[] = [];
+ 58:   
+ 59:     let inUserSection = false;
+ 60:   
+ 61:     lines.forEach(line => {
+ 62:       const trimmedLine = line.trim();
+ 63:       
+ 64:       // Check for section headers
+ 65:       if (trimmedLine === '# USER PATTERNS:') {
+ 66:         inUserSection = true;
+ 67:         return;
+ 68:       }
+ 69:       
+ 70:       if (trimmedLine.startsWith('# DISABLED:')) {
+ 71:         // Extract pattern removing the DISABLED marker
+ 72:         const pattern = trimmedLine.substring('# DISABLED:'.length).trim();
+ 73:         if (pattern) {
+ 74:           excludedPatterns.push(pattern);
+ 75:         }
+ 76:       } else if (inUserSection && trimmedLine !== '' && !trimmedLine.startsWith('#')) {
+ 77:         // In user section, add non-comment lines to user patterns
+ 78:         userPatterns.push(line); // Keep original line to preserve indentation/whitespace
+ 79:       } else if (!inUserSection && !trimmedLine.startsWith('#') && trimmedLine !== '') {
+ 80:         // Not in user section yet, but found a pattern - also add to user patterns
+ 81:         // This handles the case where user patterns aren't properly marked with a section
+ 82:         userPatterns.push(line);
+ 83:       }
+ 84:       // Ignore empty lines and regular comments
+ 85:     });
+ 86:   
+ 87:     // Ensure excluded patterns are unique
+ 88:     const uniqueExcluded = Array.from(new Set(excludedPatterns));
+ 89:   
+ 90:     return {
+ 91:       excludedPatterns: uniqueExcluded,
+ 92:       userPatterns: userPatterns.join('\n')
+ 93:     };
+ 94:   };
+ 95:   
+ 96:   /**
+ 97:    * Load ignore patterns state from localStorage
+ 98:    */
+ 99:   export const loadIgnoreStateFromStorage = (storageKey: string): IgnorePatternsState => {
+100:     const saved = localStorage.getItem(storageKey);
+101:     if (saved) {
+102:       try {
+103:         const parsed = JSON.parse(saved);
+104:         // Basic validation
+105:         if (typeof parsed.patterns === 'string' && Array.isArray(parsed.excludedSystemPatterns)) {
+106:           return parsed;
+107:         }
+108:       } catch (e) {
+109:         console.error("Failed to parse saved ignore patterns:", e);
+110:       }
+111:     }
+112:     // Default state if nothing saved or parsing failed
+113:     return { patterns: '', excludedSystemPatterns: [] };
+114:   };
+115:   
+116:   // --- Keep existing functions below if they are used ---
+117:   
+118:   // Selection handlers (Example, confirm if used or remove)
+119:   export const handleSelectionChange = (prevSelected: string[], newSelected: string[]): string[] => {
+120:     return newSelected;
+121:   };
+122:   
+123:   export const handleFolderSelect = (prev: string[]): string[] => {
+124:     return prev;
+125:   };
+126:   
+127:   // Pattern state update function (Example, confirm if used or remove)
+128:   export const handlePatternStateUpdate = (patterns: string | string[]): string => {
+129:     return Array.isArray(patterns) ? patterns.join('\n') : patterns;
+130:   };
+131:   
+132:   export const updatePatternState = (
+133:     patterns: string | string[],
+134:     isGlobal: boolean,
+135:     setGlobalPatterns: (value: any) => void,
+136:     setLocalPatterns: (value: any) => void,
+137:     folderPath?: string
+138:   ): void => {
+139:     const normalizedPatterns = handlePatternStateUpdate(patterns);
+140:   
+141:     if (isGlobal) {
+142:       setGlobalPatterns((prev: any) => ({
+143:         ...prev,
+144:         patterns: normalizedPatterns
+145:       }));
+146:     } else if (folderPath) {
+147:       setLocalPatterns((prev: any) => ({
+148:         ...prev,
+149:         patterns: normalizedPatterns
+150:       }));
+151:     }
+152:   };
+153: 
+154:   /**
+155:    * Format global patterns for saving
+156:    */
+157:   export const formatPatternsForSaving = (
+158:     userPatterns: string,
+159:     excludedSystemPatterns: string[]
+160:   ): string => {
+161:     const disabledLines = excludedSystemPatterns
+162:       .map(pattern => `# DISABLED:${pattern}`)
+163:       .join('\n');
+164:       
+165:     return disabledLines ? `${disabledLines}\n\n${userPatterns}` : userPatterns;
+166:   };
 ```
 
 ## File: src/react-app-env.d.ts
@@ -3856,180 +3651,6 @@ src/
 67:   const content: string;
 68:   export default content;
 69: }
-```
-
-## File: src/components/ui/Dropdown/Dropdown.module.css
-```css
-  1: .dropdown {
-  2:   position: relative;
-  3:   display: inline-flex;
-  4:   vertical-align: middle;
-  5: }
-  6: 
-  7: .button {
-  8:   display: inline-flex;
-  9:   align-items: center;
- 10:   justify-content: center;
- 11:   gap: 0.5rem;
- 12:   padding: 0.5rem;
- 13:   font-size: 0.875rem;
- 14:   color: var(--icon-color);
- 15:   border-radius: var(--radius);
- 16:   cursor: pointer;
- 17:   transition: all 0.15s ease;
- 18:   background: transparent;
- 19:   border: none;
- 20:   height: 32px;
- 21:   width: 32px;
- 22: }
- 23: 
- 24: .button:hover:not(:disabled) {
- 25:   background: var(--hover-color);
- 26: }
- 27: 
- 28: .button:focus-visible {
- 29:   outline: 2px solid var(--ring-color);
- 30:   outline-offset: -1px;
- 31: }
- 32: 
- 33: .button.active {
- 34:   background: var(--hover-color);
- 35: }
- 36: 
- 37: .buttonLabel {
- 38:   flex: 1;
- 39:   text-align: left;
- 40:   overflow: hidden;
- 41:   text-overflow: ellipsis;
- 42:   white-space: nowrap;
- 43: }
- 44: 
- 45: .chevron {
- 46:   color: var(--text-secondary);
- 47:   transition: transform 0.2s ease;
- 48:   width: 16px;
- 49:   height: 16px;
- 50: }
- 51: 
- 52: .chevronOpen {
- 53:   transform: rotate(180deg);
- 54: }
- 55: 
- 56: .menu {
- 57:   position: absolute;
- 58:   top: 100%;
- 59:   left: 0;
- 60:   z-index: var(--z-index-dropdown);
- 61:   min-width: 180px;
- 62:   margin-top: 0.25rem;
- 63:   padding: 0.375rem;
- 64:   background: var(--background-primary);
- 65:   border: 1px solid var(--border-color);
- 66:   border-radius: var(--radius);
- 67:   box-shadow: var(--shadow-md);
- 68:   overflow-y: auto;
- 69:   max-height: 300px;
- 70:   animation: dropdownFadeIn 0.15s ease;
- 71: }
- 72: 
- 73: .option {
- 74:   display: flex;
- 75:   align-items: center;
- 76:   gap: 0.5rem;
- 77:   padding: 0.5rem 0.75rem;
- 78:   font-size: 0.875rem;
- 79:   color: var(--text-primary);
- 80:   cursor: pointer;
- 81:   border-radius: var(--radius);
- 82:   transition: background-color 0.1s ease;
- 83:   user-select: none;
- 84: }
- 85: 
- 86: .option:hover:not(.disabled) {
- 87:   background: var(--hover-color);
- 88: }
- 89: 
- 90: .option:focus {
- 91:   outline: none;
- 92:   background: var(--hover-color);
- 93: }
- 94: 
- 95: .option.selected {
- 96:   background: var(--background-selected);
- 97:   color: var(--text-primary);
- 98: }
- 99: 
-100: .option.disabled {
-101:   opacity: 0.5;
-102:   cursor: not-allowed;
-103: }
-104: 
-105: .optionIcon {
-106:   flex-shrink: 0;
-107:   color: var(--icon-color);
-108:   width: 16px;
-109:   height: 16px;
-110: }
-111: 
-112: .optionLabel {
-113:   flex: 1;
-114:   white-space: nowrap;
-115:   overflow: hidden;
-116:   text-overflow: ellipsis;
-117: }
-118: 
-119: .checkmark {
-120:   color: var(--accent-color);
-121: }
-122: 
-123: /* Size variants */
-124: .sm .button {
-125:   height: 28px;
-126:   width: 28px;
-127:   padding: 0.25rem;
-128: }
-129: 
-130: .lg .button {
-131:   height: 36px;
-132:   width: 36px;
-133:   padding: 0.75rem;
-134: }
-135: 
-136: @keyframes dropdownFadeIn {
-137:   from {
-138:     opacity: 0;
-139:     transform: translateY(4px);
-140:   }
-141:   to {
-142:     opacity: 1;
-143:     transform: translateY(0);
-144:   }
-145: }
-146: 
-147: /* Dark mode enhancements */
-148: :global(.dark-mode) .menu {
-149:   background: var(--dropdown-menu-background);
-150:   border-color: var(--border-color);
-151: }
-152: 
-153: :global(.dark-mode) .option:hover:not(.disabled) {
-154:   background: var(--dropdown-item-hover);
-155: }
-156: 
-157: /* Improved focus styles for keyboard navigation */
-158: .option:focus-visible {
-159:   outline: none;
-160:   box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--ring-color);
-161: }
-162: 
-163: /* Add subtle divider between groups of options if needed */
-164: .option + .option {
-165:   border-top: 1px solid transparent;
-166: }
-167: 
-168: .option:hover + .option {
-169:   border-top-color: transparent;
-170: }
 ```
 
 ## File: src/components/ui/Dropdown/Dropdown.tsx
@@ -4319,471 +3940,350 @@ src/
 7: export * from './Dropdown';
 ```
 
-## File: src/components/IgnorePatterns.module.css
+## File: src/components/Sidebar.module.css
 ```css
-  1: .modal {
-  2:   position: fixed;
-  3:   top: 0;
-  4:   left: 0;
-  5:   width: 100%;
-  6:   height: 100%;
-  7:   background-color: rgba(0, 0, 0, 0.5);
-  8:   display: flex;
-  9:   justify-content: center;
- 10:   align-items: center;
- 11:   z-index: var(--z-index-modal);
- 12:   backdrop-filter: blur(4px);
- 13:   animation: fadeIn 0.2s ease-out;
- 14: }
- 15: 
- 16: .content {
- 17:   background-color: var(--background-primary);
- 18:   border-radius: var(--radius-lg);
- 19:   width: 90%;
- 20:   max-width: 700px;
- 21:   max-height: 85vh;
- 22:   padding: 1.5rem;
- 23:   box-shadow: var(--shadow-lg);
- 24:   overflow-y: auto;
- 25:   animation: slideUp 0.2s ease-out;
+  1: .sidebar {
+  2:   display: flex;
+  3:   flex-direction: column;
+  4:   height: 100%;
+  5:   border-right: 1px solid var(--border-color);
+  6:   background: var(--background-primary);
+  7:   position: relative;
+  8: }
+  9: 
+ 10: .sidebarSearch {
+ 11:   padding: 6px 12px;
+ 12:   border-bottom: 1px solid var(--border-color);
+ 13:   display: flex;
+ 14:   align-items: center;
+ 15:   height: 36px;
+ 16: }
+ 17: 
+ 18: .sidebarActions {
+ 19:   display: flex;
+ 20:   padding: 6px 8px;
+ 21:   gap: 8px;
+ 22:   border-bottom: 1px solid var(--border-color);
+ 23:   justify-content: center;
+ 24:   align-items: center;
+ 25:   height: 40px;
  26: }
  27: 
- 28: .header {
- 29:   display: flex;
- 30:   justify-content: space-between;
- 31:   align-items: center;
- 32:   margin-bottom: 16px;
- 33: }
- 34: 
- 35: .header h2 {
- 36:   margin: 0;
- 37:   font-size: 1.5rem;
- 38:   color: var(--text-primary);
- 39: }
- 40: 
- 41: .description {
- 42:   margin-bottom: 16px;
- 43:   font-size: 0.9rem;
- 44:   color: var(--text-secondary);
- 45:   line-height: 1.4;
- 46: }
- 47: 
- 48: .scopeSelector {
- 49:   display: flex;
- 50:   margin-bottom: 12px;
- 51:   border-bottom: 1px solid var(--border-color);
- 52:   padding: 0 4px;
- 53:   gap: 1px;
+ 28: .fileTree {
+ 29:   flex: 1;
+ 30:   overflow-y: auto;
+ 31:   padding: 8px 0;
+ 32: }
+ 33: 
+ 34: .treeEmpty {
+ 35:   padding: 16px;
+ 36:   text-align: center;
+ 37:   color: var(--text-secondary);
+ 38: }
+ 39: 
+ 40: .treeLoading {
+ 41:   display: flex;
+ 42:   flex-direction: column;
+ 43:   align-items: center;
+ 44:   justify-content: center;
+ 45:   padding: 32px;
+ 46:   gap: 16px;
+ 47:   color: var(--text-secondary);
+ 48: }
+ 49: 
+ 50: .spinner {
+ 51:   border: 2px solid var(--border-color);
+ 52:   border-top: 2px solid var(--text-primary);
+ 53:   border-radius: 50%;
+ 54:   width: 24px;
+ 55:   height: 24px;
+ 56:   animation: spin 1s linear infinite;
+ 57: }
+ 58: 
+ 59: .sidebarEmptyState {
+ 60:   display: flex;
+ 61:   flex-direction: column;
+ 62:   align-items: center;
+ 63:   justify-content: center;
+ 64:   height: 100%;
+ 65:   padding: 32px;
+ 66:   text-align: center;
+ 67:   gap: 16px;
+ 68:   color: var(--text-secondary);
+ 69: }
+ 70: 
+ 71: .sidebarEmptyIcon {
+ 72:   color: var(--text-secondary);
+ 73:   opacity: 0.5;
+ 74: }
+ 75: 
+ 76: .sidebarResizeHandle {
+ 77:   position: absolute;
+ 78:   right: -4px;
+ 79:   top: 0;
+ 80:   bottom: 0;
+ 81:   width: 8px;
+ 82:   cursor: col-resize;
+ 83:   background: transparent;
+ 84:   transition: background-color 0.2s;
+ 85: }
+ 86: 
+ 87: .sidebarResizeHandle:hover {
+ 88:   background: var(--accent);
+ 89: }
+ 90: 
+ 91: @keyframes spin {
+ 92:   0% { transform: rotate(0deg); }
+ 93:   100% { transform: rotate(360deg); }
+ 94: }
+ 95: 
+ 96: .excludedFilesIndicator {
+ 97:   font-size: 0.75rem;
+ 98:   color: var(--text-secondary);
+ 99:   padding: 6px 8px;
+100:   margin: 4px 8px;
+101:   text-align: center;
+102:   font-style: italic;
+103:   opacity: 0.7;
+104:   background-color: var(--background-secondary);
+105:   border-radius: var(--radius);
+106: }
+107: 
+108: .excludedFilesMessage {
+109:   font-size: 0.75rem;
+110:   color: var(--text-secondary);
+111:   padding: 4px 8px;
+112:   text-align: center;
+113:   font-style: italic;
+114:   opacity: 0.7;
+115:   border-bottom: 1px solid var(--border-color);
+116: }
+```
+
+## File: src/components/ThemeToggle.tsx
+```typescript
+ 1: import React, { useEffect, useState } from 'react';
+ 2: import { useTheme } from '../hooks/useTheme';
+ 3: import { Sun, Moon, Monitor } from 'lucide-react';
+ 4: import styles from './ThemeToggle.module.css';
+ 5: 
+ 6: const ThemeToggle: React.FC = () => {
+ 7:   const { theme, setTheme } = useTheme();
+ 8:   const [isAnimated, setIsAnimated] = useState(false);
+ 9: 
+10:   useEffect(() => {
+11:     // Add animation class after initial render
+12:     const timer = setTimeout(() => setIsAnimated(true), 0);
+13:     return () => clearTimeout(timer);
+14:   }, []);
+15: 
+16:   return (
+17:     <div className={styles.themeSegmentedControl}>
+18:       <div
+19:         className={`${styles.themeSegmentsBackground} ${styles[theme]} ${
+20:           isAnimated ? styles.animated : ''
+21:         }`}
+22:       />
+23:       <button
+24:         className={`${styles.themeSegment} ${theme === 'light' ? styles.active : ''}`}
+25:         onClick={() => setTheme('light')}
+26:         title="Light theme"
+27:       >
+28:         <Sun size={16} />
+29:       </button>
+30:       <button
+31:         className={`${styles.themeSegment} ${theme === 'dark' ? styles.active : ''}`}
+32:         onClick={() => setTheme('dark')}
+33:         title="Dark theme"
+34:       >
+35:         <Moon size={16} />
+36:       </button>
+37:       <button
+38:         className={`${styles.themeSegment} ${theme === 'system' ? styles.active : ''}`}
+39:         onClick={() => setTheme('system')}
+40:         title="System theme"
+41:       >
+42:         <Monitor size={16} />
+43:       </button>
+44:     </div>
+45:   );
+46: };
+47: 
+48: export default ThemeToggle;
+```
+
+## File: src/components/ui/Dropdown/Dropdown.module.css
+```css
+  1: .dropdown {
+  2:   position: relative;
+  3:   display: inline-flex;
+  4:   vertical-align: middle;
+  5: }
+  6: 
+  7: .button {
+  8:   display: inline-flex;
+  9:   align-items: center;
+ 10:   justify-content: center;
+ 11:   gap: 0.5rem;
+ 12:   padding: 0.5rem;
+ 13:   font-size: 0.875rem;
+ 14:   color: var(--icon-color);
+ 15:   border-radius: var(--radius);
+ 16:   cursor: pointer;
+ 17:   transition: all 0.15s ease;
+ 18:   background: transparent;
+ 19:   border: 1px solid var(--border-color);
+ 20:   height: 32px;
+ 21:   width: 32px;
+ 22: }
+ 23: 
+ 24: .button:hover:not(:disabled) {
+ 25:   background: var(--hover-color);
+ 26: }
+ 27: 
+ 28: .button:focus-visible {
+ 29:   outline: 2px solid var(--ring-color);
+ 30:   outline-offset: -1px;
+ 31: }
+ 32: 
+ 33: .button.active {
+ 34:   background: var(--hover-color);
+ 35: }
+ 36: 
+ 37: .buttonLabel {
+ 38:   flex: 1;
+ 39:   text-align: left;
+ 40:   overflow: hidden;
+ 41:   text-overflow: ellipsis;
+ 42:   white-space: nowrap;
+ 43: }
+ 44: 
+ 45: .chevron {
+ 46:   color: var(--text-secondary);
+ 47:   transition: transform 0.2s ease;
+ 48:   width: 16px;
+ 49:   height: 16px;
+ 50: }
+ 51: 
+ 52: .chevronOpen {
+ 53:   transform: rotate(180deg);
  54: }
  55: 
- 56: .scopeBtn {
- 57:   flex: 1;
- 58:   border-radius: var(--radius) var(--radius) 0 0 !important;
- 59:   font-size: 0.95rem !important;
- 60:   padding: 10px 15px !important;
- 61:   transition: all 0.15s ease-out;
- 62: }
- 63: 
- 64: .scopeBtn:first-child {
- 65:   border-top-right-radius: 0 !important;
- 66: }
- 67: 
- 68: .scopeBtn:last-child {
- 69:   border-top-left-radius: 0 !important;
- 70: }
- 71: 
- 72: .scopeBtn:hover {
- 73:   background-color: var(--hover-color);
- 74:   opacity: 0.9;
- 75: }
- 76: 
- 77: .scopeBtn.active {
- 78:   font-weight: 500 !important;
- 79:   position: relative;
- 80: }
- 81: 
- 82: .scopeBtn.active::after {
- 83:   content: "";
- 84:   position: absolute;
- 85:   bottom: -1px;
- 86:   left: 0;
- 87:   width: 100%;
- 88:   height: 2px;
- 89:   background-color: var(--accent-color);
- 90: }
- 91: 
- 92: .scopeDescription {
- 93:   margin-bottom: 16px;
- 94:   font-size: 0.85rem;
- 95:   color: var(--text-secondary);
- 96:   padding: 0 8px;
- 97: }
- 98: 
- 99: .folderSelector {
-100:   margin-bottom: 16px;
-101: }
-102: 
-103: .folderSelector label {
-104:   display: block;
-105:   margin-bottom: 6px;
-106:   font-size: 0.9rem;
-107:   font-weight: 500;
-108:   color: var(--text-primary);
-109: }
-110: 
-111: .customSelect {
-112:   position: relative;
-113:   width: 100%;
-114:   cursor: pointer;
-115: }
-116: 
-117: .selectedValue {
-118:   display: flex;
-119:   justify-content: space-between;
-120:   align-items: center;
-121:   padding: 10px 12px;
-122:   background-color: var(--background-secondary);
-123:   border: 1px solid var(--border-color);
-124:   border-radius: var(--radius);
-125:   font-size: 0.9rem;
-126:   transition: border-color 0.2s;
-127: }
-128: 
-129: .selectedValue:hover {
-130:   border-color: var(--accent-color);
-131: }
-132: 
-133: .chevron {
-134:   transition: transform 0.2s;
-135: }
-136: 
-137: .chevron.open {
-138:   transform: rotate(180deg);
-139: }
-140: 
-141: .optionsContainer {
-142:   position: absolute;
-143:   top: 100%;
-144:   left: 0;
-145:   right: 0;
-146:   background-color: var(--background-primary);
-147:   border: 1px solid var(--border-color);
-148:   border-radius: var(--radius);
-149:   box-shadow: var(--shadow-md);
-150:   z-index: var(--z-index-dropdown);
-151:   max-height: 200px;
-152:   overflow-y: auto;
-153: }
-154: 
-155: .option {
-156:   padding: 8px 12px;
-157:   font-size: 0.9rem;
-158:   cursor: pointer;
-159: }
-160: 
-161: .option:hover {
-162:   background-color: var(--hover-color);
-163: }
-164: 
-165: .pathDisplay {
-166:   margin-top: 4px;
-167:   font-size: 0.8rem;
-168:   color: var(--text-secondary);
-169:   font-family: monospace;
+ 56: .menu {
+ 57:   position: absolute;
+ 58:   top: 100%;
+ 59:   left: 0;
+ 60:   z-index: var(--z-index-dropdown);
+ 61:   min-width: 180px;
+ 62:   margin-top: 0.25rem;
+ 63:   padding: 0.375rem;
+ 64:   background: var(--background-primary);
+ 65:   border: 1px solid var(--border-color);
+ 66:   border-radius: var(--radius);
+ 67:   box-shadow: var(--shadow-md);
+ 68:   overflow-y: auto;
+ 69:   max-height: 300px;
+ 70:   animation: dropdownFadeIn 0.15s ease;
+ 71: }
+ 72: 
+ 73: .option {
+ 74:   display: flex;
+ 75:   align-items: center;
+ 76:   gap: 0.5rem;
+ 77:   padding: 0.5rem 0.75rem;
+ 78:   font-size: 0.875rem;
+ 79:   color: var(--text-primary);
+ 80:   cursor: pointer;
+ 81:   border-radius: var(--radius);
+ 82:   transition: background-color 0.1s ease;
+ 83:   user-select: none;
+ 84: }
+ 85: 
+ 86: .option:hover:not(.disabled) {
+ 87:   background: var(--hover-color);
+ 88: }
+ 89: 
+ 90: .option:focus {
+ 91:   outline: none;
+ 92:   background: var(--hover-color);
+ 93: }
+ 94: 
+ 95: .option.selected {
+ 96:   background: var(--background-selected);
+ 97:   color: var(--text-primary);
+ 98: }
+ 99: 
+100: .option.disabled {
+101:   opacity: 0.5;
+102:   cursor: not-allowed;
+103: }
+104: 
+105: .optionIcon {
+106:   flex-shrink: 0;
+107:   color: var(--icon-color);
+108:   width: 16px;
+109:   height: 16px;
+110: }
+111: 
+112: .optionLabel {
+113:   flex: 1;
+114:   white-space: nowrap;
+115:   overflow: hidden;
+116:   text-overflow: ellipsis;
+117: }
+118: 
+119: .checkmark {
+120:   color: var(--accent-color);
+121: }
+122: 
+123: /* Size variants */
+124: .sm .button {
+125:   height: 28px;
+126:   width: 28px;
+127:   padding: 0.25rem;
+128: }
+129: 
+130: .lg .button {
+131:   height: 36px;
+132:   width: 36px;
+133:   padding: 0.75rem;
+134: }
+135: 
+136: @keyframes dropdownFadeIn {
+137:   from {
+138:     opacity: 0;
+139:     transform: translateY(4px);
+140:   }
+141:   to {
+142:     opacity: 1;
+143:     transform: translateY(0);
+144:   }
+145: }
+146: 
+147: /* Dark mode enhancements */
+148: :global(.dark-mode) .menu {
+149:   background: var(--dropdown-menu-background);
+150:   border-color: var(--border-color);
+151: }
+152: 
+153: :global(.dark-mode) .option:hover:not(.disabled) {
+154:   background: var(--dropdown-item-hover);
+155: }
+156: 
+157: /* Improved focus styles for keyboard navigation */
+158: .option:focus-visible {
+159:   outline: none;
+160:   box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--ring-color);
+161: }
+162: 
+163: /* Add subtle divider between groups of options if needed */
+164: .option + .option {
+165:   border-top: 1px solid transparent;
+166: }
+167: 
+168: .option:hover + .option {
+169:   border-top-color: transparent;
 170: }
-171: 
-172: .patternsSection {
-173:   margin-bottom: 20px;
-174: }
-175: 
-176: .patternsInput {
-177:   width: 100%;
-178:   height: 200px;
-179:   font-family: monospace;
-180:   font-size: 14px;
-181:   padding: 12px;
-182:   background-color: var(--background-primary);
-183:   color: var(--text-primary);
-184:   border: 1px solid var(--border-color);
-185:   border-radius: var(--radius);
-186:   resize: vertical;
-187: }
-188: 
-189: .patternsInput:focus {
-190:   outline: none;
-191:   border-color: var(--accent-color);
-192:   box-shadow: 0 0 0 1px var(--accent-color);
-193: }
-194: 
-195: .patternComment {
-196:   color: var(--text-secondary);
-197: }
-198: 
-199: .patternsHelp {
-200:   margin-top: 8px;
-201:   font-size: 0.8rem;
-202:   color: var(--text-secondary);
-203: }
-204: 
-205: .patternsHelp p {
-206:   margin: 4px 0;
-207: }
-208: 
-209: .modalStatus {
-210:   margin-bottom: 16px;
-211:   min-height: 20px;
-212: }
-213: 
-214: .unsaved {
-215:   color: var(--warning-color);
-216:   font-size: 0.85rem;
-217: }
-218: 
-219: .modalActions {
-220:   display: flex;
-221:   justify-content: center;
-222:   gap: 12px;
-223:   margin-top: 24px;
-224:   padding: 0 12px;
-225: }
-226: 
-227: .modalActions button {
-228:   min-width: 100px;
-229: }
-230: 
-231: .destructiveIcon {
-232:   color: var(--error-color);
-233: }
-234: 
-235: /* We'll override these with our Button component */
-236: 
-237: .systemPatterns {
-238:   margin-top: 16px;
-239:   padding: 12px;
-240:   background-color: var(--background-secondary);
-241:   border: 1px solid var(--border-color);
-242:   border-radius: var(--radius);
-243: }
-244: 
-245: .systemPatterns h3 {
-246:   margin: 0 0 12px 0;
-247:   font-size: 1rem;
-248:   color: var(--text-primary);
-249: }
-250: 
-251: .systemPatternsList {
-252:   display: flex;
-253:   flex-direction: column;
-254:   gap: 8px;
-255:   max-height: 200px;
-256:   overflow-y: auto;
-257: }
-258: 
-259: .systemPatternItem {
-260:   display: flex;
-261:   justify-content: space-between;
-262:   align-items: center;
-263:   padding: 4px 8px;
-264:   font-family: monospace;
-265:   font-size: 13px;
-266:   transition: background-color 0.15s ease;
-267:   border-radius: var(--radius);
-268: }
-269: 
-270: .systemPatternItem:hover {
-271:   background-color: var(--hover-color);
-272: }
-273: 
-274: .toggleButton {
-275:   display: flex;
-276:   align-items: center;
-277:   justify-content: center;
-278:   padding: 4px;
-279:   background: none;
-280:   border: 1px solid var(--border-color);
-281:   border-radius: var(--radius);
-282:   color: var(--text-primary);
-283:   cursor: pointer;
-284:   transition: all 0.15s;
-285: }
-286: 
-287: .toggleButton:hover {
-288:   background-color: var(--hover-color);
-289:   border-color: var(--accent-color);
-290: }
-291: 
-292: .disabledPattern {
-293:   color: var(--text-secondary);
-294:   text-decoration: line-through;
-295: }
-296: 
-297: .previewContainer {
-298:   background-color: var(--background-secondary);
-299:   border: 1px solid var(--border-color);
-300:   border-radius: var(--radius);
-301:   padding: 12px;
-302:   max-height: 150px;
-303:   overflow-y: auto;
-304:   margin-top: 16px;
-305:   font-family: monospace;
-306:   font-size: 13px;
-307: }
-308: 
-309: .previewHeader {
-310:   display: flex;
-311:   justify-content: space-between;
-312:   align-items: center;
-313:   margin-bottom: 8px;
-314:   font-weight: 500;
-315:   font-size: 14px;
-316: }
-317: 
-318: .previewLine {
-319:   padding: 2px 0;
-320: }
-321: 
-322: .previewSystem {
-323:   color: var(--accent-color);
-324: }
-325: 
-326: .previewGlobal {
-327:   color: var(--text-primary);
-328: }
-329: 
-330: .previewLocal {
-331:   color: var(--success-color);
-332: }
-333: 
-334: .previewBadge {
-335:   display: inline-block;
-336:   font-size: 10px;
-337:   padding: 1px 4px;
-338:   border-radius: 4px;
-339:   margin-left: 8px;
-340:   background-color: var(--background-secondary);
-341:   color: var(--text-secondary);
-342: }
-343: 
-344: .notification {
-345:   position: fixed;
-346:   bottom: 20px;
-347:   right: 20px;
-348:   padding: 12px 16px;
-349:   border-radius: var(--radius);
-350:   background-color: var(--background-primary);
-351:   color: var(--text-primary);
-352:   box-shadow: var(--shadow-md);
-353:   transform: translateY(100%);
-354:   opacity: 0;
-355:   transition: transform 0.3s ease, opacity 0.3s ease;
-356:   z-index: var(--z-index-modal);
-357: }
-358: 
-359: .notification.visible {
-360:   transform: translateY(0);
-361:   opacity: 1;
-362: }
-363: 
-364: .notification.success {
-365:   border-left: 4px solid var(--success-color);
-366: }
-367: 
-368: .notification.error {
-369:   border-left: 4px solid var(--error-color);
-370: }
-371: 
-372: @keyframes slideIn {
-373:   from {
-374:     transform: scaleX(0);
-375:   }
-376:   to {
-377:     transform: scaleX(1);
-378:   }
-379: }
-380: 
-381: @keyframes fadeIn {
-382:   from {
-383:     opacity: 0;
-384:   }
-385:   to {
-386:     opacity: 1;
-387:   }
-388: }
-389: 
-390: @keyframes slideUp {
-391:   from {
-392:     opacity: 0;
-393:     transform: translateY(10px);
-394:   }
-395:   to {
-396:     opacity: 1;
-397:     transform: translateY(0);
-398:   }
-399: }
-400: 
-401: @keyframes togglePulse {
-402:   0% { transform: scale(1); }
-403:   50% { transform: scale(1.05); }
-404:   100% { transform: scale(1); }
-405: }
-406: 
-407: .patternCategory {
-408:   margin-bottom: 8px;
-409:   border: 1px solid var(--border-color);
-410:   border-radius: var(--radius);
-411:   overflow: hidden;
-412: }
-413: 
-414: .categoryHeader {
-415:   display: flex;
-416:   justify-content: space-between;
-417:   align-items: center;
-418:   padding: 10px 12px;
-419:   background-color: var(--background-secondary);
-420:   cursor: pointer;
-421:   transition: background-color 0.15s ease;
-422: }
-423: 
-424: .categoryHeader:hover {
-425:   background-color: var(--hover-color);
-426: }
-427: 
-428: .categoryTitle {
-429:   font-weight: 500;
-430:   font-size: 14px;
-431:   color: var(--text-primary);
-432: }
-433: 
-434: .categoryMeta {
-435:   display: flex;
-436:   align-items: center;
-437:   gap: 8px;
-438: }
-439: 
-440: .categoryCount {
-441:   font-size: 12px;
-442:   color: var(--text-secondary);
-443: }
-444: 
-445: .chevronRotated {
-446:   transform: rotate(180deg);
-447: }
-448: 
-449: .categoryItems {
-450:   padding: 8px 12px;
-451:   max-height: 0;
-452:   overflow: hidden;
-453:   transition: max-height 0.3s ease, padding 0.3s ease;
-454: }
-455: 
-456: .categoryExpanded .categoryItems {
-457:   max-height: 1000px;
-458:   padding: 8px 12px;
-459: }
-460: 
-461: .smallerSwitch {
-462:   transform: scale(0.9);
-463: }
 ```
 
 ## File: src/components/ui/Button/Button.tsx
@@ -4884,58 +4384,6 @@ src/
 94: );
 95: 
 96: Button.displayName = 'Button';
-```
-
-## File: src/components/ThemeToggle.tsx
-```typescript
- 1: import React, { useEffect, useState } from 'react';
- 2: import { useTheme } from '../hooks/useTheme';
- 3: import { Sun, Moon, Monitor } from 'lucide-react';
- 4: import styles from './ThemeToggle.module.css';
- 5: 
- 6: const ThemeToggle: React.FC = () => {
- 7:   const { theme, setTheme } = useTheme();
- 8:   const [isAnimated, setIsAnimated] = useState(false);
- 9: 
-10:   useEffect(() => {
-11:     // Add animation class after initial render
-12:     const timer = setTimeout(() => setIsAnimated(true), 0);
-13:     return () => clearTimeout(timer);
-14:   }, []);
-15: 
-16:   return (
-17:     <div className={styles.themeSegmentedControl}>
-18:       <div
-19:         className={`${styles.themeSegmentsBackground} ${styles[theme]} ${
-20:           isAnimated ? styles.animated : ''
-21:         }`}
-22:       />
-23:       <button
-24:         className={`${styles.themeSegment} ${theme === 'light' ? styles.active : ''}`}
-25:         onClick={() => setTheme('light')}
-26:         title="Light theme"
-27:       >
-28:         <Sun size={16} />
-29:       </button>
-30:       <button
-31:         className={`${styles.themeSegment} ${theme === 'dark' ? styles.active : ''}`}
-32:         onClick={() => setTheme('dark')}
-33:         title="Dark theme"
-34:       >
-35:         <Moon size={16} />
-36:       </button>
-37:       <button
-38:         className={`${styles.themeSegment} ${theme === 'system' ? styles.active : ''}`}
-39:         onClick={() => setTheme('system')}
-40:         title="System theme"
-41:       >
-42:         <Monitor size={16} />
-43:       </button>
-44:     </div>
-45:   );
-46: };
-47: 
-48: export default ThemeToggle;
 ```
 
 ## File: src/components/TreeItem.tsx
@@ -5124,40 +4572,6 @@ src/
 182: TreeItem.displayName = "TreeItem";
 183: 
 184: export default TreeItem;
-```
-
-## File: src/components/FileTreeHeader.module.css
-```css
- 1: .fileTreeHeader {
- 2:   display: flex;
- 3:   align-items: center;
- 4:   gap: 0.5rem;
- 5:   padding: 0.5rem;
- 6:   background: var(--background-secondary);
- 7:   border-bottom: 1px solid var(--border-color);
- 8:   height: 52px;
- 9:   justify-content: center;
-10: }
-11: 
-12: .fileTreeBtn:focus-visible {
-13:   outline: 2px solid var(--focus-ring);
-14:   outline-offset: -1px;
-15: }
-16: 
-17: .dropdownContainer {
-18:   position: relative;
-19:   display: inline-flex;
-20:   align-items: center;
-21:   height: 32px;
-22: }
-23: 
-24: .excludedFilesCount {
-25:   padding: 0.5rem;
-26:   font-size: 0.875rem;
-27:   color: var(--text-secondary);
-28:   background: var(--bg-secondary);
-29:   border-bottom: 1px solid var(--border-color);
-30: }
 ```
 
 ## File: src/types/FileTypes.ts
@@ -5528,275 +4942,660 @@ src/
 269: }
 ```
 
-## File: src/App.module.css
+## File: src/components/IgnorePatterns.module.css
 ```css
-  1: .app {
-  2:   display: flex;
-  3:   flex-direction: column;
-  4:   height: 100vh;
-  5:   background: var(--bg-primary);
-  6:   color: var(--text-primary);
-  7: }
-  8: 
-  9: .header {
- 10:   display: flex;
- 11:   align-items: center;
- 12:   justify-content: space-between;
- 13:   padding: 0.5rem;
- 14:   background: var(--bg-secondary);
- 15:   border-bottom: 1px solid var(--border-color);
- 16: }
- 17: 
- 18: .headerLeft,
- 19: .headerRight {
- 20:   display: flex;
- 21:   align-items: center;
- 22:   gap: 0.25rem;
- 23: }
- 24: 
- 25: .headerBtn {
- 26:   color: var(--text-primary);
- 27: }
- 28: 
- 29: .headerBtn:hover {
- 30:   background: var(--bg-hover);
- 31: }
- 32: 
- 33: .dropdownContainer {
- 34:   position: relative;
- 35:   display: inline-flex;
- 36:   align-items: center;
- 37:   height: 32px;
- 38: }
- 39: 
- 40: .appContainer {
- 41:   display: flex;
- 42:   flex-direction: column;
- 43:   height: 100vh;
- 44:   width: 100%;
- 45:   overflow: hidden;
- 46: }
- 47: 
- 48: .mainContainer {
- 49:   display: flex;
- 50:   flex: 1;
- 51:   overflow: hidden;
- 52: }
- 53: 
- 54: .contentArea {
- 55:   flex-grow: 1;
- 56:   padding: 0;
- 57:   overflow-y: auto;
- 58:   display: flex;
- 59:   flex-direction: column;
- 60:   height: 100%;
- 61:   background: var(--background);
- 62:   border-left: 1px solid var(--border);
+  1: .modal {
+  2:   position: fixed;
+  3:   top: 0;
+  4:   left: 0;
+  5:   width: 100%;
+  6:   height: 100%;
+  7:   background-color: rgba(0, 0, 0, 0.5);
+  8:   display: flex;
+  9:   justify-content: center;
+ 10:   align-items: center;
+ 11:   z-index: var(--z-index-modal);
+ 12:   backdrop-filter: blur(4px);
+ 13:   animation: fadeIn 0.25s ease-out;
+ 14: }
+ 15: 
+ 16: .content {
+ 17:   background-color: var(--background-primary);
+ 18:   border-radius: 1rem;
+ 19:   width: 90%;
+ 20:   max-width: 700px;
+ 21:   max-height: 85vh;
+ 22:   padding: 1.5rem;
+ 23:   box-shadow: var(--shadow-lg);
+ 24:   overflow-y: auto;
+ 25:   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+ 26:   border: 1px solid var(--border-color);
+ 27:   scrollbar-width: thin;
+ 28:   scrollbar-color: var(--border-color) transparent;
+ 29: }
+ 30: 
+ 31: .content::-webkit-scrollbar {
+ 32:   width: 8px;
+ 33: }
+ 34: 
+ 35: .content::-webkit-scrollbar-track {
+ 36:   background: transparent;
+ 37: }
+ 38: 
+ 39: .content::-webkit-scrollbar-thumb {
+ 40:   background-color: var(--border-color);
+ 41:   border-radius: 4px;
+ 42:   border: 2px solid var(--background-primary);
+ 43: }
+ 44: 
+ 45: .header {
+ 46:   display: flex;
+ 47:   justify-content: space-between;
+ 48:   align-items: center;
+ 49:   margin-bottom: 16px;
+ 50: }
+ 51: 
+ 52: .header h2 {
+ 53:   margin: 0;
+ 54:   font-size: 1.5rem;
+ 55:   color: var(--text-primary);
+ 56: }
+ 57: 
+ 58: .description {
+ 59:   margin-bottom: 16px;
+ 60:   font-size: 0.9rem;
+ 61:   color: var(--text-secondary);
+ 62:   line-height: 1.4;
  63: }
  64: 
- 65: .contentHeader {
+ 65: .scopeSelector {
  66:   display: flex;
- 67:   align-items: center;
- 68:   padding: 0.75rem 1rem;
- 69:   border-bottom: 1px solid var(--border-color);
- 70:   background: var(--background-primary);
- 71:   height: 52px;
- 72:   position: sticky;
- 73:   top: 0;
- 74:   z-index: 10;
- 75: }
- 76: 
- 77: .contentTitle {
- 78:   font-size: 1.125rem;
- 79:   font-weight: 600;
- 80:   color: var(--text-primary);
- 81:   margin: 0;
- 82:   line-height: 1.4;
- 83:   flex-shrink: 0;
- 84:   margin-right: 0.75rem;
- 85: }
- 86: 
- 87: .contentActions {
- 88:   display: flex;
- 89:   gap: 0.75rem;
- 90:   align-items: center;
- 91:   height: 32px;
- 92:   flex: 1;
- 93: }
- 94: 
- 95: .folderPathDisplay {
- 96:   font-size: 0.875rem;
- 97:   color: var(--text-secondary);
- 98:   padding: 0 0.75rem;
- 99:   background: var(--background-secondary);
-100:   width: 320px;
-101:   height: 32px;
-102:   display: inline-flex;
-103:   align-items: center;
-104:   border-radius: var(--radius);
-105:   border: 1px solid var(--border-color);
-106:   overflow: hidden;
-107:   text-overflow: ellipsis;
-108:   white-space: nowrap;
-109:   margin-right: auto;
-110: }
-111: 
-112: .fileStats {
-113:   font-size: 0.875rem;
-114:   color: var(--text-secondary);
-115:   padding: 0 0.75rem;
-116:   height: 32px;
-117:   display: flex;
-118:   align-items: center;
-119:   background: var(--background-secondary);
-120:   border-radius: var(--radius);
-121:   border: 1px solid var(--border-color);
-122:   white-space: nowrap;
-123: }
-124: 
-125: .appHeader {
-126:   display: flex;
-127:   justify-content: space-between;
-128:   align-items: center;
-129:   padding: 0.5rem 1rem;
-130:   background-color: var(--background-secondary);
-131:   border-bottom: 1px solid var(--border-color);
+ 67:   margin-bottom: 12px;
+ 68:   border-bottom: 1px solid var(--border-color);
+ 69:   padding: 0 4px;
+ 70:   gap: 1px;
+ 71: }
+ 72: 
+ 73: .scopeBtn {
+ 74:   flex: 1;
+ 75:   border-radius: var(--radius) var(--radius) 0 0 !important;
+ 76:   font-size: 0.95rem !important;
+ 77:   padding: 10px 15px !important;
+ 78:   transition: all 0.15s ease-out;
+ 79: }
+ 80: 
+ 81: .scopeBtn:first-child {
+ 82:   border-top-right-radius: 0 !important;
+ 83: }
+ 84: 
+ 85: .scopeBtn:last-child {
+ 86:   border-top-left-radius: 0 !important;
+ 87: }
+ 88: 
+ 89: .scopeBtn:hover {
+ 90:   background-color: var(--hover-color);
+ 91:   opacity: 0.9;
+ 92: }
+ 93: 
+ 94: .scopeBtn.active {
+ 95:   font-weight: 500 !important;
+ 96:   position: relative;
+ 97: }
+ 98: 
+ 99: .scopeBtn.active::after {
+100:   content: "";
+101:   position: absolute;
+102:   bottom: -1px;
+103:   left: 0;
+104:   width: 100%;
+105:   height: 2px;
+106:   background-color: var(--accent-color);
+107: }
+108: 
+109: .scopeDescription {
+110:   margin-bottom: 16px;
+111:   font-size: 0.85rem;
+112:   color: var(--text-secondary);
+113:   padding: 0 8px;
+114: }
+115: 
+116: .folderSelector {
+117:   margin-bottom: 16px;
+118: }
+119: 
+120: .folderSelector label {
+121:   display: block;
+122:   margin-bottom: 6px;
+123:   font-size: 0.9rem;
+124:   font-weight: 500;
+125:   color: var(--text-primary);
+126: }
+127: 
+128: .customSelect {
+129:   position: relative;
+130:   width: 100%;
+131:   cursor: pointer;
 132: }
 133: 
-134: .headerActions {
+134: .selectedValue {
 135:   display: flex;
-136:   align-items: center;
-137:   gap: 0.5rem;
-138: }
-139: 
-140: .headerLink {
-141:   color: var(--text-primary);
-142:   text-decoration: none;
-143:   transition: color 0.2s;
+136:   justify-content: space-between;
+137:   align-items: center;
+138:   padding: 10px 12px;
+139:   background-color: var(--background-secondary);
+140:   border: 1px solid var(--border-color);
+141:   border-radius: var(--radius);
+142:   font-size: 0.9rem;
+143:   transition: border-color 0.2s;
 144: }
 145: 
-146: .headerLink:hover {
-147:   color: var(--accent-color);
+146: .selectedValue:hover {
+147:   border-color: var(--accent-color);
 148: }
 149: 
-150: .headerSeparator {
-151:   width: 1px;
-152:   height: 24px;
-153:   background-color: var(--border-color);
-154:   margin: 0 0.5rem;
-155: }
-156: 
-157: .githubButton {
-158:   display: flex;
-159:   align-items: center;
-160:   gap: 0.5rem;
-161:   padding: 0.5rem;
-162:   border-radius: var(--radius);
-163:   text-decoration: none;
-164:   color: var(--text-primary);
-165:   transition: color 0.2s;
-166: }
-167: 
-168: .githubButton:hover {
-169:   color: var(--accent-color);
+150: .chevron {
+151:   transition: transform 0.2s;
+152: }
+153: 
+154: .chevron.open {
+155:   transform: rotate(180deg);
+156: }
+157: 
+158: .optionsContainer {
+159:   position: absolute;
+160:   top: 100%;
+161:   left: 0;
+162:   right: 0;
+163:   background-color: var(--background-primary);
+164:   border: 1px solid var(--border-color);
+165:   border-radius: var(--radius);
+166:   box-shadow: var(--shadow-md);
+167:   z-index: var(--z-index-dropdown);
+168:   max-height: 200px;
+169:   overflow-y: auto;
 170: }
 171: 
-172: .treeEmpty {
-173:   display: flex;
-174:   flex-direction: column;
-175:   align-items: center;
-176:   justify-content: center;
-177:   padding: 2rem;
-178:   text-align: center;
-179:   color: var(--text-secondary);
+172: .option {
+173:   padding: 8px 12px;
+174:   font-size: 0.9rem;
+175:   cursor: pointer;
+176: }
+177: 
+178: .option:hover {
+179:   background-color: var(--hover-color);
 180: }
 181: 
-182: .treeLoading {
-183:   display: flex;
-184:   flex-direction: column;
-185:   align-items: center;
-186:   justify-content: center;
-187:   padding: 2rem;
-188:   text-align: center;
-189:   color: var(--text-secondary);
-190: }
-191: 
-192: .spinner {
-193:   border: 3px solid rgba(0, 0, 0, 0.1);
-194:   border-top: 3px solid var(--accent-color);
-195:   border-radius: 50%;
-196:   width: 20px;
-197:   height: 20px;
-198:   animation: spin 1s linear infinite;
-199:   margin-bottom: 1rem;
-200: }
-201: 
-202: .processingIndicator {
-203:   display: flex;
-204:   align-items: center;
-205:   justify-content: center;
-206:   gap: 0.5rem;
-207:   padding: 0.5rem;
-208:   background-color: var(--background-secondary);
-209:   color: var(--text-secondary);
-210:   font-size: 0.9rem;
-211: }
-212: 
-213: .errorMessage {
-214:   padding: 0.5rem 1rem;
-215:   background-color: var(--error-color);
-216:   color: white;
-217:   font-size: 0.9rem;
-218: }
-219: 
-220: .userInstructionsContainer {
-221:   margin-top: 1rem;
-222: }
-223: 
-224: .emptyStateContent {
-225:   display: flex;
-226:   flex-direction: column;
-227:   align-items: center;
-228:   justify-content: center;
-229:   padding: 2rem;
-230:   text-align: center;
-231: }
-232: 
-233: .emptyStateContent h2 {
-234:   margin-bottom: 1rem;
-235: }
-236: 
-237: .emptyStateContent ul {
-238:   text-align: left;
-239:   margin-top: 1rem;
-240: }
-241: 
-242: @keyframes spin {
-243:   0% { transform: rotate(0deg); }
-244:   100% { transform: rotate(360deg); }
-245: }
-246: 
-247: @keyframes dropdownFadeIn {
-248:   from {
-249:     opacity: 0;
-250:     transform: translateY(-8px);
-251:   }
-252:   to {
-253:     opacity: 1;
-254:     transform: translateY(0);
-255:   }
-256: }
-257: 
-258: @keyframes tooltipFadeIn {
-259:   from {
-260:     opacity: 0;
-261:     transform: translateY(-4px);
-262:   }
-263:   to {
-264:     opacity: 1;
-265:     transform: translateY(0);
-266:   }
-267: }
+182: .pathDisplay {
+183:   margin-top: 4px;
+184:   font-size: 0.8rem;
+185:   color: var(--text-secondary);
+186:   font-family: monospace;
+187: }
+188: 
+189: .patternsSection {
+190:   margin-bottom: 20px;
+191: }
+192: 
+193: .patternsInput {
+194:   width: 100%;
+195:   height: 200px;
+196:   font-family: monospace;
+197:   font-size: 14px;
+198:   padding: 12px;
+199:   background-color: var(--background-primary);
+200:   color: var(--text-primary);
+201:   border: 1px solid var(--border-color);
+202:   border-radius: var(--radius);
+203:   resize: vertical;
+204: }
+205: 
+206: .patternsInput:focus {
+207:   outline: none;
+208:   border-color: var(--accent-color);
+209:   box-shadow: 0 0 0 1px var(--accent-color);
+210: }
+211: 
+212: .patternComment {
+213:   color: var(--text-secondary);
+214: }
+215: 
+216: .patternsHelp {
+217:   margin-top: 8px;
+218:   font-size: 0.8rem;
+219:   color: var(--text-secondary);
+220: }
+221: 
+222: .patternsHelp p {
+223:   margin: 4px 0;
+224: }
+225: 
+226: .modalStatus {
+227:   margin-bottom: 16px;
+228:   min-height: 20px;
+229: }
+230: 
+231: .unsaved {
+232:   color: var(--warning-color);
+233:   font-size: 0.85rem;
+234: }
+235: 
+236: .modalActions {
+237:   display: flex;
+238:   justify-content: center;
+239:   gap: 12px;
+240:   margin-top: 24px;
+241:   padding: 0 12px;
+242: }
+243: 
+244: .modalActions button {
+245:   min-width: 100px;
+246: }
+247: 
+248: .destructiveIcon {
+249:   color: var(--error-color);
+250: }
+251: 
+252: /* We'll override these with our Button component */
+253: 
+254: .systemPatterns {
+255:   margin-top: 16px;
+256:   padding: 12px;
+257:   background-color: var(--background-secondary);
+258:   border: 1px solid var(--border-color);
+259:   border-radius: var(--radius);
+260: }
+261: 
+262: .systemPatterns h3 {
+263:   margin: 0 0 12px 0;
+264:   font-size: 1rem;
+265:   color: var(--text-primary);
+266: }
+267: 
+268: .systemPatternsList {
+269:   display: flex;
+270:   flex-direction: column;
+271:   gap: 8px;
+272:   max-height: 200px;
+273:   overflow-y: auto;
+274: }
+275: 
+276: .systemPatternItem {
+277:   display: flex;
+278:   justify-content: space-between;
+279:   align-items: center;
+280:   padding: 6px 12px;
+281:   transition: all 0.15s ease;
+282:   border-radius: 6px;
+283:   margin: 3px 0;
+284: }
+285: 
+286: .systemPatternItem:hover {
+287:   background-color: var(--hover-color);
+288: }
+289: 
+290: .toggleButton {
+291:   display: flex;
+292:   align-items: center;
+293:   justify-content: center;
+294:   padding: 4px;
+295:   background: none;
+296:   border: 1px solid var(--border-color);
+297:   border-radius: var(--radius);
+298:   color: var(--text-primary);
+299:   cursor: pointer;
+300:   transition: all 0.15s;
+301: }
+302: 
+303: .toggleButton:hover {
+304:   background-color: var(--hover-color);
+305:   border-color: var(--accent-color);
+306: }
+307: 
+308: .disabledPattern {
+309:   color: var(--text-secondary);
+310:   text-decoration: line-through;
+311: }
+312: 
+313: .previewSection {
+314:   margin-top: 24px;
+315:   padding: 16px;
+316:   background: var(--background-secondary);
+317:   border-radius: 8px;
+318:   border: 1px solid var(--border-color);
+319:   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+320: }
+321: 
+322: .previewContainer {
+323:   background-color: var(--background-secondary);
+324:   border: 1px solid var(--border-color);
+325:   border-radius: 8px;
+326:   padding: 12px;
+327:   max-height: 180px;
+328:   overflow-y: auto;
+329:   margin-top: 16px;
+330:   font-family: monospace;
+331:   font-size: 13px;
+332:   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+333:   scrollbar-width: thin;
+334:   scrollbar-color: var(--border-color) transparent;
+335: }
+336: 
+337: .previewContainer::-webkit-scrollbar {
+338:   width: 8px;
+339: }
+340: 
+341: .previewContainer::-webkit-scrollbar-track {
+342:   background: transparent;
+343: }
+344: 
+345: .previewContainer::-webkit-scrollbar-thumb {
+346:   background-color: var(--border-color);
+347:   border-radius: 4px;
+348:   border: 2px solid var(--background-secondary);
+349: }
+350: 
+351: .previewHeader {
+352:   display: flex;
+353:   justify-content: space-between;
+354:   align-items: center;
+355:   margin-bottom: 8px;
+356:   font-weight: 500;
+357:   font-size: 14px;
+358:   padding: 0 4px;
+359: }
+360: 
+361: .patternCount {
+362:   font-size: 12px;
+363:   color: var(--text-secondary);
+364:   background-color: rgba(0, 0, 0, 0.05);
+365:   padding: 2px 8px;
+366:   border-radius: 10px;
+367: }
+368: 
+369: .previewLine {
+370:   padding: 4px 8px;
+371:   border-radius: 4px;
+372:   margin: 2px 0;
+373:   position: relative;
+374:   transition: background-color 0.15s ease;
+375: }
+376: 
+377: .previewLine:hover {
+378:   background-color: rgba(0, 0, 0, 0.05);
+379: }
+380: 
+381: .previewSystem {
+382:   color: var(--accent-color);
+383: }
+384: 
+385: .previewGlobal {
+386:   color: var(--text-primary);
+387: }
+388: 
+389: .previewLocal {
+390:   color: var(--success-color);
+391: }
+392: 
+393: .previewBadge {
+394:   display: inline-block;
+395:   font-size: 10px;
+396:   padding: 2px 6px;
+397:   border-radius: 10px;
+398:   margin-left: 8px;
+399:   background-color: rgba(0, 0, 0, 0.05);
+400:   color: var(--text-secondary);
+401: }
+402: 
+403: .notification {
+404:   position: fixed;
+405:   bottom: 20px;
+406:   right: 20px;
+407:   padding: 12px 16px;
+408:   border-radius: var(--radius);
+409:   background-color: var(--background-primary);
+410:   color: var(--text-primary);
+411:   box-shadow: var(--shadow-md);
+412:   transform: translateY(100%);
+413:   opacity: 0;
+414:   transition: transform 0.3s ease, opacity 0.3s ease;
+415:   z-index: var(--z-index-modal);
+416: }
+417: 
+418: .notification.visible {
+419:   transform: translateY(0);
+420:   opacity: 1;
+421: }
+422: 
+423: .notification.success {
+424:   border-left: 4px solid var(--success-color);
+425: }
+426: 
+427: .notification.error {
+428:   border-left: 4px solid var(--error-color);
+429: }
+430: 
+431: @keyframes slideIn {
+432:   from {
+433:     transform: scaleX(0);
+434:   }
+435:   to {
+436:     transform: scaleX(1);
+437:   }
+438: }
+439: 
+440: @keyframes fadeIn {
+441:   from {
+442:     opacity: 0;
+443:   }
+444:   to {
+445:     opacity: 1;
+446:   }
+447: }
+448: 
+449: @keyframes slideUp {
+450:   from {
+451:     opacity: 0;
+452:     transform: translateY(20px);
+453:   }
+454:   to {
+455:     opacity: 1;
+456:     transform: translateY(0);
+457:   }
+458: }
+459: 
+460: @keyframes togglePulse {
+461:   0% { transform: scale(1); }
+462:   50% { transform: scale(1.05); }
+463:   100% { transform: scale(1); }
+464: }
+465: 
+466: .patternCategory {
+467:   margin-bottom: 12px;
+468:   border: 1px solid var(--border-color);
+469:   border-radius: 8px;
+470:   overflow: hidden;
+471:   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+472:   transition: box-shadow 0.2s ease;
+473: }
+474: 
+475: .patternCategory:hover {
+476:   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+477: }
+478: 
+479: .categoryHeader {
+480:   display: flex;
+481:   justify-content: space-between;
+482:   align-items: center;
+483:   padding: 12px 16px;
+484:   cursor: pointer;
+485:   border-radius: 8px;
+486:   transition: all 0.15s ease;
+487:   user-select: none;
+488: }
+489: 
+490: .categoryHeader:hover {
+491:   /* Remove hover background effect */
+492: }
+493: 
+494: .categoryTitle {
+495:   font-weight: 500;
+496:   font-size: 14px;
+497:   color: var(--text-primary);
+498: }
+499: 
+500: .categoryMeta {
+501:   display: flex;
+502:   align-items: center;
+503:   gap: 8px;
+504: }
+505: 
+506: .categoryCount {
+507:   font-size: 12px;
+508:   color: var(--text-secondary);
+509:   background-color: rgba(0, 0, 0, 0.05);
+510:   padding: 2px 6px;
+511:   border-radius: 10px;
+512: }
+513: 
+514: .accordionIcon {
+515:   transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+516:   position: relative;
+517: }
+518: 
+519: .accordionIcon.rotated {
+520:   transform: rotate(180deg);
+521: }
+522: 
+523: .accordionIcon.rotated path:last-child {
+524:   opacity: 0;
+525:   transition: opacity 0.15s ease;
+526: }
+527: 
+528: .accordionIcon path:last-child {
+529:   transform-origin: center;
+530:   transition: opacity 0.2s ease;
+531: }
+532: 
+533: .chevron {
+534:   transition: transform 0.3s ease;
+535: }
+536: 
+537: .chevronRotated {
+538:   transform: rotate(180deg);
+539: }
+540: 
+541: .categoryItems {
+542:   max-height: 0;
+543:   overflow: hidden;
+544:   transform: translateY(-10px);
+545:   opacity: 0;
+546:   transition: 
+547:     max-height 0.25s cubic-bezier(0.4, 0.0, 0.2, 1), 
+548:     padding 0.2s cubic-bezier(0.4, 0.0, 0.2, 1),
+549:     opacity 0.15s ease,
+550:     transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+551: }
+552: 
+553: .categoryExpanded .categoryItems {
+554:   max-height: 2000px;
+555:   transform: translateY(0);
+556:   opacity: 1;
+557:   transition: 
+558:     max-height 0.35s cubic-bezier(0.4, 0.0, 0.2, 1), 
+559:     padding 0.2s cubic-bezier(0.4, 0.0, 0.2, 1),
+560:     opacity 0.2s ease,
+561:     transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+562:   padding: 8px 12px;
+563: }
+564: 
+565: .smallerSwitch {
+566:   transform: scale(0.9);
+567: }
+568: 
+569: .buttonGroup {
+570:   display: flex;
+571:   gap: 8px;
+572:   margin-top: 16px;
+573:   justify-content: center;
+574: }
+575: 
+576: .previewContent {
+577:   margin-top: 8px;
+578:   padding: 12px;
+579:   background: var(--background);
+580:   border-radius: 4px;
+581:   font-family: monospace;
+582:   white-space: pre-wrap;
+583:   max-height: 200px;
+584:   overflow-y: auto;
+585: }
+586: 
+587: .hint {
+588:   color: var(--text-secondary);
+589:   font-size: 0.9em;
+590:   margin: 8px 0;
+591: }
+592: 
+593: /* Additional animation for the toggle */
+594: .patternToggled {
+595:   animation: togglePulse 0.3s ease;
+596: }
+597: 
+598: .sectionTitle {
+599:   margin-bottom: 16px;
+600:   font-size: 1.1rem;
+601:   font-weight: 500;
+602:   color: var(--text-primary);
+603: }
+604: 
+605: .closeButton {
+606:   padding: 6px !important;
+607:   border-radius: 6px;
+608:   display: flex;
+609:   align-items: center;
+610:   justify-content: center;
+611:   color: var(--text-secondary);
+612:   transition: all 0.15s ease;
+613: }
+614: 
+615: .closeButton:hover {
+616:   background-color: var(--hover-color);
+617:   color: var(--text-primary);
+618: }
+```
+
+## File: src/components/FileTreeHeader.module.css
+```css
+ 1: .fileTreeHeader {
+ 2:   display: flex;
+ 3:   align-items: center;
+ 4:   gap: 0.5rem;
+ 5:   padding: 0.5rem;
+ 6:   background: var(--background-primary);
+ 7:   border-bottom: 1px solid var(--border-color);
+ 8:   height: 46px;
+ 9:   justify-content: center;
+10: }
+11: 
+12: .fileTreeBtn:focus-visible {
+13:   outline: 2px solid var(--focus-ring);
+14:   outline-offset: -1px;
+15: }
+16: 
+17: .dropdownContainer {
+18:   position: relative;
+19:   display: inline-flex;
+20:   align-items: center;
+21:   height: 32px;
+22: }
+23: 
+24: .excludedFilesCount {
+25:   padding: 0.5rem;
+26:   font-size: 0.875rem;
+27:   color: var(--text-secondary);
+28:   background: var(--bg-secondary);
+29:   border-bottom: 1px solid var(--border-color);
+30: }
 ```
 
 ## File: src/components/ControlContainer.tsx
@@ -5925,6 +5724,285 @@ src/
 122: export default ControlContainer;
 ```
 
+## File: src/App.module.css
+```css
+  1: .app {
+  2:   display: flex;
+  3:   flex-direction: column;
+  4:   height: 100vh;
+  5:   background: var(--bg-primary);
+  6:   color: var(--text-primary);
+  7: }
+  8: 
+  9: .header {
+ 10:   display: flex;
+ 11:   align-items: center;
+ 12:   justify-content: space-between;
+ 13:   padding: 0.5rem;
+ 14:   background: var(--bg-secondary);
+ 15:   border-bottom: 1px solid var(--border-color);
+ 16: }
+ 17: 
+ 18: .headerLeft,
+ 19: .headerRight {
+ 20:   display: flex;
+ 21:   align-items: center;
+ 22:   gap: 0.25rem;
+ 23: }
+ 24: 
+ 25: .headerBtn {
+ 26:   color: var(--text-primary);
+ 27: }
+ 28: 
+ 29: .headerBtn:hover {
+ 30:   background: var(--bg-hover);
+ 31: }
+ 32: 
+ 33: .dropdownContainer {
+ 34:   position: relative;
+ 35:   display: inline-flex;
+ 36:   align-items: center;
+ 37:   height: 32px;
+ 38: }
+ 39: 
+ 40: .appContainer {
+ 41:   display: flex;
+ 42:   flex-direction: column;
+ 43:   height: 100vh;
+ 44:   width: 100%;
+ 45:   overflow: hidden;
+ 46: }
+ 47: 
+ 48: .mainContainer {
+ 49:   display: flex;
+ 50:   flex: 1;
+ 51:   overflow: hidden;
+ 52: }
+ 53: 
+ 54: .contentArea {
+ 55:   flex-grow: 1;
+ 56:   padding: 0;
+ 57:   overflow-y: auto;
+ 58:   display: flex;
+ 59:   flex-direction: column;
+ 60:   height: 100%;
+ 61:   background: var(--background);
+ 62:   border-left: 1px solid var(--border);
+ 63: }
+ 64: 
+ 65: .contentHeader {
+ 66:   display: flex;
+ 67:   align-items: center;
+ 68:   padding: 0.5rem 1rem;
+ 69:   border-bottom: 1px solid var(--border-color);
+ 70:   background: var(--background-primary);
+ 71:   height: 46px;
+ 72:   position: sticky;
+ 73:   top: 0;
+ 74:   z-index: 10;
+ 75:   gap: 12px;
+ 76: }
+ 77: 
+ 78: .contentTitle {
+ 79:   display: none;
+ 80: }
+ 81: 
+ 82: .contentActions {
+ 83:   display: flex;
+ 84:   gap: 0.75rem;
+ 85:   align-items: center;
+ 86:   height: 32px;
+ 87:   margin-left: 0;
+ 88: }
+ 89: 
+ 90: .folderPathDisplay {
+ 91:   font-size: 0.875rem;
+ 92:   color: var(--text-secondary);
+ 93:   padding: 0 0.75rem;
+ 94:   height: 32px;
+ 95:   display: inline-flex;
+ 96:   align-items: center;
+ 97:   overflow: hidden;
+ 98:   text-overflow: ellipsis;
+ 99:   white-space: nowrap;
+100:   flex: 1;
+101:   min-width: 0;
+102:   font-family: var(--font-mono, monospace);
+103: }
+104: 
+105: .pathLabel {
+106:   color: var(--text-primary);
+107:   margin-right: 0.5rem;
+108:   font-weight: 500;
+109:   font-family: var(--font-sans, Courier);
+110: }
+111: 
+112: .fileStats {
+113:   font-size: 0.875rem;
+114:   color: var(--text-secondary);
+115:   padding: 0 0.75rem;
+116:   height: 32px;
+117:   display: flex;
+118:   align-items: center;
+119:   background: var(--background-secondary);
+120:   border-radius: var(--radius);
+121:   border: 1px solid var(--border-color);
+122:   white-space: nowrap;
+123:   flex-shrink: 0;
+124: }
+125: 
+126: .fileStats span {
+127:   color: var(--text-primary);
+128:   font-weight: 500;
+129:   margin: 0 0.15rem;
+130: }
+131: 
+132: .appHeader {
+133:   display: flex;
+134:   justify-content: space-between;
+135:   align-items: center;
+136:   padding: 0.5rem 1rem;
+137:   background-color: var(--background-secondary);
+138:   border-bottom: 1px solid var(--border-color);
+139: }
+140: 
+141: .headerActions {
+142:   display: flex;
+143:   align-items: center;
+144:   gap: 0.5rem;
+145: }
+146: 
+147: .headerLink {
+148:   color: var(--text-primary);
+149:   text-decoration: none;
+150:   transition: color 0.2s;
+151: }
+152: 
+153: .headerLink:hover {
+154:   color: var(--accent-color);
+155: }
+156: 
+157: .headerSeparator {
+158:   width: 1px;
+159:   height: 24px;
+160:   background-color: var(--border-color);
+161:   margin: 0 0.75rem;
+162:   opacity: 0.6;
+163: }
+164: 
+165: .githubButton {
+166:   display: flex;
+167:   align-items: center;
+168:   gap: 0.5rem;
+169:   padding: 0.5rem;
+170:   border-radius: var(--radius);
+171:   text-decoration: none;
+172:   color: var(--accent-color);
+173:   transition: color 0.2s;
+174: }
+175: 
+176: .githubButton:hover {
+177:   color: var(--text-primary);
+178: }
+179: 
+180: .treeEmpty {
+181:   display: flex;
+182:   flex-direction: column;
+183:   align-items: center;
+184:   justify-content: center;
+185:   padding: 2rem;
+186:   text-align: center;
+187:   color: var(--text-secondary);
+188: }
+189: 
+190: .treeLoading {
+191:   display: flex;
+192:   flex-direction: column;
+193:   align-items: center;
+194:   justify-content: center;
+195:   padding: 2rem;
+196:   text-align: center;
+197:   color: var(--text-secondary);
+198: }
+199: 
+200: .spinner {
+201:   border: 3px solid rgba(0, 0, 0, 0.1);
+202:   border-top: 3px solid var(--accent-color);
+203:   border-radius: 50%;
+204:   width: 20px;
+205:   height: 20px;
+206:   animation: spin 1s linear infinite;
+207:   margin-bottom: 1rem;
+208: }
+209: 
+210: .processingIndicator {
+211:   display: flex;
+212:   align-items: center;
+213:   justify-content: center;
+214:   gap: 0.5rem;
+215:   padding: 0.5rem;
+216:   background-color: var(--background-secondary);
+217:   color: var(--text-secondary);
+218:   font-size: 0.9rem;
+219: }
+220: 
+221: .errorMessage {
+222:   padding: 0.5rem 1rem;
+223:   background-color: var(--error-color);
+224:   color: white;
+225:   font-size: 0.9rem;
+226: }
+227: 
+228: .userInstructionsContainer {
+229:   margin-top: 1rem;
+230: }
+231: 
+232: .emptyStateContent {
+233:   display: flex;
+234:   flex-direction: column;
+235:   align-items: center;
+236:   justify-content: center;
+237:   padding: 2rem;
+238:   text-align: center;
+239: }
+240: 
+241: .emptyStateContent h2 {
+242:   margin-bottom: 1rem;
+243: }
+244: 
+245: .emptyStateContent ul {
+246:   text-align: left;
+247:   margin-top: 1rem;
+248: }
+249: 
+250: @keyframes spin {
+251:   0% { transform: rotate(0deg); }
+252:   100% { transform: rotate(360deg); }
+253: }
+254: 
+255: @keyframes dropdownFadeIn {
+256:   from {
+257:     opacity: 0;
+258:     transform: translateY(-8px);
+259:   }
+260:   to {
+261:     opacity: 1;
+262:     transform: translateY(0);
+263:   }
+264: }
+265: 
+266: @keyframes tooltipFadeIn {
+267:   from {
+268:     opacity: 0;
+269:     transform: translateY(-4px);
+270:   }
+271:   to {
+272:     opacity: 1;
+273:     transform: translateY(0);
+274:   }
+275: }
+```
+
 ## File: src/components/FileTreeHeader.tsx
 ```typescript
  1: import React, { useCallback } from "react"; // Import useCallback
@@ -6024,436 +6102,6 @@ src/
 95: };
 96: 
 97: export default FileTreeHeader; // Add default export if not already present
-```
-
-## File: src/components/IgnorePatterns.tsx
-```typescript
-  1: import React, { useState, useEffect, useRef, useCallback } from 'react';
-  2: import { X, ChevronDown } from "lucide-react";
-  3: import { Button, Switch } from "./ui";
-  4: import { ErrorBoundary } from './ErrorBoundary';
-  5: import styles from "./IgnorePatterns.module.css";
-  6: import { SYSTEM_PATTERN_CATEGORIES } from "../utils/patternUtils";
-  7: 
-  8: // Define the structure for pattern state passed from App
-  9: interface IgnorePatternsState {
- 10:   patterns: string;
- 11:   excludedSystemPatterns: string[];
- 12: }
- 13: 
- 14: // Props interface - Updated
- 15: interface IgnorePatternsProps {
- 16:   isOpen: boolean;
- 17:   onClose: () => void;
- 18:   // Pass the full state objects
- 19:   globalPatternsState: IgnorePatternsState;
- 20:   localPatternsState: IgnorePatternsState; // Only 'patterns' part is relevant here
- 21:   localFolderPath?: string;
- 22:   processingStatus?: {
- 23:     status: "idle" | "processing" | "complete" | "error";
- 24:     message: string;
- 25:   };
- 26:   // Callbacks to App.tsx
- 27:   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath?: string) => Promise<void>;
- 28:   resetIgnorePatterns: (isGlobal: boolean, folderPath?: string) => Promise<void>;
- 29:   clearIgnorePatterns: (folderPath: string) => Promise<void>;
- 30:   // For controlling excluded system patterns
- 31:   onExcludedSystemPatternsChange: (patterns: string[]) => void;
- 32:   systemIgnorePatterns: string[]; // Full list of available system patterns
- 33:   recentFolders: string[];
- 34: }
- 35: 
- 36: // Custom error for pattern validation
- 37: class PatternValidationError extends Error {
- 38:  constructor(message: string) {
- 39:   super(message);
- 40:   this.name = 'PatternValidationError';
- 41:  }
- 42: }
- 43: 
- 44: // Validates a glob pattern for syntax errors
- 45: const validatePattern = (pattern: string): boolean => {
- 46:   if (!pattern.trim()) {
- 47:    throw new PatternValidationError(`Invalid pattern: Pattern cannot be empty`);
- 48:   }
- 49:   return true;
- 50: };
- 51: 
- 52: 
- 53: const IgnorePatternsWithErrorBoundary: React.FC<IgnorePatternsProps> = (props) => (
- 54:   <ErrorBoundary fallback={ <div>Error loading ignore patterns component.</div> }>
- 55:     <IgnorePatterns {...props} />
- 56:   </ErrorBoundary>
- 57: );
- 58: 
- 59: const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
- 60:   isOpen,
- 61:   onClose,
- 62:   globalPatternsState, // Now an object { patterns, excludedSystemPatterns }
- 63:   localPatternsState,  // Now an object { patterns, excludedSystemPatterns } (but we only use patterns)
- 64:   localFolderPath,
- 65:   processingStatus = { status: "idle", message: "" },
- 66:   saveIgnorePatterns,
- 67:   resetIgnorePatterns,
- 68:   clearIgnorePatterns,
- 69:   onExcludedSystemPatternsChange,
- 70:   systemIgnorePatterns,
- 71:   recentFolders,
- 72: }) => {
- 73:   /**
- 74:    * Component State Management
- 75:    */
- 76:   const isInitialized = useRef(false);
- 77: 
- 78:   // Use safe initializers for useState, relying on useEffect for sync
- 79:   const [currentGlobalPatterns, setCurrentGlobalPatterns] = useState<string>('');
- 80:   const [currentLocalPatterns, setCurrentLocalPatterns] = useState<string>('');
- 81:   const [mergedPreview, setMergedPreview] = useState<string>("");
- 82:   const [activeTab, setActiveTab] = useState<"global" | "local">("global");
- 83:   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(localFolderPath);
- 84:   const [applyingPatterns, setApplyingPatterns] = useState<boolean>(false);
- 85:   const [folderSelectOpen, setFolderSelectOpen] = useState(false);
- 86: 
- 87:   // Derive excluded patterns directly from props for controlled behavior
- 88:   // Add safe fallback for initial render if globalPatternsState is somehow undefined briefly
- 89:   const excludedSystemPatterns = globalPatternsState?.excludedSystemPatterns || [];
- 90: 
- 91:   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
- 92:     Object.keys(SYSTEM_PATTERN_CATEGORIES).reduce((acc, category) => ({ ...acc, [category]: true }), {})
- 93:   );
- 94:   const textareaRef = useRef<HTMLTextAreaElement>(null);
- 95: 
- 96:   /**
- 97:    * Sync internal state with props when modal opens or props change
- 98:    */
- 99:   useEffect(() => {
-100:     if (isOpen) {
-101:       // Safely access props, providing defaults if undefined during initial render cycle
-102:       setCurrentGlobalPatterns(globalPatternsState?.patterns ?? '');
-103:       if (selectedFolder === localFolderPath) {
-104:           setCurrentLocalPatterns(localPatternsState?.patterns ?? '');
-105:       } else if (!isInitialized.current) {
-106:           setCurrentLocalPatterns(''); // Start fresh if different folder on init
-107:       }
-108:       setSelectedFolder(localFolderPath); // Sync selected folder
-109:       setApplyingPatterns(processingStatus.status === 'processing');
-110: 
-111:       if (!isInitialized.current) {
-112:         isInitialized.current = true;
-113:       }
-114:     } else {
-115:       // Reset init flag when closed
-116:       isInitialized.current = false;
-117:     }
-118:   }, [isOpen, globalPatternsState, localPatternsState, localFolderPath, processingStatus, selectedFolder]); // Ensure all relevant props are dependencies
-119: 
-120: 
-121:   // Generate merged preview - depends on local edits and props
-122:   useEffect(() => {
-123:     const userPatterns = activeTab === "global" ? currentGlobalPatterns : currentLocalPatterns;
-124:     // Ensure excludedSystemPatterns is an array before filtering
-125:     const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
-126:     const activeSystemPatterns = systemIgnorePatterns.filter(
-127:       pattern => !safeExcluded.includes(pattern)
-128:     );
-129:     const userPatternLines = userPatterns.split("\n").filter(line => line.trim() !== "");
-130:     const mergedLines = [...activeSystemPatterns, ...userPatternLines];
-131:     setMergedPreview(mergedLines.join("\n"));
-132:   }, [activeTab, currentGlobalPatterns, currentLocalPatterns, systemIgnorePatterns, excludedSystemPatterns]); // excludedSystemPatterns comes from props via globalPatternsState
-133: 
-134:   /**
-135:    * Event Handlers
-136:    */
-137:   const handleTabChange = (isGlobal: boolean) => setActiveTab(isGlobal ? "global" : "local");
-138: 
-139:   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-140:     const { value } = e.target;
-141:     if (activeTab === 'global') setCurrentGlobalPatterns(value);
-142:     else setCurrentLocalPatterns(value);
-143:   };
-144: 
-145:   const handleFolderChange = (folderPath: string) => {
-146:     setSelectedFolder(folderPath);
-147:     setFolderSelectOpen(false);
-148:     if (folderPath === localFolderPath) {
-149:        // Safely access patterns from prop state
-150:        setCurrentLocalPatterns(localPatternsState?.patterns ?? '');
-151:     } else {
-152:        setCurrentLocalPatterns('');
-153:        console.warn("Selecting a different folder than the App's current one. Local patterns shown are temporary until saved for that specific folder.");
-154:     }
-155:   };
-156: 
-157:   const toggleCategory = (category: string) => {
-158:     setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
-159:   };
-160: 
-161:   // System pattern management - Calls the callback prop
-162:   const handleToggleSystemPattern = useCallback((pattern: string) => {
-163:     try {
-164:       validatePattern(pattern);
-165:        // Ensure excludedSystemPatterns is an array before operating on it
-166:       const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
-167:       const newExcluded = safeExcluded.includes(pattern)
-168:         ? safeExcluded.filter(p => p !== pattern)
-169:         : [...safeExcluded, pattern];
-170:       onExcludedSystemPatternsChange(newExcluded); // Update App state
-171: 
-172:       // Visual feedback (optional)
-173:       const patternElement = document.querySelector(`[data-pattern="${pattern}"]`);
-174:       if (patternElement) {
-175:         patternElement.classList.add(styles.patternToggled);
-176:         setTimeout(() => patternElement.classList.remove(styles.patternToggled), 300);
-177:       }
-178:     } catch (error) {
-179:       console.error('Error toggling pattern:', error);
-180:       if (error instanceof PatternValidationError) console.warn('Pattern validation failed:', error.message);
-181:     }
-182:   }, [excludedSystemPatterns, onExcludedSystemPatternsChange]); // Use derived excludedSystemPatterns
-183: 
-184:   // Pattern saving handlers - Use current local edits + props
-185:   const handleSaveGlobalPatterns = useCallback(async () => {
-186:     try {
-187:       setApplyingPatterns(true);
-188:       const userPatterns = currentGlobalPatterns.split('\n').filter(p => p.trim());
-189:       userPatterns.forEach(validatePattern);
-190: 
-191:       // Format disabled patterns using the derived prop value
-192:       const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
-193:       const disabledPatternsSection = safeExcluded
-194:         .map(pattern => `# DISABLED: ${pattern}`)
-195:         .join('\n');
-196: 
-197:       const patternsToSave = disabledPatternsSection
-198:         ? `${disabledPatternsSection}\n\n${currentGlobalPatterns}`
-199:         : currentGlobalPatterns;
-200: 
-201:       await saveIgnorePatterns(patternsToSave, true); // Call App's save function
-202:     } catch (error) {
-203:       console.error('Error saving global patterns:', error);
-204:       if (error instanceof PatternValidationError) console.warn('Pattern validation failed:', error.message);
-205:     } finally {
-206:        // Let useEffect watching processingStatus handle resetting applyingPatterns
-207:     }
-208:   }, [currentGlobalPatterns, excludedSystemPatterns, saveIgnorePatterns]);
-209: 
-210:   const handleSaveLocalPatterns = useCallback(async () => {
-211:     if (!selectedFolder) return;
-212:     try {
-213:       setApplyingPatterns(true);
-214:       const userPatterns = currentLocalPatterns.split('\n').filter(p => p.trim());
-215:       userPatterns.forEach(validatePattern);
-216:       await saveIgnorePatterns(currentLocalPatterns, false, selectedFolder); // Call App's save function
-217:     } catch (error) {
-218:       console.error('Error saving local patterns:', error);
-219:       if (error instanceof PatternValidationError) console.warn('Pattern validation failed:', error.message);
-220:     } finally {
-221:        // Let useEffect watching processingStatus handle resetting applyingPatterns
-222:     }
-223:   }, [currentLocalPatterns, selectedFolder, saveIgnorePatterns]);
-224: 
-225:   // Trigger confirmation dialogs via App's handlers - Passed via props
-226:   const triggerReset = useCallback((isGlobal: boolean) => {
-227:      // This now correctly calls the prop passed from App, which should show a dialog
-228:      resetIgnorePatterns(isGlobal, selectedFolder || "");
-229:   }, [resetIgnorePatterns, selectedFolder]);
-230: 
-231:   const triggerClear = useCallback(() => {
-232:     if (selectedFolder) {
-233:       // This now correctly calls the prop passed from App, which should show a dialog
-234:       clearIgnorePatterns(selectedFolder);
-235:     }
-236:   }, [clearIgnorePatterns, selectedFolder]);
-237: 
-238: 
-239:   // Modal management
-240:   const handleModalClose = useCallback(() => onClose(), [onClose]); // Wrap in useCallback
-241: 
-242:   const handleKeyDown = useCallback((e: React.KeyboardEvent) => { // Wrap in useCallback
-243:     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-244:       e.preventDefault();
-245:       if (activeTab === 'global') handleSaveGlobalPatterns();
-246:       else if (selectedFolder) handleSaveLocalPatterns();
-247:     }
-248:     if (e.key === 'Escape') handleModalClose();
-249:   }, [activeTab, selectedFolder, handleSaveGlobalPatterns, handleSaveLocalPatterns, handleModalClose]); // Add dependencies
-250: 
-251:   // --- Render ---
-252:   if (!isOpen) return null;
-253: 
-254:   return (
-255:     <div className={styles.modal} onKeyDown={handleKeyDown}> {/* Attach keydown listener here */}
-256:       <div className={styles.content}>
-257:         <div className={styles.header}>
-258:           <h2>
-259:             Ignore Patterns
-260:             {applyingPatterns && <span className={styles.applying}>(Applying...)</span>}
-261:           </h2>
-262:           <Button variant="ghost" size="sm" onClick={handleModalClose} startIcon={<X size={16} />} title="Close" aria-label="Close" disabled={applyingPatterns} />
-263:         </div>
-264: 
-265:         <div className={styles.description}>
-266:             Manage patterns to exclude files from processing. Global patterns apply everywhere, local patterns apply only to the selected folder. System patterns can be toggled on/off globally.
-267:         </div>
-268: 
-269:         {/* Scope Selector (Tabs) */}
-270:         <div className={styles.scopeSelector}>
-271:             <Button variant={activeTab === "global" ? "secondary" : "ghost"} className={`${styles.scopeBtn} ${activeTab === "global" ? styles.active : ""}`} onClick={() => handleTabChange(true)} disabled={applyingPatterns}> Global </Button>
-272:             <Button variant={activeTab === "local" ? "secondary" : "ghost"} className={`${styles.scopeBtn} ${activeTab === "local" ? styles.active : ""}`} onClick={() => handleTabChange(false)} disabled={applyingPatterns}> Local Folder </Button>
-273:         </div>
-274: 
-275:         {/* Global Tab Content */}
-276:         {activeTab === "global" && (
-277:           <>
-278:             {/* System Patterns Section */}
-279:             <div className={styles.systemPatternsSection}>
-280:               {/* Ensure excludedSystemPatterns is array before calculating length */}
-281:               <h3 className={styles.sectionTitle}> System Defaults ({systemIgnorePatterns.length - (Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns.length : 0)} active) </h3>
-282:                {Object.entries(SYSTEM_PATTERN_CATEGORIES).map(([category, patternsInCategory]) => { // Renamed variable
-283:                     // Ensure excludedSystemPatterns is array before filtering
-284:                     const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
-285:                     // Filter patterns from the *main* system list that belong to this category
-286:                     const categoryPatterns = systemIgnorePatterns.filter(p => patternsInCategory.includes(p));
-287:                     if (categoryPatterns.length === 0) return null; // Skip empty categories
-288:                     const enabledInCategory = categoryPatterns.filter(p => !safeExcluded.includes(p)).length;
-289: 
-290:                     return (
-291:                         <div key={category} className={`${styles.patternCategory} ${expandedCategories[category] ? styles.categoryExpanded : ''}`}>
-292:                           <div className={styles.categoryHeader} onClick={() => toggleCategory(category)}>
-293:                             <div className={styles.categoryTitle}> {category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} </div>
-294:                             <div className={styles.categoryMeta}>
-295:                               <span className={styles.categoryCount}> {enabledInCategory}/{categoryPatterns.length} </span>
-296:                               <ChevronDown size={16} className={`${styles.chevron} ${expandedCategories[category] ? styles.chevronRotated : ''}`} />
-297:                             </div>
-298:                           </div>
-299:                           {expandedCategories[category] && (
-300:                             <div className={styles.categoryItems}>
-301:                               {categoryPatterns.map(pattern => {
-302:                                 // Ensure excludedSystemPatterns is array before checking includes
-303:                                 const safeExcludedInner = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
-304:                                 const isEnabled = !safeExcludedInner.includes(pattern);
-305:                                 return (
-306:                                   <div key={pattern} className={`${styles.systemPatternItem} ${isEnabled ? '' : styles.disabledPattern}`} data-pattern={pattern}>
-307:                                     <span className={styles.patternText} title={pattern}>{pattern}</span>
-308:                                     <Switch
-309:                                         checked={isEnabled}
-310:                                         onChange={() => handleToggleSystemPattern(pattern)}
-311:                                         className={styles.smallerSwitch}
-312:                                         id={`switch-${pattern}-${category}`} // Make ID more unique
-313:                                         aria-label={pattern} // Use pattern as label
-314:                                     />
-315:                                   </div>
-316:                                 );
-317:                               })}
-318:                             </div>
-319:                           )}
-320:                         </div>
-321:                     );
-322:                 })}
-323:             </div>
-324: 
-325:             {/* Global Custom Patterns Section */}
-326:             <div className={styles.patternEntrySection}>
-327:                 <h3 className={styles.sectionTitle}> Global Custom Patterns </h3>
-328:                 <textarea ref={textareaRef} className={styles.patternsInput} value={currentGlobalPatterns} onChange={handleTextareaChange} placeholder="Enter global ignore patterns..." disabled={applyingPatterns} />
-329:             </div>
-330:           </>
-331:         )}
-332: 
-333:         {/* Local Tab Content */}
-334:         {activeTab === "local" && (
-335:             <div className={styles.patternEntrySection}>
-336:                 <h3 className={styles.sectionTitle}> Local Custom Patterns </h3>
-337:                 <div className={styles.folderSelector}>
-338:                     <label htmlFor="folder-select-dropdown">Select Folder</label> {/* Add label */}
-339:                     <div id="folder-select-dropdown" className={styles.customSelect} onClick={() => !applyingPatterns && setFolderSelectOpen(!folderSelectOpen)} aria-haspopup="listbox">
-340:                         <div className={styles.selectedValue} role="button" aria-expanded={folderSelectOpen}>
-341:                             {selectedFolder || 'Select a folder'}
-342:                             <ChevronDown size={16} className={`${styles.chevron} ${folderSelectOpen ? styles.open : ''}`} />
-343:                         </div>
-344:                         {folderSelectOpen && (
-345:                         <div className={styles.optionsContainer} role="listbox">
-346:                             {recentFolders.length > 0 ? (
-347:                             recentFolders.map((folder, index) => (
-348:                                 <div key={index} className={styles.option} onClick={() => handleFolderChange(folder)} role="option" aria-selected={folder === selectedFolder}> {folder} </div>
-349:                             ))
-350:                             ) : (
-351:                             <div className={styles.option} role="option" aria-disabled="true"> {selectedFolder || 'No recent folders'} </div>
-352:                             )}
-353:                         </div>
-354:                         )}
-355:                     </div>
-356:                     <div className={styles.pathDisplay}> Path: {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'N/A'} </div>
-357:                 </div>
-358:                 <textarea ref={textareaRef} className={styles.patternsInput} value={currentLocalPatterns} onChange={handleTextareaChange} placeholder="Enter local ignore patterns..." disabled={applyingPatterns || !selectedFolder} />
-359:             </div>
-360:         )}
-361: 
-362:         {/* Preview Section (Always visible) */}
-363:         <div className={styles.previewSection}>
-364:             <div className={styles.previewContainer}>
-365:                 <div className={styles.previewHeader}>
-366:                     <span>Effective Patterns Preview</span>
-367:                     <span className={styles.patternCount}>{mergedPreview.split('\n').filter(line => line.trim()).length} active</span>
-368:                 </div>
-369:                 {mergedPreview.split('\n').map((line, index) => {
-370:                     if (!line.trim()) return null;
-371:                     const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
-372:                     const isSystem = systemIgnorePatterns.includes(line) && !safeExcluded.includes(line);
-373:                     // Check against CURRENT edited patterns for the active tab
-374:                     const isGlobalUser = activeTab === 'global' && currentGlobalPatterns.split('\n').includes(line);
-375:                     const isLocalUser = activeTab === 'local' && currentLocalPatterns.split('\n').includes(line);
-376: 
-377:                     let badgeText = 'Unknown';
-378:                     let badgeClass = ''; // No default class
-379:                     if (isSystem) {
-380:                         badgeText = 'System';
-381:                         badgeClass = styles.previewSystem;
-382:                     } else if (isGlobalUser || (activeTab === 'local' && globalPatternsState?.patterns?.split('\n').includes(line))) { // Also check prop state for inactive tab preview
-383:                         badgeText = 'Global';
-384:                         badgeClass = styles.previewGlobal;
-385:                     } else if (isLocalUser || (activeTab === 'global' && localPatternsState?.patterns?.split('\n').includes(line))) { // Also check prop state for inactive tab preview
-386:                         badgeText = 'Local';
-387:                          badgeClass = styles.previewLocal;
-388:                     } else if (line.startsWith('#')) {
-389:                          badgeText = 'Comment'; // Indicate comments if needed
-390:                          badgeClass = styles.previewComment; // Add style for comments
-391:                     }
-392: 
-393:                     return (
-394:                         <div key={index} className={`${styles.previewLine} ${badgeClass}`}>
-395:                             {line}
-396:                              {badgeText !== 'Unknown' && badgeText !== 'Comment' && <span className={styles.previewBadge}> {badgeText} </span>}
-397:                         </div>
-398:                     );
-399:                 })}
-400:             </div>
-401:         </div>
-402: 
-403:         {/* Modal Actions */}
-404:         <div className={styles.modalActions}>
-405:             {activeTab === "global" ? (
-406:                 <>
-407:                     <Button variant="primary" onClick={handleSaveGlobalPatterns} disabled={applyingPatterns}> Save Global </Button>
-408:                     {/* Button now triggers confirmation dialog via App prop */}
-409:                     <Button variant="secondary" onClick={() => resetIgnorePatterns(true, '')} disabled={applyingPatterns}> Reset Global </Button>
-410:                 </>
-411:             ) : (
-412:                 <>
-413:                     <Button variant="primary" onClick={handleSaveLocalPatterns} disabled={!selectedFolder || applyingPatterns}> Save Local </Button>
-414:                     {/* Button now triggers confirmation dialog via App prop */}
-415:                     <Button variant="secondary" onClick={() => resetIgnorePatterns(false, selectedFolder || '')} disabled={!selectedFolder || applyingPatterns}> Reset Local </Button>
-416:                     <Button variant="destructive" onClick={() => clearIgnorePatterns(selectedFolder || '')} disabled={!selectedFolder || applyingPatterns}> Clear Local </Button>
-417:                 </>
-418:             )}
-419:             <Button variant="ghost" onClick={handleModalClose} disabled={applyingPatterns}> Cancel </Button>
-420:         </div>
-421:       </div>
-422:     </div>
-423:   );
-424: };
-425: 
-426: export default IgnorePatternsWithErrorBoundary;
 ```
 
 ## File: src/styles/index.css
@@ -6603,6 +6251,587 @@ src/
 143: ::-webkit-scrollbar-corner {
 144:   background: transparent;
 145: }
+```
+
+## File: src/components/IgnorePatterns.tsx
+```typescript
+  1: import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+  2: import { ChevronDown, Plus, X } from "lucide-react";
+  3: import { Button, Switch } from "./ui";
+  4: import { ErrorBoundary } from './ErrorBoundary';
+  5: import styles from "./IgnorePatterns.module.css";
+  6: import { SYSTEM_PATTERN_CATEGORIES, IgnorePatternsState } from "../utils/patternUtils";
+  7: 
+  8: // Props interface - Updated
+  9: interface IgnorePatternsProps {
+ 10:   isOpen: boolean;
+ 11:   onClose: () => void;
+ 12:   // Pass the full state objects
+ 13:   globalPatternsState: IgnorePatternsState;
+ 14:   localPatternsState: IgnorePatternsState; // Only 'patterns' part is relevant here
+ 15:   localFolderPath?: string;
+ 16:   processingStatus?: {
+ 17:     status: "idle" | "processing" | "complete" | "error";
+ 18:     message: string;
+ 19:   };
+ 20:   // Callbacks to App.tsx
+ 21:   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath?: string) => Promise<void>;
+ 22:   resetIgnorePatterns: (isGlobal: boolean, folderPath?: string) => Promise<void>;
+ 23:   clearIgnorePatterns: (folderPath: string) => Promise<void>;
+ 24:   // For controlling excluded system patterns
+ 25:   onExcludedSystemPatternsChange: (patterns: string[]) => void;
+ 26:   systemIgnorePatterns: string[]; // Full list of available system patterns
+ 27:   recentFolders: string[];
+ 28: }
+ 29: 
+ 30: // Custom error for pattern validation
+ 31: class PatternValidationError extends Error {
+ 32:  constructor(message: string) {
+ 33:   super(message);
+ 34:   this.name = 'PatternValidationError';
+ 35:  }
+ 36: }
+ 37: 
+ 38: // Validates a glob pattern for syntax errors
+ 39: const validatePattern = (pattern: string): boolean => {
+ 40:   if (!pattern.trim()) {
+ 41:    throw new PatternValidationError(`Invalid pattern: Pattern cannot be empty`);
+ 42:   }
+ 43:   return true;
+ 44: };
+ 45: 
+ 46: 
+ 47: const IgnorePatternsWithErrorBoundary: React.FC<IgnorePatternsProps> = (props) => (
+ 48:   <ErrorBoundary fallback={ <div>Error loading ignore patterns component.</div> }>
+ 49:     <IgnorePatterns {...props} />
+ 50:   </ErrorBoundary>
+ 51: );
+ 52: 
+ 53: const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
+ 54:   isOpen,
+ 55:   onClose,
+ 56:   globalPatternsState, // Now an object { patterns, excludedSystemPatterns }
+ 57:   localPatternsState,  // Now an object { patterns, excludedSystemPatterns } (but we only use patterns)
+ 58:   localFolderPath,
+ 59:   processingStatus = { status: "idle", message: "" },
+ 60:   saveIgnorePatterns,
+ 61:   resetIgnorePatterns,
+ 62:   clearIgnorePatterns,
+ 63:   onExcludedSystemPatternsChange,
+ 64:   systemIgnorePatterns,
+ 65:   recentFolders,
+ 66: }) => {
+ 67:   /**
+ 68:    * Component State Management
+ 69:    */
+ 70:   const isInitialized = useRef(false);
+ 71: 
+ 72:   // Use safe initializers for useState, relying on useEffect for sync
+ 73:   const [currentGlobalPatterns, setCurrentGlobalPatterns] = useState<string>('');
+ 74:   const [currentLocalPatterns, setCurrentLocalPatterns] = useState<string>('');
+ 75:   const [mergedPreview, setMergedPreview] = useState<string>("");
+ 76:   const [activeTab, setActiveTab] = useState<"global" | "local">("global");
+ 77:   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(localFolderPath);
+ 78:   const [applyingPatterns, setApplyingPatterns] = useState<boolean>(false);
+ 79:   const [folderSelectOpen, setFolderSelectOpen] = useState(false);
+ 80:   const [actualPatternCount, setActualPatternCount] = useState<number>(0);
+ 81: 
+ 82:   // Derive excluded patterns directly from props for controlled behavior
+ 83:   // Add safe fallback for initial render if globalPatternsState is somehow undefined briefly
+ 84:   const excludedSystemPatterns = useMemo(() => globalPatternsState?.excludedSystemPatterns || [], [globalPatternsState]);
+ 85: 
+ 86:   // Initialize with all categories collapsed
+ 87:   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
+ 88:     Object.keys(SYSTEM_PATTERN_CATEGORIES).reduce((acc, category) => ({ ...acc, [category]: false }), {})
+ 89:   );
+ 90:   const textareaRef = useRef<HTMLTextAreaElement>(null);
+ 91: 
+ 92:   /**
+ 93:    * Sync internal state with props when modal opens or props change
+ 94:    */
+ 95:   useEffect(() => {
+ 96:     if (isOpen) {
+ 97:       // Safely access props, providing defaults if undefined during initial render cycle
+ 98:       setCurrentGlobalPatterns(globalPatternsState?.patterns ?? '');
+ 99:       if (selectedFolder === localFolderPath) {
+100:           setCurrentLocalPatterns(localPatternsState?.patterns ?? '');
+101:       } else if (!isInitialized.current) {
+102:           setCurrentLocalPatterns(''); // Start fresh if different folder on init
+103:       }
+104:       setSelectedFolder(localFolderPath); // Sync selected folder
+105:       setApplyingPatterns(processingStatus.status === 'processing');
+106: 
+107:       if (!isInitialized.current) {
+108:         isInitialized.current = true;
+109:       }
+110:     } else {
+111:       // Reset init flag when closed
+112:       isInitialized.current = false;
+113:     }
+114:   }, [isOpen, globalPatternsState, localPatternsState, localFolderPath, processingStatus, selectedFolder]); // Ensure all relevant props are dependencies
+115: 
+116: 
+117:   // Generate merged preview - depends on local edits and props
+118:   useEffect(() => {
+119:     const userPatterns = activeTab === "global" ? currentGlobalPatterns : currentLocalPatterns;
+120:     
+121:     // Start with an empty array for our preview lines
+122:     const previewLines: string[] = [];
+123:     // Keep track of actual patterns for accurate counting
+124:     const actualPatterns: string[] = [];
+125: 
+126:     if (activeTab === "global") {
+127:       // For global tab, show active system patterns first
+128:       const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+129:       const activeSystemPatterns = systemIgnorePatterns
+130:         .filter(pattern => !safeExcluded.includes(pattern));
+131:         
+132:       if (activeSystemPatterns.length > 0) {
+133:         previewLines.push("# Active System Patterns:");
+134:         activeSystemPatterns.forEach(pattern => {
+135:           previewLines.push(`${pattern} (from system)`);
+136:           actualPatterns.push(pattern);
+137:         });
+138:       }
+139: 
+140:       // Then show user patterns
+141:       const userPatternLines = userPatterns.split("\n").filter(line => line.trim() !== "");
+142:       if (userPatternLines.length > 0) {
+143:         if (previewLines.length > 0) previewLines.push("");
+144:         previewLines.push("# User Patterns:");
+145:         userPatternLines.forEach(pattern => {
+146:           previewLines.push(`${pattern} (custom)`);
+147:           actualPatterns.push(pattern);
+148:         });
+149:       }
+150:     } else {
+151:       // For local tab, only show local patterns
+152:       const userPatternLines = userPatterns.split("\n").filter(line => line.trim() !== "");
+153:       if (userPatternLines.length > 0) {
+154:         previewLines.push("# Local Patterns:");
+155:         userPatternLines.forEach(pattern => {
+156:           previewLines.push(`${pattern} (local)`);
+157:           actualPatterns.push(pattern);
+158:         });
+159:       }
+160:     }
+161: 
+162:     // Store the actual pattern count for display
+163:     setMergedPreview(previewLines.join("\n"));
+164:     // Store the count in a ref or state if needed
+165:     setActualPatternCount(actualPatterns.length);
+166:   }, [activeTab, currentGlobalPatterns, currentLocalPatterns, systemIgnorePatterns, excludedSystemPatterns]);
+167: 
+168:   /**
+169:    * Event Handlers
+170:    */
+171:   const handleTabChange = (isGlobal: boolean) => setActiveTab(isGlobal ? "global" : "local");
+172: 
+173:   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+174:     const { value } = e.target;
+175:     if (activeTab === 'global') setCurrentGlobalPatterns(value);
+176:     else setCurrentLocalPatterns(value);
+177:   };
+178: 
+179:   const handleFolderChange = (folderPath: string) => {
+180:     setSelectedFolder(folderPath);
+181:     setFolderSelectOpen(false);
+182:     if (folderPath === localFolderPath) {
+183:        // Safely access patterns from prop state
+184:        setCurrentLocalPatterns(localPatternsState?.patterns ?? '');
+185:     } else {
+186:        setCurrentLocalPatterns('');
+187:        console.warn("Selecting a different folder than the App's current one. Local patterns shown are temporary until saved for that specific folder.");
+188:     }
+189:   };
+190: 
+191:   const toggleCategory = (category: string) => {
+192:     setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
+193:   };
+194: 
+195:   // System pattern management - Calls the callback prop
+196:   const handleToggleSystemPattern = useCallback((pattern: string) => {
+197:     try {
+198:       validatePattern(pattern);
+199:        // Ensure excludedSystemPatterns is an array before operating on it
+200:       const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+201:       const newExcluded = safeExcluded.includes(pattern)
+202:         ? safeExcluded.filter(p => p !== pattern)
+203:         : [...safeExcluded, pattern];
+204:       onExcludedSystemPatternsChange(newExcluded); // Update App state
+205: 
+206:       // Visual feedback (optional)
+207:       const patternElement = document.querySelector(`[data-pattern="${pattern}"]`);
+208:       if (patternElement) {
+209:         patternElement.classList.add(styles.patternToggled);
+210:         setTimeout(() => patternElement.classList.remove(styles.patternToggled), 300);
+211:       }
+212:     } catch (error) {
+213:       console.error('Error toggling pattern:', error);
+214:       if (error instanceof PatternValidationError) console.warn('Pattern validation failed:', error.message);
+215:     }
+216:   }, [excludedSystemPatterns, onExcludedSystemPatternsChange]); // Use derived excludedSystemPatterns
+217: 
+218:   // Pattern saving handlers - Use current local edits + props
+219:   const handleSaveGlobalPatterns = useCallback(async () => {
+220:     try {
+221:       setApplyingPatterns(true);
+222:       const userPatterns = currentGlobalPatterns.split('\n').filter(p => p.trim());
+223:       userPatterns.forEach(validatePattern);
+224: 
+225:       // Format disabled patterns using the derived prop value
+226:       const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+227:       
+228:       // Format disabled patterns section - each disabled pattern on its own line
+229:       const disabledPatternsSection = safeExcluded
+230:         .map(pattern => `# DISABLED: ${pattern}`)
+231:         .join('\n');
+232: 
+233:       // Add user patterns with proper header
+234:       let formattedContent = '';
+235:       
+236:       // Add the disabled patterns first
+237:       if (disabledPatternsSection) {
+238:         formattedContent += disabledPatternsSection + '\n\n';
+239:       }
+240:       
+241:       // Then add user patterns with header
+242:       if (currentGlobalPatterns.trim()) {
+243:         formattedContent += '# USER PATTERNS:\n' + currentGlobalPatterns.trim();
+244:       }
+245: 
+246:       await saveIgnorePatterns(formattedContent, true);
+247:       setApplyingPatterns(false);
+248:     } catch (error) {
+249:       console.error('Error saving global patterns:', error);
+250:       setApplyingPatterns(false);
+251:     }
+252:   }, [currentGlobalPatterns, excludedSystemPatterns, saveIgnorePatterns]);
+253: 
+254:   const handleSaveLocalPatterns = useCallback(async () => {
+255:     try {
+256:       if (!selectedFolder) {
+257:         throw new Error('No folder selected for local patterns');
+258:       }
+259:       setApplyingPatterns(true);
+260:       await saveIgnorePatterns(currentLocalPatterns, false, selectedFolder);
+261:       setApplyingPatterns(false);
+262:     } catch (error) {
+263:       console.error('Error saving local patterns:', error);
+264:       setApplyingPatterns(false);
+265:     }
+266:   }, [currentLocalPatterns, selectedFolder, saveIgnorePatterns]);
+267: 
+268:   const handleSave = useCallback(async () => {
+269:     if (activeTab === 'global') {
+270:       await handleSaveGlobalPatterns();
+271:     } else {
+272:       await handleSaveLocalPatterns();
+273:     }
+274:   }, [activeTab, handleSaveGlobalPatterns, handleSaveLocalPatterns]);
+275: 
+276:   // Keyboard shortcuts
+277:   useEffect(() => {
+278:     const handleKeyDown = (e: KeyboardEvent) => {
+279:       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+280:         e.preventDefault();
+281:         handleSave();
+282:       }
+283:     };
+284:     document.addEventListener('keydown', handleKeyDown);
+285:     return () => document.removeEventListener('keydown', handleKeyDown);
+286:   }, [handleSave]);
+287: 
+288:   const handleClearLocal = useCallback(async () => {
+289:     try {
+290:       if (!selectedFolder) {
+291:         throw new Error('No folder selected for local patterns');
+292:       }
+293:       setApplyingPatterns(true);
+294:       await clearIgnorePatterns(selectedFolder);
+295:       setCurrentLocalPatterns(''); // Clear the textarea
+296:       setApplyingPatterns(false);
+297:     } catch (error) {
+298:       console.error('Error clearing local patterns:', error);
+299:       setApplyingPatterns(false);
+300:     }
+301:   }, [selectedFolder, clearIgnorePatterns]);
+302: 
+303:   const handleResetLocal = useCallback(async () => {
+304:     try {
+305:       if (!selectedFolder) {
+306:         throw new Error('No folder selected for local patterns');
+307:       }
+308:       setApplyingPatterns(true);
+309:       await resetIgnorePatterns(false, selectedFolder);
+310:       // The patterns will be reloaded via the patterns-loaded event handler
+311:       setApplyingPatterns(false);
+312:     } catch (error) {
+313:       console.error('Error resetting local patterns:', error);
+314:       setApplyingPatterns(false);
+315:     }
+316:   }, [selectedFolder, resetIgnorePatterns]);
+317: 
+318:   // Add explanation tooltips for the buttons
+319:   const buttonTooltips = {
+320:     save: 'Save current patterns',
+321:     reset: 'Reset to last saved patterns',
+322:     clear: 'Remove all patterns',
+323:     cancel: 'Discard changes'
+324:   };
+325: 
+326:   // --- Render ---
+327:   if (!isOpen) return null;
+328: 
+329:   return (
+330:     <div className={styles.modal} onClick={(e) => {
+331:       if (e.target === e.currentTarget) onClose();
+332:     }}>
+333:       <div className={styles.content}>
+334:         <div className={styles.header}>
+335:           <h2>
+336:             Ignore Patterns
+337:             {applyingPatterns && <span className={styles.applying}>(Applying...)</span>}
+338:           </h2>
+339:           <Button 
+340:             variant="ghost" 
+341:             size="sm" 
+342:             onClick={onClose} 
+343:             aria-label="Close" 
+344:             disabled={applyingPatterns}
+345:             className={styles.closeButton}
+346:           >
+347:             <X size={16} />
+348:           </Button>
+349:         </div>
+350: 
+351:         <div className={styles.description}>
+352:             Manage patterns to exclude files from processing. Global patterns apply everywhere, local patterns apply only to the selected folder. System patterns can be toggled on/off globally.
+353:         </div>
+354: 
+355:         {/* Scope Selector (Tabs) */}
+356:         <div className={styles.scopeSelector}>
+357:             <Button variant={activeTab === "global" ? "secondary" : "ghost"} className={`${styles.scopeBtn} ${activeTab === "global" ? styles.active : ""}`} onClick={() => handleTabChange(true)} disabled={applyingPatterns}> Global </Button>
+358:             <Button variant={activeTab === "local" ? "secondary" : "ghost"} className={`${styles.scopeBtn} ${activeTab === "local" ? styles.active : ""}`} onClick={() => handleTabChange(false)} disabled={applyingPatterns}> Local Folder </Button>
+359:         </div>
+360: 
+361:         {/* Global Tab Content */}
+362:         {activeTab === "global" && (
+363:           <>
+364:             {/* System Patterns Section */}
+365:             <div className={styles.systemPatternsSection}>
+366:               {/* Ensure excludedSystemPatterns is array before calculating length */}
+367:               <h3 className={styles.sectionTitle}> System Defaults ({systemIgnorePatterns.length - (Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns.length : 0)} active) </h3>
+368:                {Object.entries(SYSTEM_PATTERN_CATEGORIES).map(([category, patternsInCategory]) => { // Renamed variable
+369:                     // Ensure excludedSystemPatterns is array before filtering
+370:                     const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+371:                     // Filter patterns from the *main* system list that belong to this category
+372:                     const categoryPatterns = systemIgnorePatterns.filter(p => patternsInCategory.includes(p));
+373:                     if (categoryPatterns.length === 0) return null; // Skip empty categories
+374:                     const enabledInCategory = categoryPatterns.filter(p => !safeExcluded.includes(p)).length;
+375: 
+376:                     return (
+377:                         <div key={category} className={`${styles.patternCategory} ${expandedCategories[category] ? styles.categoryExpanded : ''}`}>
+378:                           <div className={styles.categoryHeader} onClick={() => toggleCategory(category)}>
+379:                             <div className={styles.categoryTitle}> {category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} </div>
+380:                             <div className={styles.categoryMeta}>
+381:                               <span className={styles.categoryCount}> {enabledInCategory}/{categoryPatterns.length} </span>
+382:                               <Plus 
+383:                                 size={16} 
+384:                                 className={`${styles.accordionIcon} ${expandedCategories[category] ? styles.rotated : ''}`} 
+385:                               />
+386:                             </div>
+387:                           </div>
+388:                           {expandedCategories[category] && (
+389:                             <div className={styles.categoryItems}>
+390:                               {categoryPatterns.map(pattern => {
+391:                                 // Ensure excludedSystemPatterns is array before checking includes
+392:                                 const safeExcludedInner = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+393:                                 const isEnabled = !safeExcludedInner.includes(pattern);
+394:                                 return (
+395:                                   <div key={pattern} className={`${styles.systemPatternItem} ${isEnabled ? '' : styles.disabledPattern}`} data-pattern={pattern}>
+396:                                     <span className={styles.patternText} title={pattern}>{pattern}</span>
+397:                                     <Switch
+398:                                         checked={isEnabled}
+399:                                         onChange={() => handleToggleSystemPattern(pattern)}
+400:                                         className={styles.smallerSwitch}
+401:                                         id={`switch-${pattern}-${category}`} // Make ID more unique
+402:                                         aria-label={pattern} // Use pattern as label
+403:                                     />
+404:                                   </div>
+405:                                 );
+406:                               })}
+407:                             </div>
+408:                           )}
+409:                         </div>
+410:                     );
+411:                 })}
+412:             </div>
+413: 
+414:             {/* Global Custom Patterns Section */}
+415:             <div className={styles.patternEntrySection}>
+416:                 <h3 className={styles.sectionTitle}> Global Custom Patterns </h3>
+417:                 <textarea ref={textareaRef} className={styles.patternsInput} value={currentGlobalPatterns} onChange={handleTextareaChange} placeholder="Enter global ignore patterns..." disabled={applyingPatterns} />
+418:                 <div className={styles.buttonGroup}>
+419:                   <Button
+420:                     variant="secondary"
+421:                     size="sm"
+422:                     onClick={() => resetIgnorePatterns(true)}
+423:                     disabled={applyingPatterns}
+424:                     title={buttonTooltips.reset}
+425:                   >
+426:                     Reset Global
+427:                   </Button>
+428:                   <Button
+429:                     variant="secondary"
+430:                     size="sm"
+431:                     onClick={() => {
+432:                       setCurrentGlobalPatterns('');
+433:                       onExcludedSystemPatternsChange([]);
+434:                     }}
+435:                     disabled={applyingPatterns}
+436:                     title={buttonTooltips.clear}
+437:                   >
+438:                     Clear Global
+439:                   </Button>
+440:                   <Button
+441:                     variant="ghost"
+442:                     size="sm"
+443:                     onClick={onClose}
+444:                     disabled={applyingPatterns}
+445:                     title={buttonTooltips.cancel}
+446:                   >
+447:                     Cancel
+448:                   </Button>
+449:                   <Button
+450:                     variant="primary"
+451:                     size="sm"
+452:                     onClick={handleSaveGlobalPatterns}
+453:                     disabled={applyingPatterns}
+454:                     title={buttonTooltips.save}
+455:                   >
+456:                     {applyingPatterns ? 'Saving...' : 'Save'}
+457:                   </Button>
+458:                 </div>
+459:             </div>
+460:           </>
+461:         )}
+462: 
+463:         {/* Local Tab Content */}
+464:         {activeTab === "local" && (
+465:             <div className={styles.patternEntrySection}>
+466:                 <h3 className={styles.sectionTitle}> Local Custom Patterns </h3>
+467:                 <div className={styles.folderSelector}>
+468:                     <label htmlFor="folder-select-dropdown">Select Folder</label>
+469:                     <div id="folder-select-dropdown" className={styles.customSelect} onClick={() => !applyingPatterns && setFolderSelectOpen(!folderSelectOpen)} aria-haspopup="listbox">
+470:                         <div className={styles.selectedValue} role="button" aria-expanded={folderSelectOpen}>
+471:                             {selectedFolder || 'Select a folder'}
+472:                             <ChevronDown size={16} className={`${styles.chevron} ${folderSelectOpen ? styles.open : ''}`} />
+473:                         </div>
+474:                         {folderSelectOpen && (
+475:                         <div className={styles.optionsContainer} role="listbox">
+476:                             {recentFolders.length > 0 ? (
+477:                             recentFolders.map((folder, index) => (
+478:                                 <div key={index} className={styles.option} onClick={() => handleFolderChange(folder)} role="option" aria-selected={folder === selectedFolder}> {folder} </div>
+479:                             ))
+480:                             ) : (
+481:                             <div className={styles.option} role="option" aria-disabled="true"> {selectedFolder || 'No recent folders'} </div>
+482:                             )}
+483:                         </div>
+484:                         )}
+485:                     </div>
+486:                     <div className={styles.pathDisplay}> Path: {selectedFolder ? `${selectedFolder}/.repo_ignore` : 'N/A'} </div>
+487:                 </div>
+488:                 <textarea ref={textareaRef} className={styles.patternsInput} value={currentLocalPatterns} onChange={handleTextareaChange} placeholder="Enter local ignore patterns..." disabled={applyingPatterns || !selectedFolder} />
+489:                 <div className={styles.buttonGroup}>
+490:                   <Button
+491:                     variant="secondary"
+492:                     size="sm"
+493:                     onClick={handleResetLocal}
+494:                     disabled={applyingPatterns || !selectedFolder}
+495:                     title={buttonTooltips.reset}
+496:                   >
+497:                     Reset Local
+498:                   </Button>
+499:                   <Button
+500:                     variant="secondary"
+501:                     size="sm"
+502:                     onClick={handleClearLocal}
+503:                     disabled={applyingPatterns || !selectedFolder}
+504:                     title={buttonTooltips.clear}
+505:                   >
+506:                     Clear Local
+507:                   </Button>
+508:                   <Button
+509:                     variant="ghost"
+510:                     size="sm"
+511:                     onClick={onClose}
+512:                     disabled={applyingPatterns}
+513:                     title={buttonTooltips.cancel}
+514:                   >
+515:                     Cancel
+516:                   </Button>
+517:                   <Button
+518:                     variant="primary"
+519:                     size="sm"
+520:                     onClick={handleSave}
+521:                     disabled={applyingPatterns || !selectedFolder}
+522:                     title={buttonTooltips.save}
+523:                   >
+524:                     {applyingPatterns ? 'Saving...' : 'Save'}
+525:                   </Button>
+526:                 </div>
+527:             </div>
+528:         )}
+529: 
+530:         {/* Preview Section (Always visible) */}
+531:         <div className={styles.previewSection}>
+532:             <div className={styles.previewContainer}>
+533:                 <div className={styles.previewHeader}>
+534:                     <span>Effective Patterns Preview</span>
+535:                     <span className={styles.patternCount}>
+536:                         {actualPatternCount} active
+537:                     </span>
+538:                 </div>
+539:                 {mergedPreview.split('\n').map((line, index) => {
+540:                     if (!line.trim()) return null;
+541:                     const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
+542:                     const isSystem = systemIgnorePatterns.includes(line) && !safeExcluded.includes(line);
+543:                     // Check against CURRENT edited patterns for the active tab
+544:                     const isGlobalUser = activeTab === 'global' && currentGlobalPatterns.split('\n').includes(line);
+545:                     const isLocalUser = activeTab === 'local' && currentLocalPatterns.split('\n').includes(line);
+546: 
+547:                     let badgeText = 'Unknown';
+548:                     let badgeClass = ''; // No default class
+549:                     if (isSystem) {
+550:                         badgeText = 'System';
+551:                         badgeClass = styles.previewSystem;
+552:                     } else if (isGlobalUser || (activeTab === 'local' && globalPatternsState?.patterns?.split('\n').includes(line))) { // Also check prop state for inactive tab preview
+553:                         badgeText = 'Global';
+554:                         badgeClass = styles.previewGlobal;
+555:                     } else if (isLocalUser || (activeTab === 'global' && localPatternsState?.patterns?.split('\n').includes(line))) { // Also check prop state for inactive tab preview
+556:                         badgeText = 'Local';
+557:                          badgeClass = styles.previewLocal;
+558:                     } else if (line.startsWith('#')) {
+559:                          badgeText = 'Comment'; // Indicate comments if needed
+560:                          badgeClass = styles.previewComment; // Add style for comments
+561:                     }
+562: 
+563:                     return (
+564:                         <div key={index} className={`${styles.previewLine} ${badgeClass}`}>
+565:                             {line}
+566:                              {badgeText !== 'Unknown' && badgeText !== 'Comment' && <span className={styles.previewBadge}> {badgeText} </span>}
+567:                         </div>
+568:                     );
+569:                 })}
+570:             </div>
+571:         </div>
+572:       </div>
+573:     </div>
+574:   );
+575: };
+576: 
+577: export default IgnorePatternsWithErrorBoundary;
 ```
 
 ## File: src/components/Sidebar.tsx
@@ -7252,8 +7481,8 @@ src/
 643:       <IgnorePatterns 
 644:         isOpen={ignoreModalOpen}
 645:         onClose={() => setIgnoreModalOpen(false)}
-646:         globalIgnorePatterns={globalIgnorePatterns}
-647:         localIgnorePatterns={localIgnorePatterns}
+646:         globalPatternsState={globalPatternsState}
+647:         localPatternsState={localPatternsState}
 648:         localFolderPath={selectedFolder || ""}
 649:         processingStatus={{ status: "idle", message: "" }}
 650:         saveIgnorePatterns={async (patterns, isGlobal, folderPath) => {
@@ -7267,21 +7496,15 @@ src/
 658:         clearIgnorePatterns={async (folderPath) => {
 659:           await Promise.resolve(clearIgnorePatterns(folderPath));
 660:         }}
-661:         systemIgnorePatterns={systemIgnorePatterns}
-662:         recentFolders={getAvailableFolders()}
-663:         systemPatternCategories={{
-664:           versionControl: ["**/.git/**", "**/.svn/**", "**/.hg/**"],
-665:           buildFiles: ["**/dist/**", "**/build/**", "**/.output/**"],
-666:           mediaFiles: ["**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif"],
-667:           documentation: ["**/*.pdf", "**/*.doc", "**/*.docx"],
-668:           dependencies: ["**/node_modules/**", "**/__pycache__/**", "**/venv/**"]
-669:         }}
-670:       />
-671:     </div>
-672:   );
-673: };
-674: 
-675: export default Sidebar;
+661:         onExcludedSystemPatternsChange={onExcludedSystemPatternsChange}
+662:         systemIgnorePatterns={systemIgnorePatterns}
+663:         recentFolders={getAvailableFolders()}
+664:       />
+665:     </div>
+666:   );
+667: };
+668: 
+669: export default Sidebar;
 ```
 
 ## File: src/App.tsx
@@ -7291,7 +7514,7 @@ src/
   3: import FileList from "./components/FileList";
   4: import UserInstructions from "./components/UserInstructions";
   5: import ControlContainer from "./components/ControlContainer";
-  6: import { FileData, FileTreeMode, SortOrder, SidebarProps } from "./types/FileTypes";
+  6: import { FileData, FileTreeMode, SortOrder } from "./types/FileTypes";
   7: import { ThemeProvider } from "./context/ThemeContext";
   8: import ThemeToggle from "./components/ThemeToggle";
   9: import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
@@ -7302,900 +7525,823 @@ src/
  14: import { Button } from "./components/ui/Button";
  15: import { getSortIcon } from "./utils/sortIcons";
  16: // Import utilities from patternUtils
- 17: import { SYSTEM_PATTERN_CATEGORIES, parseIgnorePatternsContent } from "./utils/patternUtils";
- 18: 
- 19: // Access the electron API from the window object
- 20: declare global {
- 21:   interface Window {
- 22:     electron: {
- 23:       ipcRenderer: {
- 24:         send: (channel: string, data?: any) => void;
- 25:         on: (channel: string, func: (...args: any[]) => void) => void;
- 26:         removeListener: (
- 27:           channel: string,
- 28:           func: (...args: any[]) => void
- 29:         ) => void;
- 30:         invoke: (channel: string, data?: any) => Promise<any>;
- 31:         setMaxListeners?: (n: number) => void;
- 32:       };
- 33:     };
- 34:   }
- 35: }
- 36: 
- 37: // Keys for localStorage
- 38: const STORAGE_KEYS = {
- 39:   SELECTED_FOLDER: "pastemax-selected-folder",
- 40:   SELECTED_FILES: "pastemax-selected-files",
- 41:   SORT_ORDER: "pastemax-sort-order",
- 42:   SEARCH_TERM: "pastemax-search-term",
- 43:   EXPANDED_NODES: "pastemax-expanded-nodes",
- 44:   GLOBAL_IGNORE_PATTERNS: "pastemax-global-ignore-patterns-v2", // Added version suffix
- 45: };
- 46: 
- 47: // Default system patterns as fallback if not provided by main process
- 48: const DEFAULT_SYSTEM_PATTERNS = [
- 49:   // Combine categories into one list for default state
- 50:   ...SYSTEM_PATTERN_CATEGORIES.versionControl,
- 51:   ...SYSTEM_PATTERN_CATEGORIES.buildOutput,
- 52:   ...SYSTEM_PATTERN_CATEGORIES.caches,
- 53:   ...SYSTEM_PATTERN_CATEGORIES.logs,
- 54:   ...SYSTEM_PATTERN_CATEGORIES.ide,
- 55:   ...SYSTEM_PATTERN_CATEGORIES.temp,
- 56:   ...SYSTEM_PATTERN_CATEGORIES.os,
- 57:   // Other common defaults
- 58:   "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.ico",
- 59:   "**/*.webp", "**/*.svg", "**/*.pdf", "**/*.zip", "**/*.tar.gz",
- 60:   "**/*.tgz", "**/*.rar", "**/*.7z", "**/*.mp4", "**/*.mov",
- 61:   "**/*.avi", "**/*.mkv", "**/*.mp3", "**/*.wav", "**/*.flac",
- 62:   "**/*.sqlite", "**/*.db", "**/*.sql",
- 63:   "**/*.doc", "**/*.docx", "**/*.xls", "**/*.xlsx", "**/*.ppt", "**/*.pptx",
- 64:   "**/*.iso", "**/*.bin", "**/*.exe", "**/*.dll", "**/*.so", "**/*.dylib",
- 65:   "**/*.min.js", "**/*.min.css",
- 66: ];
- 67: 
- 68: // Define IgnorePatternsState interface
- 69: interface IgnorePatternsState {
- 70:   patterns: string;
- 71:   excludedSystemPatterns: string[];
- 72: }
- 73: 
- 74: // Helper to load ignore state from localStorage
- 75: const loadIgnoreStateFromStorage = (): IgnorePatternsState => {
- 76:   const saved = localStorage.getItem(STORAGE_KEYS.GLOBAL_IGNORE_PATTERNS);
- 77:   if (saved) {
- 78:     try {
- 79:       const parsed = JSON.parse(saved);
- 80:       // Basic validation
- 81:       if (typeof parsed.patterns === 'string' && Array.isArray(parsed.excludedSystemPatterns)) {
- 82:         return parsed;
- 83:       }
- 84:     } catch (e) {
- 85:       console.error("Failed to parse saved global ignore patterns:", e);
- 86:     }
- 87:   }
- 88:   // Default state if nothing saved or parsing failed
- 89:   return { patterns: '', excludedSystemPatterns: [] };
- 90: };
- 91: 
- 92: // Update ExtendedSidebarProps interface
- 93: interface ExtendedSidebarProps extends Omit<SidebarProps, 'allFiles'> {
- 94:   allFiles: Omit<FileData, 'content'>[]; // Explicitly define with new type
- 95:   reloadFolder: () => void;
- 96:   clearSelection: () => void;
- 97:   removeAllFolders: () => void;
- 98:   loadIgnorePatterns: (folderPath: string, isGlobal?: boolean) => Promise<void>;
- 99:   saveIgnorePatterns: (patterns: string, isGlobal: boolean, folderPath?: string) => Promise<void>;
-100:   resetIgnorePatterns: (isGlobal: boolean, folderPath?: string) => Promise<void>;
-101:   systemIgnorePatterns: string[];
-102:   clearIgnorePatterns: (folderPath: string) => Promise<void>;
-103:   onClearSelectionClick: () => void;
-104:   onRemoveAllFoldersClick: () => void;
-105:   onResetPatternsClick: (isGlobal: boolean, folderPath: string) => void;
-106:   fileTreeSortOrder: SortOrder;
-107:   onSortOrderChange: (order: SortOrder) => void;
-108:   globalPatternsState: IgnorePatternsState;
-109:   localPatternsState: IgnorePatternsState;
-110:   onExcludedSystemPatternsChange: (patterns: string[]) => void;
-111:   ignorePatterns: string;
-112:   setIgnorePatterns: (patterns: string) => void;
-113: }
-114: 
-115: const App = () => {
-116:   // Load initial state from localStorage if available
-117:   const savedFolder = localStorage.getItem(STORAGE_KEYS.SELECTED_FOLDER);
-118:   const savedFiles = localStorage.getItem(STORAGE_KEYS.SELECTED_FILES);
-119:   const savedSortOrder = localStorage.getItem(STORAGE_KEYS.SORT_ORDER);
-120:   const savedSearchTerm = localStorage.getItem(STORAGE_KEYS.SEARCH_TERM);
-121:   const savedExpandedNodes = localStorage.getItem(STORAGE_KEYS.EXPANDED_NODES);
-122:   const savedShowInstructions = localStorage.getItem('pastemax-show-instructions');
-123: 
-124:   // State for user interface controls
-125:   const [showUserInstructions, setShowUserInstructions] = useState(savedShowInstructions !== 'false');
-126:   const [fileTreeMode, setFileTreeMode] = useState<FileTreeMode>('complete');
-127: 
-128:   // Initialize expanded nodes from localStorage if available
-129:   const initialExpandedNodes = useMemo(() => {
-130:     const map = new Map<string, boolean>();
-131:     if (savedExpandedNodes) {
-132:       try {
-133:         const parsedNodes = JSON.parse(savedExpandedNodes);
-134:         if (Array.isArray(parsedNodes)) {
-135:           parsedNodes.forEach(([key, value]) => {
-136:             if (typeof key === 'string' && typeof value === 'boolean') {
-137:               map.set(key, value);
-138:             }
-139:           });
-140:         }
-141:       } catch (error) {
-142:         console.error("Error parsing saved expanded nodes:", error);
-143:       }
-144:     }
-145:     return map;
-146:   }, [savedExpandedNodes]);
-147: 
-148:   const [selectedFolder, setSelectedFolder] = useState<string | null>(savedFolder);
-149:   const [allFiles, setAllFiles] = useState<Omit<FileData, 'content'>[]>([]);
-150:   const [selectedFiles, setSelectedFiles] = useState<string[]>(
-151:     savedFiles ? JSON.parse(savedFiles) : []
-152:   );
-153:   const [sortOrder, setSortOrder] = useState<SortOrder>((savedSortOrder as SortOrder) || "tokens-descending");
-154:   const [searchTerm, setSearchTerm] = useState(savedSearchTerm || "");
-155:   const [expandedNodes, setExpandedNodes] = useState<Map<string, boolean>>(initialExpandedNodes);
-156:   const [displayedFiles, setDisplayedFiles] = useState<Omit<FileData, 'content'>[]>([]);
-157:   const [processingStatus, setProcessingStatus] = useState({
-158:     status: "idle",
-159:     message: "",
-160:   } as {
-161:     status: "idle" | "processing" | "complete" | "error";
-162:     message: string;
-163:   });
-164: 
-165:   const [userInstructions, setUserInstructions] = useState("");
-166:   const [fileTreeSortOrder, setFileTreeSortOrder] = useState<SortOrder>("name-ascending");
+ 17: import { SYSTEM_PATTERN_CATEGORIES, parseIgnorePatternsContent, IgnorePatternsState } from "./utils/patternUtils";
+ 18: // Import the StatusAlert component
+ 19: import { StatusAlert } from "./components/ui/StatusAlert";
+ 20: 
+ 21: // Access the electron API from the window object
+ 22: declare global {
+ 23:   interface Window {
+ 24:     electron: {
+ 25:       ipcRenderer: {
+ 26:         send: (channel: string, data?: any) => void;
+ 27:         on: (channel: string, func: (...args: any[]) => void) => void;
+ 28:         removeListener: (
+ 29:           channel: string,
+ 30:           func: (...args: any[]) => void
+ 31:         ) => void;
+ 32:         invoke: (channel: string, data?: any) => Promise<any>;
+ 33:         setMaxListeners?: (n: number) => void;
+ 34:       };
+ 35:     };
+ 36:   }
+ 37: }
+ 38: 
+ 39: // Keys for localStorage
+ 40: const STORAGE_KEYS = {
+ 41:   SELECTED_FOLDER: "pastemax-selected-folder",
+ 42:   SELECTED_FILES: "pastemax-selected-files",
+ 43:   SORT_ORDER: "pastemax-sort-order",
+ 44:   SEARCH_TERM: "pastemax-search-term",
+ 45:   EXPANDED_NODES: "pastemax-expanded-nodes",
+ 46:   GLOBAL_IGNORE_PATTERNS: "pastemax-global-ignore-patterns-v2", // Added version suffix
+ 47: };
+ 48: 
+ 49: // Default system patterns as fallback if not provided by main process
+ 50: const DEFAULT_SYSTEM_PATTERNS = [
+ 51:   // Combine categories into one list for default state
+ 52:   ...SYSTEM_PATTERN_CATEGORIES.versionControl,
+ 53:   ...SYSTEM_PATTERN_CATEGORIES.buildOutput,
+ 54:   ...SYSTEM_PATTERN_CATEGORIES.caches,
+ 55:   ...SYSTEM_PATTERN_CATEGORIES.logs,
+ 56:   ...SYSTEM_PATTERN_CATEGORIES.ide,
+ 57:   ...SYSTEM_PATTERN_CATEGORIES.temp,
+ 58:   ...SYSTEM_PATTERN_CATEGORIES.os,
+ 59:   // Other common defaults
+ 60:   "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.ico",
+ 61:   "**/*.webp", "**/*.svg", "**/*.pdf", "**/*.zip", "**/*.tar.gz",
+ 62:   "**/*.tgz", "**/*.rar", "**/*.7z", "**/*.mp4", "**/*.mov",
+ 63:   "**/*.avi", "**/*.mkv", "**/*.mp3", "**/*.wav", "**/*.flac",
+ 64:   "**/*.sqlite", "**/*.db", "**/*.sql",
+ 65:   "**/*.doc", "**/*.docx", "**/*.xls", "**/*.xlsx", "**/*.ppt", "**/*.pptx",
+ 66:   "**/*.iso", "**/*.bin", "**/*.exe", "**/*.dll", "**/*.so", "**/*.dylib",
+ 67:   "**/*.min.js", "**/*.min.css",
+ 68: ];
+ 69: 
+ 70: const App = () => {
+ 71:   // Load initial state from localStorage if available
+ 72:   const savedFolder = localStorage.getItem(STORAGE_KEYS.SELECTED_FOLDER);
+ 73:   const savedFiles = localStorage.getItem(STORAGE_KEYS.SELECTED_FILES);
+ 74:   const savedExpandedNodes = localStorage.getItem(STORAGE_KEYS.EXPANDED_NODES);
+ 75:   const savedShowInstructions = localStorage.getItem('pastemax-show-instructions');
+ 76: 
+ 77:   // State for user interface controls
+ 78:   const [showUserInstructions, setShowUserInstructions] = useState(savedShowInstructions !== 'false');
+ 79:   const [fileTreeMode, setFileTreeMode] = useState<FileTreeMode>('complete');
+ 80: 
+ 81:   // Initialize expanded nodes from localStorage if available
+ 82:   const initialExpandedNodes = useMemo(() => {
+ 83:     const map = new Map<string, boolean>();
+ 84:     if (savedExpandedNodes) {
+ 85:       try {
+ 86:         const parsedNodes = JSON.parse(savedExpandedNodes);
+ 87:         if (Array.isArray(parsedNodes)) {
+ 88:           parsedNodes.forEach(([key, value]) => {
+ 89:             if (typeof key === 'string' && typeof value === 'boolean') {
+ 90:               map.set(key, value);
+ 91:             }
+ 92:           });
+ 93:         }
+ 94:       } catch (error) {
+ 95:         console.error("Error parsing saved expanded nodes:", error);
+ 96:       }
+ 97:     }
+ 98:     return map;
+ 99:   }, [savedExpandedNodes]);
+100: 
+101:   const [selectedFolder, setSelectedFolder] = useState<string | null>(savedFolder);
+102:   const [allFiles, setAllFiles] = useState<Omit<FileData, 'content'>[]>([]);
+103:   const [selectedFiles, setSelectedFiles] = useState<string[]>(
+104:     savedFiles ? JSON.parse(savedFiles) : []
+105:   );
+106:   const [sortOrder, setSortOrder] = useState<SortOrder>("name-ascending");
+107:   const [searchTerm, setSearchTerm] = useState("");
+108:   const [expandedNodes, setExpandedNodes] = useState<Map<string, boolean>>(initialExpandedNodes);
+109:   const [displayedFiles, setDisplayedFiles] = useState<Omit<FileData, 'content'>[]>([]);
+110:   const [processingStatus, setProcessingStatus] = useState({
+111:     status: "idle",
+112:     message: "",
+113:   } as {
+114:     status: "idle" | "processing" | "complete" | "error";
+115:     message: string;
+116:   });
+117: 
+118:   const [userInstructions, setUserInstructions] = useState("");
+119:   const [fileTreeSortOrder, setFileTreeSortOrder] = useState<SortOrder>("name-ascending");
+120: 
+121:   // Centralized state for ignore patterns
+122:   const [globalPatternsState, setGlobalPatternsState] = useState<IgnorePatternsState>({
+123:     patterns: '',
+124:     excludedSystemPatterns: []
+125:   });
+126:   const [localIgnorePatterns, setLocalPatterns] = useState<IgnorePatternsState>({ patterns: '', excludedSystemPatterns: [] }); // Local doesn't have excluded system patterns
+127:   const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>(DEFAULT_SYSTEM_PATTERNS);
+128: 
+129:   const isElectron = window.electron !== undefined;
+130: 
+131:   // --- Persist State Effects ---
+132:   useEffect(() => {
+133:     if (selectedFolder) localStorage.setItem(STORAGE_KEYS.SELECTED_FOLDER, selectedFolder);
+134:     else localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
+135:   }, [selectedFolder]);
+136: 
+137:   useEffect(() => {
+138:     localStorage.setItem(STORAGE_KEYS.SELECTED_FILES, JSON.stringify(selectedFiles));
+139:   }, [selectedFiles]);
+140: 
+141:   useEffect(() => {
+142:     localStorage.setItem(STORAGE_KEYS.SORT_ORDER, sortOrder);
+143:   }, [sortOrder]);
+144: 
+145:   useEffect(() => {
+146:     localStorage.setItem(STORAGE_KEYS.SEARCH_TERM, searchTerm);
+147:   }, [searchTerm]);
+148: 
+149:   useEffect(() => {
+150:     try {
+151:       localStorage.setItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(Array.from(expandedNodes.entries())));
+152:     } catch (error) {
+153:       console.error("Error saving expanded nodes:", error);
+154:     }
+155:   }, [expandedNodes]);
+156: 
+157:   useEffect(() => {
+158:     localStorage.setItem('pastemax-show-instructions', String(showUserInstructions));
+159:   }, [showUserInstructions]);
+160: 
+161:   // Persist global ignore patterns state
+162:   useEffect(() => {
+163:     localStorage.setItem(STORAGE_KEYS.GLOBAL_IGNORE_PATTERNS, JSON.stringify(globalPatternsState));
+164:   }, [globalPatternsState]);
+165: 
+166:   // --- IPC Listeners ---
 167: 
-168:   // Centralized state for ignore patterns
-169:   const [globalIgnorePatterns, setGlobalPatterns] = useState<IgnorePatternsState>(loadIgnoreStateFromStorage);
-170:   const [localIgnorePatterns, setLocalPatterns] = useState<IgnorePatternsState>({ patterns: '', excludedSystemPatterns: [] }); // Local doesn't have excluded system patterns
-171:   const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>(DEFAULT_SYSTEM_PATTERNS);
-172: 
-173:   const isElectron = window.electron !== undefined;
-174: 
-175:   // --- Persist State Effects ---
-176:   useEffect(() => {
-177:     if (selectedFolder) localStorage.setItem(STORAGE_KEYS.SELECTED_FOLDER, selectedFolder);
-178:     else localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
-179:   }, [selectedFolder]);
-180: 
-181:   useEffect(() => {
-182:     localStorage.setItem(STORAGE_KEYS.SELECTED_FILES, JSON.stringify(selectedFiles));
-183:   }, [selectedFiles]);
-184: 
-185:   useEffect(() => {
-186:     localStorage.setItem(STORAGE_KEYS.SORT_ORDER, sortOrder);
-187:   }, [sortOrder]);
-188: 
-189:   useEffect(() => {
-190:     localStorage.setItem(STORAGE_KEYS.SEARCH_TERM, searchTerm);
-191:   }, [searchTerm]);
-192: 
-193:   useEffect(() => {
-194:     try {
-195:       localStorage.setItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(Array.from(expandedNodes.entries())));
-196:     } catch (error) {
-197:       console.error("Error saving expanded nodes:", error);
-198:     }
-199:   }, [expandedNodes]);
-200: 
-201:   useEffect(() => {
-202:     localStorage.setItem('pastemax-show-instructions', String(showUserInstructions));
-203:   }, [showUserInstructions]);
-204: 
-205:   // Persist global ignore patterns state
-206:   useEffect(() => {
-207:     localStorage.setItem(STORAGE_KEYS.GLOBAL_IGNORE_PATTERNS, JSON.stringify(globalIgnorePatterns));
-208:   }, [globalIgnorePatterns]);
-209: 
-210:   // --- IPC Listeners ---
-211: 
-212:   // Load initial data from saved folder
-213:   useEffect(() => {
-214:     if (!isElectron || !selectedFolder) return;
-215:     const hasLoadedInitialData = sessionStorage.getItem("hasLoadedInitialData");
-216:     if (hasLoadedInitialData === "true") return;
-217:     console.log("Loading saved folder on startup:", selectedFolder);
-218:     setProcessingStatus({ status: "processing", message: "Loading files..." });
-219:     window.electron.ipcRenderer.send("request-file-list", selectedFolder);
-220:     sessionStorage.setItem("hasLoadedInitialData", "true");
-221:   }, [isElectron, selectedFolder]); // Keep dependency
-222: 
-223:   // Listen for folder selection and file list data
-224:   useEffect(() => {
-225:     if (!isElectron) return;
+168:   // Load initial data from saved folder
+169:   useEffect(() => {
+170:     if (!isElectron || !selectedFolder) return;
+171:     const hasLoadedInitialData = sessionStorage.getItem("hasLoadedInitialData");
+172:     if (hasLoadedInitialData === "true") return;
+173:     console.log("Loading saved folder on startup:", selectedFolder);
+174:     setProcessingStatus({ status: "processing", message: "Loading files..." });
+175:     window.electron.ipcRenderer.send("request-file-list", selectedFolder);
+176:     sessionStorage.setItem("hasLoadedInitialData", "true");
+177:   }, [isElectron, selectedFolder]); // Keep dependency
+178: 
+179:   // Listen for folder selection and file list data
+180:   useEffect(() => {
+181:     if (!isElectron) return;
+182: 
+183:     const handleFolderSelected = (folderPath: string) => {
+184:       if (typeof folderPath === "string") {
+185:         console.log("Folder selected:", folderPath);
+186:         setSelectedFolder(folderPath);
+187:         setSelectedFiles([]);
+188:         setAllFiles([]); // Clear previous files immediately
+189:         setDisplayedFiles([]);
+190:         setLocalPatterns({ patterns: '', excludedSystemPatterns: [] }); // Reset local patterns
+191:         setProcessingStatus({ status: "processing", message: "Requesting file list..." });
+192:         window.electron.ipcRenderer.send("request-file-list", folderPath);
+193:       } else {
+194:         console.error("Invalid folder path received:", folderPath);
+195:         setProcessingStatus({ status: "error", message: "Invalid folder path" });
+196:       }
+197:     };
+198: 
+199:     // Updated to handle metadata only
+200:     const handleFileListData = (filesMetadata: Omit<FileData, 'content'>[]) => {
+201:       console.log("Received file list metadata:", filesMetadata.length, "files");
+202:       if (filesMetadata.length === 1 && filesMetadata[0].isAppDirectory) {
+203:         console.log("Detected app directory selection");
+204:         setAllFiles([]); setSelectedFiles([]); setDisplayedFiles([]);
+205:         setProcessingStatus({ status: "error", message: "Cannot select the application directory" });
+206:         return;
+207:       }
+208: 
+209:       // Store only metadata, content will be fetched on demand
+210:       setAllFiles(filesMetadata);
+211:       setProcessingStatus({ status: "complete", message: `Loaded ${filesMetadata.length} files` });
+212: 
+213:       applyFiltersAndSort(filesMetadata, sortOrder, searchTerm); // Apply filters/sort to metadata
+214: 
+215:       // Auto-select non-binary/non-skipped files
+216:       const selectablePaths = filesMetadata
+217:         .filter(file => !file.isBinary && !file.isSkipped && !file.excluded)
+218:         .map(file => file.path);
+219:       setSelectedFiles(selectablePaths);
+220:     };
+221: 
+222:     const handleProcessingStatus = (status: { status: "idle" | "processing" | "complete" | "error"; message: string; }) => {
+223:       console.log("Processing status:", status);
+224:       setProcessingStatus(status);
+225:     };
 226: 
-227:     const handleFolderSelected = (folderPath: string) => {
-228:       if (typeof folderPath === "string") {
-229:         console.log("Folder selected:", folderPath);
-230:         setSelectedFolder(folderPath);
-231:         setSelectedFiles([]);
-232:         setAllFiles([]); // Clear previous files immediately
-233:         setDisplayedFiles([]);
-234:         setLocalPatterns({ patterns: '', excludedSystemPatterns: [] }); // Reset local patterns
-235:         setProcessingStatus({ status: "processing", message: "Requesting file list..." });
-236:         window.electron.ipcRenderer.send("request-file-list", folderPath);
-237:       } else {
-238:         console.error("Invalid folder path received:", folderPath);
-239:         setProcessingStatus({ status: "error", message: "Invalid folder path" });
-240:       }
-241:     };
-242: 
-243:     // Updated to handle metadata only
-244:     const handleFileListData = (filesMetadata: Omit<FileData, 'content'>[]) => {
-245:       console.log("Received file list metadata:", filesMetadata.length, "files");
-246:       if (filesMetadata.length === 1 && filesMetadata[0].isAppDirectory) {
-247:         console.log("Detected app directory selection");
-248:         setAllFiles([]); setSelectedFiles([]); setDisplayedFiles([]);
-249:         setProcessingStatus({ status: "error", message: "Cannot select the application directory" });
-250:         return;
-251:       }
-252: 
-253:       // Store only metadata, content will be fetched on demand
-254:       setAllFiles(filesMetadata);
-255:       setProcessingStatus({ status: "complete", message: `Loaded ${filesMetadata.length} files` });
+227:     window.electron.ipcRenderer.on("folder-selected", handleFolderSelected);
+228:     window.electron.ipcRenderer.on("file-list-data", handleFileListData);
+229:     window.electron.ipcRenderer.on("file-processing-status", handleProcessingStatus);
+230: 
+231:     // Listener for loaded ignore patterns (both global and local)
+232:     const handleIgnorePatternsLoaded = (result: { patterns: string; isGlobal: boolean; systemPatterns?: string[]; folderPath?: string }) => {
+233:         console.log(`IPC: Received ${result.isGlobal ? 'global' : 'local'} patterns loaded event.`);
+234:         const { excludedPatterns, userPatterns } = parseIgnorePatternsContent(result.patterns || '');
+235: 
+236:         if (result.isGlobal) {
+237:             setGlobalPatternsState({ patterns: userPatterns, excludedSystemPatterns: excludedPatterns });
+238:             if (result.systemPatterns) {
+239:                 setSystemIgnorePatterns(result.systemPatterns);
+240:             }
+241:             console.log(`Updated global state: ${userPatterns.split('\n').length} patterns, ${excludedPatterns.length} excluded system.`);
+242:         } else if (result.folderPath === selectedFolder) { // Ensure it's for the current folder
+243:             setLocalPatterns({ patterns: userPatterns, excludedSystemPatterns: [] }); // Local patterns don't manage system excludes
+244:             console.log(`Updated local state for ${result.folderPath}: ${userPatterns.split('\n').length} patterns.`);
+245:         }
+246:     };
+247:     window.electron.ipcRenderer.on("ignore-patterns-loaded", handleIgnorePatternsLoaded);
+248: 
+249:     return () => {
+250:       window.electron.ipcRenderer.removeListener("folder-selected", handleFolderSelected);
+251:       window.electron.ipcRenderer.removeListener("file-list-data", handleFileListData);
+252:       window.electron.ipcRenderer.removeListener("file-processing-status", handleProcessingStatus);
+253:       window.electron.ipcRenderer.removeListener("ignore-patterns-loaded", handleIgnorePatternsLoaded);
+254:     };
+255:   }, [isElectron, sortOrder, searchTerm, selectedFolder]); // Added selectedFolder dependency for local pattern updates
 256: 
-257:       applyFiltersAndSort(filesMetadata, sortOrder, searchTerm); // Apply filters/sort to metadata
-258: 
-259:       // Auto-select non-binary/non-skipped files
-260:       const selectablePaths = filesMetadata
-261:         .filter(file => !file.isBinary && !file.isSkipped && !file.excluded)
-262:         .map(file => file.path);
-263:       setSelectedFiles(selectablePaths);
+257:   // Add ESC key handler
+258:   useEffect(() => {
+259:     const handleEscKey = (e: KeyboardEvent) => {
+260:       if (e.key === "Escape" && processingStatus.status === "processing") {
+261:         console.log("ESC pressed - cancelling directory loading");
+262:         window.electron.ipcRenderer.send("cancel-directory-loading");
+263:       }
 264:     };
-265: 
-266:     const handleProcessingStatus = (status: { status: "idle" | "processing" | "complete" | "error"; message: string; }) => {
-267:       console.log("Processing status:", status);
-268:       setProcessingStatus(status);
-269:     };
+265:     if (processingStatus.status === "processing") {
+266:       window.addEventListener("keydown", handleEscKey);
+267:       return () => window.removeEventListener("keydown", handleEscKey);
+268:     }
+269:   }, [processingStatus.status]);
 270: 
-271:     window.electron.ipcRenderer.on("folder-selected", handleFolderSelected);
-272:     window.electron.ipcRenderer.on("file-list-data", handleFileListData);
-273:     window.electron.ipcRenderer.on("file-processing-status", handleProcessingStatus);
-274: 
-275:     // Listener for loaded ignore patterns (both global and local)
-276:     const handleIgnorePatternsLoaded = (result: { patterns: string; isGlobal: boolean; systemPatterns?: string[]; folderPath?: string }) => {
-277:         console.log(`IPC: Received ${result.isGlobal ? 'global' : 'local'} patterns loaded event.`);
-278:         const { excludedSystemPatterns: parsedExcluded, userPatterns } = parseIgnorePatternsContent(result.patterns || '');
-279: 
-280:         if (result.isGlobal) {
-281:             setGlobalPatterns({ patterns: userPatterns, excludedSystemPatterns: parsedExcluded });
-282:             if (result.systemPatterns) {
-283:                 setSystemIgnorePatterns(result.systemPatterns);
-284:             }
-285:             console.log(`Updated global state: ${userPatterns.split('\n').length} patterns, ${parsedExcluded.length} excluded system.`);
-286:         } else if (result.folderPath === selectedFolder) { // Ensure it's for the current folder
-287:             setLocalPatterns({ patterns: userPatterns, excludedSystemPatterns: [] }); // Local patterns don't manage system excludes
-288:             console.log(`Updated local state for ${result.folderPath}: ${userPatterns.split('\n').length} patterns.`);
-289:         }
-290:     };
-291:     window.electron.ipcRenderer.on("ignore-patterns-loaded", handleIgnorePatternsLoaded);
-292: 
-293:     return () => {
-294:       window.electron.ipcRenderer.removeListener("folder-selected", handleFolderSelected);
-295:       window.electron.ipcRenderer.removeListener("file-list-data", handleFileListData);
-296:       window.electron.ipcRenderer.removeListener("file-processing-status", handleProcessingStatus);
-297:       window.electron.ipcRenderer.removeListener("ignore-patterns-loaded", handleIgnorePatternsLoaded);
-298:     };
-299:   }, [isElectron, sortOrder, searchTerm, selectedFolder]); // Added selectedFolder dependency for local pattern updates
-300: 
-301:   // Add ESC key handler
-302:   useEffect(() => {
-303:     const handleEscKey = (e: KeyboardEvent) => {
-304:       if (e.key === "Escape" && processingStatus.status === "processing") {
-305:         console.log("ESC pressed - cancelling directory loading");
-306:         window.electron.ipcRenderer.send("cancel-directory-loading");
-307:       }
-308:     };
-309:     if (processingStatus.status === "processing") {
-310:       window.addEventListener("keydown", handleEscKey);
-311:       return () => window.removeEventListener("keydown", handleEscKey);
-312:     }
-313:   }, [processingStatus.status]);
-314: 
-315:   // --- Core Functions ---
-316: 
-317:   const openFolder = () => {
-318:     if (isElectron) {
-319:       console.log("Opening folder dialog");
-320:       setProcessingStatus({ status: "idle", message: "Select a folder..." });
-321:       window.electron.ipcRenderer.send("open-folder");
-322:     } else {
-323:       console.warn("Folder selection not available in browser");
-324:     }
-325:   };
-326: 
-327:   // Status message renderer
-328:   const renderStatusMessage = () => {
-329:     if (!processingStatus || processingStatus.status === 'idle') {
-330:       return null;
-331:     }
-332: 
-333:     let statusClass = styles.statusMessage; // Assuming this base class exists
-334:     let statusIcon = null;
-335:     let statusText = '';
-336: 
-337:     // Define styles for different statuses if they don't exist in CSS modules
-338:     const statusStyles: { [key: string]: React.CSSProperties } = {
-339:         processing: { backgroundColor: 'lightblue', color: 'black', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center' },
-340:         complete: { backgroundColor: 'lightgreen', color: 'black', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center' },
-341:         error: { backgroundColor: 'lightcoral', color: 'black', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center' },
-342:         idle: { display: 'none' }
-343:     };
-344: 
-345: 
-346:     switch (processingStatus.status) {
-347:       case 'processing':
-348:         statusClass += ` ${styles.processing}`; // Use CSS module if available
-349:         statusIcon = <Loader2 size={16} className="animate-spin" />;
-350:         statusText = processingStatus.message || 'Processing...';
-351:         break;
-352:       case 'complete':
-353:         statusClass += ` ${styles.complete}`; // Use CSS module if available
-354:         statusIcon = <Check size={16} />;
-355:         statusText = processingStatus.message || 'Complete';
-356:         // Optional: Hide success message after a delay
-357:         setTimeout(() => setProcessingStatus({ status: 'idle', message: '' }), 3000);
-358:         break;
-359:       case 'error':
-360:         statusClass += ` ${styles.error}`; // Use CSS module if available
-361:         statusIcon = <AlertTriangle size={16} />;
-362:         statusText = processingStatus.message || 'Error';
-363:         break;
-364:       default:
-365:         return null; // Don't render for idle
-366:     }
-367: 
-368:     // Use inline styles as fallback if CSS Modules aren't defined for these
-369:     const currentStyle = statusStyles[processingStatus.status] || {};
-370: 
-371:     return (
-372:       <div style={currentStyle} className={statusClass}>
-373:         {statusIcon && <span style={{ marginRight: '8px' }}>{statusIcon}</span>}
-374:         {statusText}
-375:       </div>
-376:     );
-377:   };
-378: 
-379:   // Apply filters and sorting (Lint fixes applied)
-380:   const applyFiltersAndSort = useCallback((files: Omit<FileData, 'content'>[], sort: SortOrder, filter: string) => {
-381:     let filtered = files;
-382:     if (filter) {
-383:       const lowerFilter = filter.toLowerCase();
-384:       filtered = files.filter(file =>
-385:         file.name.toLowerCase().includes(lowerFilter) ||
-386:         file.path.toLowerCase().includes(lowerFilter)
-387:       );
-388:     }
-389: 
-390:     const [sortKey, sortDir] = sort.split("-");
-391: 
-392:     const sorted = [...filtered].sort((a, b) => {
-393:       let comparison = 0;
-394:       // Moved declarations outside switch
-395:       const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
-396:       const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
-397:       const aDate = a.lastModified || 0;
-398:       const bDate = b.lastModified || 0;
-399: 
-400:       switch (sortKey) {
-401:         case "name":
-402:           comparison = a.name.localeCompare(b.name);
-403:           break;
-404:         case "tokens":
-405:           comparison = aTokens - bTokens;
-406:           break;
-407:         case "date":
-408:           comparison = aDate - bDate;
-409:           break;
-410:         default:
-411:           comparison = a.name.localeCompare(b.name);
-412:       }
-413:       return sortDir === "ascending" ? comparison : -comparison;
-414:     });
+271:   // --- Core Functions ---
+272: 
+273:   const openFolder = () => {
+274:     if (isElectron) {
+275:       console.log("Opening folder dialog");
+276:       setProcessingStatus({ status: "idle", message: "Select a folder..." });
+277:       window.electron.ipcRenderer.send("open-folder");
+278:     } else {
+279:       console.warn("Folder selection not available in browser");
+280:     }
+281:   };
+282: 
+283:   // Apply filters and sorting (Lint fixes applied)
+284:   const applyFiltersAndSort = useCallback((files: Omit<FileData, 'content'>[], sort: SortOrder, filter: string) => {
+285:     let filtered = files;
+286:     if (filter) {
+287:       const lowerFilter = filter.toLowerCase();
+288:       filtered = files.filter(file =>
+289:         file.name.toLowerCase().includes(lowerFilter) ||
+290:         file.path.toLowerCase().includes(lowerFilter)
+291:       );
+292:     }
+293: 
+294:     const [sortKey, sortDir] = sort.split("-");
+295: 
+296:     const sorted = [...filtered].sort((a, b) => {
+297:       let comparison = 0;
+298:       // Moved declarations outside switch
+299:       const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
+300:       const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
+301:       const aDate = a.lastModified || 0;
+302:       const bDate = b.lastModified || 0;
+303: 
+304:       switch (sortKey) {
+305:         case "name":
+306:           comparison = a.name.localeCompare(b.name);
+307:           break;
+308:         case "tokens":
+309:           comparison = aTokens - bTokens;
+310:           break;
+311:         case "date":
+312:           comparison = Number(aDate) - Number(bDate);
+313:           break;
+314:         default:
+315:           comparison = a.name.localeCompare(b.name);
+316:       }
+317:       return sortDir === "ascending" ? comparison : -comparison;
+318:     });
+319: 
+320:     setDisplayedFiles(sorted);
+321:   }, []); // Add empty dependency array as it doesn't depend on component state/props
+322: 
+323:   // Re-run applyFiltersAndSort when relevant state changes
+324:   useEffect(() => {
+325:     applyFiltersAndSort(allFiles as Omit<FileData, 'content'>[], sortOrder, searchTerm);
+326:   }, [allFiles, sortOrder, searchTerm, applyFiltersAndSort]); // applyFiltersAndSort is stable and doesn't depend on state
+327: 
+328:   // Toggle file selection
+329:   const toggleFileSelection = useCallback((filePath: string) => {
+330:     const normalizedPath = normalizePath(filePath);
+331:     setSelectedFiles(prevSelected => {
+332:       const isSelected = prevSelected.some(path => arePathsEqual(path, normalizedPath));
+333:       return isSelected
+334:         ? prevSelected.filter(path => !arePathsEqual(path, normalizedPath))
+335:         : [...prevSelected, normalizedPath];
+336:     });
+337:   }, []); // Add empty dependency array
+338: 
+339:   // Select all non-excluded files
+340:   const selectAllFiles = useCallback(() => {
+341:     const filesToSelect = allFiles
+342:       .filter(file => !file.isBinary && !file.isSkipped && !file.excluded)
+343:       .map(file => file.path);
+344:     setSelectedFiles(filesToSelect); // Directly set, no need to merge if it's 'select all'
+345:   }, [allFiles]);
+346: 
+347:   // Deselect all files
+348:   const deselectAllFiles = useCallback(() => {
+349:     setSelectedFiles([]);
+350:   }, []);
+351: 
+352:   // Toggle folder selection
+353:   const toggleFolderSelection = useCallback((folderPath: string, shouldBeSelected: boolean) => {
+354:     if (!folderPath) return;
+355:     const normalizedFolderPath = normalizePath(folderPath);
+356: 
+357:     setSelectedFiles(prev => {
+358:       const newSelectionSet = new Set(prev);
+359:       allFiles.forEach(file => {
+360:         const normalizedFilePath = normalizePath(file.path);
+361:         // Check if file is within the target folder (or is the folder itself if files represent folders)
+362:         if (normalizedFilePath.startsWith(normalizedFolderPath + '/') || normalizedFilePath === normalizedFolderPath) {
+363:            // Only modify selection for non-binary, non-skipped, non-excluded files
+364:            if (!file.isBinary && !file.isSkipped && !file.excluded) {
+365:                 if (shouldBeSelected) {
+366:                     newSelectionSet.add(file.path);
+367:                 } else {
+368:                     newSelectionSet.delete(file.path);
+369:                 }
+370:            }
+371:         }
+372:       });
+373:       return Array.from(newSelectionSet);
+374:     });
+375:   }, [allFiles]); // Depends on allFiles
+376: 
+377:   // Handle sort change
+378:   const handleSortChange = useCallback((value: string | string[]) => {
+379:     if (typeof value === 'string') {
+380:       setSortOrder(value as SortOrder);
+381:       // applyFiltersAndSort will be triggered by the useEffect watching sortOrder
+382:     }
+383:   }, []); // Add empty dependency array
+384: 
+385:   // Handle search change
+386:   const handleSearchChange = useCallback((newSearch: string) => {
+387:     setSearchTerm(newSearch);
+388:      // applyFiltersAndSort will be triggered by the useEffect watching searchTerm
+389:   }, []); // Add empty dependency array
+390: 
+391:   // Calculate total tokens (Memoized)
+392:   const totalTokens = useMemo(() => { // Renamed to avoid conflict
+393:     const fileMap = new Map(allFiles.map(f => [f.path, f.tokenCount]));
+394:     return selectedFiles.reduce((total, path) => {
+395:       return total + (fileMap.get(path) || 0);
+396:     }, 0);
+397:   }, [selectedFiles, allFiles]);
+398: 
+399:   // --- Moved reloadFolder definition earlier ---
+400:   const reloadFolder = useCallback(() => {
+401:     if (isElectron && selectedFolder) {
+402:       console.log(`Reloading folder: ${selectedFolder}`);
+403:       setProcessingStatus({ status: "processing", message: "Reloading files..." });
+404:       setAllFiles([]); // Clear current files
+405:       setDisplayedFiles([]);
+406:       // Optionally reset local patterns state if desired on manual reload
+407:       // setLocalPatterns({ patterns: '', excludedSystemPatterns: [] });
+408:       window.electron.ipcRenderer.send("request-file-list", selectedFolder); // Re-request list
+409:     }
+410:   }, [isElectron, selectedFolder]); // Now defined before other callbacks
+411: 
+412:   // Get selected files content (Lazy loaded version)
+413:   const getSelectedFilesContent = useCallback(async (): Promise<string> => {
+414:     if (selectedFiles.length === 0) return "No files selected.";
 415: 
-416:     setDisplayedFiles(sorted);
-417:   }, []); // Add empty dependency array as it doesn't depend on component state/props
-418: 
-419:   // Re-run applyFiltersAndSort when relevant state changes
-420:   useEffect(() => {
-421:     applyFiltersAndSort(allFiles, sortOrder, searchTerm);
-422:   }, [allFiles, sortOrder, searchTerm, applyFiltersAndSort]);
-423: 
-424:   // Toggle file selection
-425:   const toggleFileSelection = useCallback((filePath: string) => {
-426:     const normalizedPath = normalizePath(filePath);
-427:     setSelectedFiles(prevSelected => {
-428:       const isSelected = prevSelected.some(path => arePathsEqual(path, normalizedPath));
-429:       return isSelected
-430:         ? prevSelected.filter(path => !arePathsEqual(path, normalizedPath))
-431:         : [...prevSelected, normalizedPath];
-432:     });
-433:   }, []); // Add empty dependency array
-434: 
-435:   // Select all non-excluded files
-436:   const selectAllFiles = useCallback(() => {
-437:     const filesToSelect = allFiles
-438:       .filter(file => !file.isBinary && !file.isSkipped && !file.excluded)
-439:       .map(file => file.path);
-440:     setSelectedFiles(filesToSelect); // Directly set, no need to merge if it's 'select all'
-441:   }, [allFiles]);
-442: 
-443:   // Deselect all files
-444:   const deselectAllFiles = useCallback(() => {
-445:     setSelectedFiles([]);
-446:   }, []);
-447: 
-448:   // Toggle folder selection
-449:   const toggleFolderSelection = useCallback((folderPath: string, shouldBeSelected: boolean) => {
-450:     if (!folderPath) return;
-451:     const normalizedFolderPath = normalizePath(folderPath);
-452: 
-453:     setSelectedFiles(prev => {
-454:       const newSelectionSet = new Set(prev);
-455:       allFiles.forEach(file => {
-456:         const normalizedFilePath = normalizePath(file.path);
-457:         // Check if file is within the target folder (or is the folder itself if files represent folders)
-458:         if (normalizedFilePath.startsWith(normalizedFolderPath + '/') || normalizedFilePath === normalizedFolderPath) {
-459:            // Only modify selection for non-binary, non-skipped, non-excluded files
-460:            if (!file.isBinary && !file.isSkipped && !file.excluded) {
-461:                 if (shouldBeSelected) {
-462:                     newSelectionSet.add(file.path);
-463:                 } else {
-464:                     newSelectionSet.delete(file.path);
-465:                 }
-466:            }
-467:         }
-468:       });
-469:       return Array.from(newSelectionSet);
-470:     });
-471:   }, [allFiles]); // Depends on allFiles
-472: 
-473:   // Handle sort change
-474:   const handleSortChange = useCallback((value: string | string[]) => {
-475:     if (typeof value === 'string') {
-476:       setSortOrder(value as SortOrder);
-477:       // applyFiltersAndSort will be triggered by the useEffect watching sortOrder
-478:     }
-479:   }, []); // Add empty dependency array
+416:     setProcessingStatus({ status: 'processing', message: `Fetching content for ${selectedFiles.length} files...` });
+417: 
+418:     try {
+419:       // Fetch content for all selected files concurrently
+420:       const contentPromises = selectedFiles.map(async (filePath) => {
+421:         try {
+422:           const result = await window.electron.ipcRenderer.invoke('get-file-content', filePath);
+423:           // Find the metadata for sorting/header info
+424:           const fileMeta = allFiles.find(f => f.path === filePath);
+425:           return {
+426:               path: filePath,
+427:               content: result.content,
+428:               tokenCount: result.tokenCount, // Assuming token count is returned by handler
+429:               name: fileMeta?.name || filePath, // Fallback name
+430:               lastModified: fileMeta?.lastModified || 0, // For sorting
+431:           };
+432:         } catch (fetchError: unknown) {
+433:             const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown error';
+434:             console.error(`Failed to fetch content for ${filePath}:`, fetchError);
+435:             return { path: filePath, content: `// Error loading file: ${errorMessage}`, tokenCount: 0, name: filePath, lastModified: 0 }; // Placeholder on error
+436:         }
+437:       });
+438: 
+439:       const filesWithContent = await Promise.all(contentPromises);
+440: 
+441:       // Sort the fetched files based on the current sortOrder
+442:       const [sortKey, sortDir] = sortOrder.split("-");
+443:       const sortedFiles = filesWithContent.sort((a, b) => {
+444:           let comparison = 0;
+445:           const aTokens = a.tokenCount || 0;
+446:           const bTokens = b.tokenCount || 0;
+447:           const aDate = a.lastModified || 0;
+448:           const bDate = b.lastModified || 0;
+449: 
+450:           switch (sortKey) {
+451:             case "name": comparison = a.name.localeCompare(b.name); break;
+452:             case "tokens": comparison = aTokens - bTokens; break;
+453:             case "date": comparison = Number(aDate) - Number(bDate); break;
+454:             default: comparison = a.name.localeCompare(b.name);
+455:           }
+456:           return sortDir === "ascending" ? comparison : -comparison;
+457:       });
+458: 
+459:       // --- Concatenate content (similar to previous logic) ---
+460:       let concatenatedString = "";
+461:       if (fileTreeMode !== "none" && selectedFolder) {
+462:           // Generate tree based on *all* files metadata for context if needed by mode
+463:           const filesForTree = fileTreeMode === "complete" ? allFiles : sortedFiles;
+464:           const asciiTree = generateAsciiFileTree(filesForTree, selectedFolder, fileTreeMode);
+465:           concatenatedString += `<file_map>\n${selectedFolder}\n${asciiTree}\n</file_map>\n\n`;
+466:       }
+467: 
+468:       sortedFiles.forEach(file => {
+469:         let relativePath = file.path;
+470:         if (selectedFolder && file.path.startsWith(selectedFolder)) {
+471:           relativePath = file.path.substring(selectedFolder.length).replace(/^[/\\]/, '');
+472:         }
+473:         concatenatedString += `\n\n// ---- File: ${relativePath} (${file.tokenCount || 'N/A'} tokens) ----\n\n`;
+474:         concatenatedString += file.content;
+475:       });
+476: 
+477:       const userInstructionsBlock = userInstructions.trim()
+478:         ? `\n<user_instructions>\n${userInstructions}\n</user_instructions>\n\n`
+479:         : "";
 480: 
-481:   // Handle search change
-482:   const handleSearchChange = useCallback((newSearch: string) => {
-483:     setSearchTerm(newSearch);
-484:      // applyFiltersAndSort will be triggered by the useEffect watching searchTerm
-485:   }, []); // Add empty dependency array
-486: 
-487:   // Calculate total tokens (Memoized)
-488:   const totalTokens = useMemo(() => { // Renamed to avoid conflict
-489:     const fileMap = new Map(allFiles.map(f => [f.path, f.tokenCount]));
-490:     return selectedFiles.reduce((total, path) => {
-491:       return total + (fileMap.get(path) || 0);
-492:     }, 0);
-493:   }, [selectedFiles, allFiles]);
-494: 
-495:   // --- Moved reloadFolder definition earlier ---
-496:   const reloadFolder = useCallback(() => {
-497:     if (isElectron && selectedFolder) {
-498:       console.log(`Reloading folder: ${selectedFolder}`);
-499:       setProcessingStatus({ status: "processing", message: "Reloading files..." });
-500:       setAllFiles([]); // Clear current files
-501:       setDisplayedFiles([]);
-502:       // Optionally reset local patterns state if desired on manual reload
-503:       // setLocalPatterns({ patterns: '', excludedSystemPatterns: [] });
-504:       window.electron.ipcRenderer.send("request-file-list", selectedFolder); // Re-request list
-505:     }
-506:   }, [isElectron, selectedFolder]); // Now defined before other callbacks
-507: 
-508:   // Get selected files content (Lazy loaded version)
-509:   const getSelectedFilesContent = useCallback(async (): Promise<string> => {
-510:     if (selectedFiles.length === 0) return "No files selected.";
+481:       setProcessingStatus({ status: 'complete', message: 'Content prepared.' });
+482:       return concatenatedString + userInstructionsBlock;
+483: 
+484:     } catch (error: unknown) {
+485:       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+486:       console.error("Error getting selected files content:", error);
+487:       setProcessingStatus({ status: 'error', message: 'Failed to prepare content.' });
+488:       return `Error preparing content: ${errorMessage}`;
+489:     }
+490:   }, [selectedFiles, allFiles, sortOrder, fileTreeMode, selectedFolder, userInstructions]);
+491: 
+492:   // Sort options
+493:   const sortOptions = useMemo(() => [
+494:     { value: "name-ascending", label: "Name (A-Z)" },
+495:     { value: "name-descending", label: "Name (Z-A)" },
+496:     { value: "tokens-ascending", label: "Tokens (Asc)" },
+497:     { value: "tokens-descending", label: "Tokens (Desc)" },
+498:     { value: "date-ascending", label: "Date (Oldest)" },
+499:     { value: "date-descending", label: "Date (Newest)" }
+500:   ], []);
+501: 
+502:   // Handle expand/collapse state changes
+503:   const toggleExpanded = useCallback((nodeId: string) => {
+504:     setExpandedNodes(prev => {
+505:       const newState = new Map(prev);
+506:       newState.set(nodeId, !prev.get(nodeId)); // Simplified toggle
+507:       // Persisted via useEffect watching expandedNodes
+508:       return newState;
+509:     });
+510:   }, []); // Add empty dependency array
 511: 
-512:     setProcessingStatus({ status: 'processing', message: `Fetching content for ${selectedFiles.length} files...` });
+512:   // --- Ignore Pattern Functions ---
 513: 
-514:     try {
-515:       // Fetch content for all selected files concurrently
-516:       const contentPromises = selectedFiles.map(async (filePath) => {
-517:         try {
-518:           const result = await window.electron.ipcRenderer.invoke('get-file-content', filePath);
-519:           // Find the metadata for sorting/header info
-520:           const fileMeta = allFiles.find(f => f.path === filePath);
-521:           return {
-522:               path: filePath,
-523:               content: result.content,
-524:               tokenCount: result.tokenCount, // Assuming token count is returned by handler
-525:               name: fileMeta?.name || filePath, // Fallback name
-526:               lastModified: fileMeta?.lastModified || 0, // For sorting
-527:           };
-528:         } catch (fetchError: unknown) {
-529:             const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown error';
-530:             console.error(`Failed to fetch content for ${filePath}:`, fetchError);
-531:             return { path: filePath, content: `// Error loading file: ${errorMessage}`, tokenCount: 0, name: filePath, lastModified: 0 }; // Placeholder on error
-532:         }
-533:       });
-534: 
-535:       const filesWithContent = await Promise.all(contentPromises);
-536: 
-537:       // Sort the fetched files based on the current sortOrder
-538:       const [sortKey, sortDir] = sortOrder.split("-");
-539:       const sortedFiles = filesWithContent.sort((a, b) => {
-540:           let comparison = 0;
-541:           const aTokens = a.tokenCount || 0;
-542:           const bTokens = b.tokenCount || 0;
-543:           const aDate = a.lastModified || 0;
-544:           const bDate = b.lastModified || 0;
+514:   // Load patterns (global or local)
+515:   const loadIgnorePatterns = useCallback(async (folderPath: string, isGlobal: boolean = false): Promise<void> => {
+516:     if (!isElectron) return;
+517:     console.log(`Requesting load for ${isGlobal ? 'global' : 'local'} patterns${!isGlobal ? ` for ${folderPath}` : ''}`);
+518:     try {
+519:         // Invoke expects the handler to exist. The result is handled by the 'ignore-patterns-loaded' listener.
+520:         await window.electron.ipcRenderer.invoke("load-ignore-patterns", { folderPath, isGlobal });
+521:     } catch (error: unknown) {
+522:         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+523:         console.error(`Error invoking load-ignore-patterns (${isGlobal ? 'global' : 'local'}): ${errorMessage}`);
+524:         // Set default state on error
+525:         if (isGlobal) {
+526:             setGlobalPatternsState({ patterns: '', excludedSystemPatterns: [] });
+527:             setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
+528:         } else if (folderPath === selectedFolder) {
+529:             setLocalPatterns({ patterns: '', excludedSystemPatterns: [] });
+530:         }
+531:     }
+532: }, [isElectron, selectedFolder]); // Dependencies: isElectron, selectedFolder
+533: 
+534:   // Save patterns (global or local) - Now just calls IPC
+535:   const saveIgnorePatterns = useCallback(async (patterns: string, isGlobal: boolean, folderPath?: string): Promise<void> => {
+536:     if (!isElectron) return;
+537:     const targetPath = folderPath || selectedFolder; // Use provided path or current folder for local
+538:     if (!isGlobal && !targetPath) {
+539:       console.error("Cannot save local patterns without a folder path.");
+540:       setProcessingStatus({ status: "error", message: "No folder selected for local patterns." });
+541:       return;
+542:     }
+543: 
+544:     setProcessingStatus({ status: "processing", message: `Saving ${isGlobal ? "global" : "local"} patterns...` });
 545: 
-546:           switch (sortKey) {
-547:             case "name": comparison = a.name.localeCompare(b.name); break;
-548:             case "tokens": comparison = aTokens - bTokens; break;
-549:             case "date": comparison = aDate - bDate; break;
-550:             default: comparison = a.name.localeCompare(b.name);
-551:           }
-552:           return sortDir === "ascending" ? comparison : -comparison;
+546:     try {
+547:       // The string passed (`patterns`) should already include `# DISABLED:` comments
+548:       // generated by IgnorePatterns.tsx's handleSaveGlobalPatterns
+549:       const result = await window.electron.ipcRenderer.invoke("save-ignore-patterns", {
+550:         patterns,
+551:         isGlobal,
+552:         folderPath: targetPath
 553:       });
 554: 
-555:       // --- Concatenate content (similar to previous logic) ---
-556:       let concatenatedString = "";
-557:       if (fileTreeMode !== "none" && selectedFolder) {
-558:           // Generate tree based on *all* files metadata for context if needed by mode
-559:           const filesForTree = fileTreeMode === "complete" ? allFiles : sortedFiles;
-560:           const asciiTree = generateAsciiFileTree(filesForTree, selectedFolder, fileTreeMode);
-561:           concatenatedString += `<file_map>\n${selectedFolder}\n${asciiTree}\n</file_map>\n\n`;
-562:       }
-563: 
-564:       sortedFiles.forEach(file => {
-565:         let relativePath = file.path;
-566:         if (selectedFolder && file.path.startsWith(selectedFolder)) {
-567:           relativePath = file.path.substring(selectedFolder.length).replace(/^[/\\]/, '');
-568:         }
-569:         concatenatedString += `\n\n// ---- File: ${relativePath} (${file.tokenCount || 'N/A'} tokens) ----\n\n`;
-570:         concatenatedString += file.content;
-571:       });
-572: 
-573:       const userInstructionsBlock = userInstructions.trim()
-574:         ? `\n<user_instructions>\n${userInstructions}\n</user_instructions>\n\n`
-575:         : "";
-576: 
-577:       setProcessingStatus({ status: 'complete', message: 'Content prepared.' });
-578:       return concatenatedString + userInstructionsBlock;
-579: 
-580:     } catch (error: unknown) {
-581:       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-582:       console.error("Error getting selected files content:", error);
-583:       setProcessingStatus({ status: 'error', message: 'Failed to prepare content.' });
-584:       return `Error preparing content: ${errorMessage}`;
-585:     }
-586:   }, [selectedFiles, allFiles, sortOrder, fileTreeMode, selectedFolder, userInstructions]);
+555:       if (result.success) {
+556:         console.log(`IPC: Save ${isGlobal ? 'global' : 'local'} patterns successful.`);
+557:         setProcessingStatus({ status: "complete", message: "Patterns saved." });
+558: 
+559:         // Reload the folder data to apply new patterns
+560:         // Add a small delay to ensure file system changes are registered
+561:         setTimeout(() => {
+562:             reloadFolder();
+563:         }, 300);
+564: 
+565:       } else {
+566:         console.error(`IPC: Save ${isGlobal ? 'global' : 'local'} patterns failed:`, result.error);
+567:         setProcessingStatus({ status: "error", message: `Save failed: ${result.error}` });
+568:       }
+569:     } catch (error: unknown) {
+570:       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+571:       console.error("Error invoking save-ignore-patterns:", error);
+572:       setProcessingStatus({ status: "error", message: `Save failed: ${errorMessage}` });
+573:     }
+574:   }, [isElectron, selectedFolder, reloadFolder]); // Dependency: reloadFolder
+575: 
+576:   // Reset patterns (global or local)
+577:   const resetIgnorePatterns = useCallback(async (isGlobal: boolean, folderPath?: string): Promise<void> => {
+578:     if (!isElectron) return;
+579:     const targetPath = folderPath || selectedFolder;
+580:     if (!isGlobal && !targetPath) {
+581:       console.error("Cannot reset local patterns without a folder path.");
+582:       setProcessingStatus({ status: "error", message: "No folder selected for local reset." });
+583:       return;
+584:     }
+585: 
+586:     setProcessingStatus({ status: "processing", message: `Resetting ${isGlobal ? "global" : "local"} patterns...` });
 587: 
-588:   // Sort options
-589:   const sortOptions = useMemo(() => [
-590:     { value: "name-ascending", label: "Name (A-Z)" },
-591:     { value: "name-descending", label: "Name (Z-A)" },
-592:     { value: "tokens-ascending", label: "Tokens (Asc)" },
-593:     { value: "tokens-descending", label: "Tokens (Desc)" },
-594:     { value: "date-ascending", label: "Date (Oldest)" },
-595:     { value: "date-descending", label: "Date (Newest)" }
-596:   ], []);
-597: 
-598:   // Handle expand/collapse state changes
-599:   const toggleExpanded = useCallback((nodeId: string) => {
-600:     setExpandedNodes(prev => {
-601:       const newState = new Map(prev);
-602:       newState.set(nodeId, !prev.get(nodeId)); // Simplified toggle
-603:       // Persisted via useEffect watching expandedNodes
-604:       return newState;
-605:     });
-606:   }, []); // Add empty dependency array
-607: 
-608:   // --- Ignore Pattern Functions ---
-609: 
-610:   // Load patterns (global or local)
-611:   const loadIgnorePatterns = useCallback(async (folderPath: string, isGlobal: boolean = false): Promise<void> => {
-612:     if (!isElectron) return;
-613:     console.log(`Requesting load for ${isGlobal ? 'global' : 'local'} patterns${!isGlobal ? ` for ${folderPath}` : ''}`);
-614:     try {
-615:         // Invoke expects the handler to exist. The result is handled by the 'ignore-patterns-loaded' listener.
-616:         await window.electron.ipcRenderer.invoke("load-ignore-patterns", { folderPath, isGlobal });
-617:     } catch (error: unknown) {
-618:         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-619:         console.error(`Error invoking load-ignore-patterns (${isGlobal ? 'global' : 'local'}):`, error);
-620:         // Set default state on error
-621:         if (isGlobal) {
-622:             setGlobalPatterns({ patterns: '', excludedSystemPatterns: [] });
-623:             setSystemIgnorePatterns(DEFAULT_SYSTEM_PATTERNS);
-624:         } else if (folderPath === selectedFolder) {
-625:             setLocalPatterns({ patterns: '', excludedSystemPatterns: [] });
-626:         }
-627:     }
-628: }, [isElectron, selectedFolder]); // Dependencies: isElectron, selectedFolder
-629: 
-630:   // Save patterns (global or local) - Now just calls IPC
-631:   const saveIgnorePatterns = useCallback(async (patterns: string, isGlobal: boolean, folderPath?: string): Promise<void> => {
-632:     if (!isElectron) return;
-633:     const targetPath = folderPath || selectedFolder; // Use provided path or current folder for local
-634:     if (!isGlobal && !targetPath) {
-635:       console.error("Cannot save local patterns without a folder path.");
-636:       setProcessingStatus({ status: "error", message: "No folder selected for local patterns." });
-637:       return;
-638:     }
-639: 
-640:     setProcessingStatus({ status: "processing", message: `Saving ${isGlobal ? "global" : "local"} patterns...` });
-641: 
-642:     try {
-643:       // The string passed (`patterns`) should already include `# DISABLED:` comments
-644:       // generated by IgnorePatterns.tsx's handleSaveGlobalPatterns
-645:       const result = await window.electron.ipcRenderer.invoke("save-ignore-patterns", {
-646:         patterns,
-647:         isGlobal,
-648:         folderPath: targetPath
-649:       });
-650: 
-651:       if (result.success) {
-652:         console.log(`IPC: Save ${isGlobal ? 'global' : 'local'} patterns successful.`);
-653:         setProcessingStatus({ status: "complete", message: "Patterns saved." });
-654: 
-655:         // Reload the folder data to apply new patterns
-656:         // Add a small delay to ensure file system changes are registered
-657:         setTimeout(() => {
-658:             reloadFolder();
-659:         }, 300);
-660: 
-661:       } else {
-662:         console.error(`IPC: Save ${isGlobal ? 'global' : 'local'} patterns failed:`, result.error);
-663:         setProcessingStatus({ status: "error", message: `Save failed: ${result.error}` });
-664:       }
-665:     } catch (error: unknown) {
-666:       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-667:       console.error("Error invoking save-ignore-patterns:", error);
-668:       setProcessingStatus({ status: "error", message: `Save failed: ${errorMessage}` });
-669:     }
-670:   }, [isElectron, selectedFolder, reloadFolder]); // Dependency: reloadFolder
-671: 
-672:   // Reset patterns (global or local)
-673:   const resetIgnorePatterns = useCallback(async (isGlobal: boolean, folderPath?: string): Promise<void> => {
-674:     if (!isElectron) return;
-675:     const targetPath = folderPath || selectedFolder;
-676:     if (!isGlobal && !targetPath) {
-677:       console.error("Cannot reset local patterns without a folder path.");
-678:       setProcessingStatus({ status: "error", message: "No folder selected for local reset." });
-679:       return;
-680:     }
-681: 
-682:     setProcessingStatus({ status: "processing", message: `Resetting ${isGlobal ? "global" : "local"} patterns...` });
-683: 
-684:     try {
-685:       const result = await window.electron.ipcRenderer.invoke("reset-ignore-patterns", {
-686:         isGlobal,
-687:         folderPath: targetPath
-688:       });
-689: 
-690:       if (result.success) {
-691:         console.log(`IPC: Reset ${isGlobal ? 'global' : 'local'} patterns successful.`);
-692:         // Update state *after* success
-693:         if (isGlobal) {
-694:           setGlobalPatterns({ patterns: '', excludedSystemPatterns: [] }); // Reset global state
-695:         } else {
-696:           setLocalPatterns({ patterns: '', excludedSystemPatterns: [] }); // Reset local state
-697:         }
-698:         setProcessingStatus({ status: "complete", message: "Patterns reset to default." });
-699:         // Reload folder data
-700:         setTimeout(() => {
-701:             reloadFolder();
-702:         }, 300);
-703:       } else {
-704:         console.error(`IPC: Reset ${isGlobal ? 'global' : 'local'} patterns failed:`, result.error);
-705:         setProcessingStatus({ status: "error", message: `Reset failed: ${result.error}` });
-706:       }
-707:     } catch (error: unknown) {
-708:       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-709:       console.error("Error invoking reset-ignore-patterns:", error);
-710:       setProcessingStatus({ status: "error", message: `Reset failed: ${errorMessage}` });
-711:     }
-712:   }, [isElectron, selectedFolder, reloadFolder]); // Dependency: reloadFolder
-713: 
-714:   // Clear local patterns
-715:   const clearLocalIgnorePatterns = useCallback(async (folderPath: string): Promise<void> => {
-716:     if (!isElectron || !folderPath) return;
-717: 
-718:     setProcessingStatus({ status: "processing", message: "Clearing local patterns..." });
-719: 
-720:     try {
-721:       const result = await window.electron.ipcRenderer.invoke("clear-local-ignore-patterns", { folderPath });
-722: 
-723:       if (result.success) {
-724:         console.log(`IPC: Clear local patterns successful for ${folderPath}.`);
-725:         // Update state *after* success
-726:         if (folderPath === selectedFolder) {
-727:           setLocalPatterns({ patterns: '', excludedSystemPatterns: [] });
-728:         }
-729:         setProcessingStatus({ status: "complete", message: "Local patterns cleared." });
-730:         // Reload folder data
-731:         setTimeout(() => {
-732:             reloadFolder();
-733:         }, 300);
-734:       } else {
-735:         console.error(`IPC: Clear local patterns failed for ${folderPath}:`, result.error);
-736:         setProcessingStatus({ status: "error", message: `Clear failed: ${result.error}` });
-737:       }
-738:     } catch (error: unknown) {
-739:       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-740:       console.error("Error invoking clear-local-ignore-patterns:", error);
-741:       setProcessingStatus({ status: "error", message: `Clear failed: ${errorMessage}` });
-742:     }
-743:   }, [isElectron, selectedFolder, reloadFolder]); // Dependency: reloadFolder
-744: 
-745: 
-746:   // --- Dialog State & Handlers ---
-747:   const [showClearSelectionDialog, setShowClearSelectionDialog] = useState(false);
-748:   const [showRemoveAllFoldersDialog, setShowRemoveAllFoldersDialog] = useState(false);
-749:   const [showResetPatternsDialog, setShowResetPatternsDialog] = useState(false);
-750:   const [resetPatternsContext, setResetPatternsContext] = useState<{isGlobal: boolean; folderPath: string} | null>(null);
-751: 
-752:   const handleClearSelectionClick = useCallback(() => setShowClearSelectionDialog(true), []);
-753:   const clearSelection = useCallback(() => { setSelectedFiles([]); setShowClearSelectionDialog(false); }, []);
-754:   const handleRemoveAllFoldersClick = useCallback(() => setShowRemoveAllFoldersDialog(true), []);
-755:   const removeAllFolders = useCallback(() => {
-756:     setSelectedFolder(null); setAllFiles([]); setSelectedFiles([]); setDisplayedFiles([]);
-757:     setLocalPatterns({ patterns: '', excludedSystemPatterns: [] }); // Reset local patterns
-758:     localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
-759:     localStorage.removeItem(STORAGE_KEYS.SELECTED_FILES);
-760:     localStorage.removeItem(STORAGE_KEYS.EXPANDED_NODES); // Also clear expanded nodes
-761:     setExpandedNodes(new Map()); // Reset map in state
-762:     sessionStorage.removeItem("hasLoadedInitialData");
-763:     setShowRemoveAllFoldersDialog(false);
-764:   }, []);
-765: 
-766:   const handleResetPatternsClick = useCallback((isGlobal: boolean, folderPath: string) => {
-767:     setResetPatternsContext({ isGlobal, folderPath });
-768:     setShowResetPatternsDialog(true);
-769:   }, []);
+588:     try {
+589:       const result = await window.electron.ipcRenderer.invoke("reset-ignore-patterns", {
+590:         isGlobal,
+591:         folderPath: targetPath
+592:       });
+593: 
+594:       if (result.success) {
+595:         console.log(`IPC: Reset ${isGlobal ? 'global' : 'local'} patterns successful.`);
+596:         // Update state *after* success
+597:         if (isGlobal) {
+598:           setGlobalPatternsState({ patterns: '', excludedSystemPatterns: [] }); // Reset global state
+599:         } else {
+600:           setLocalPatterns({ patterns: '', excludedSystemPatterns: [] }); // Reset local state
+601:         }
+602:         setProcessingStatus({ status: "complete", message: "Patterns reset to default." });
+603:         // Reload folder data
+604:         setTimeout(() => {
+605:             reloadFolder();
+606:         }, 300);
+607:       } else {
+608:         console.error(`IPC: Reset ${isGlobal ? 'global' : 'local'} patterns failed:`, result.error);
+609:         setProcessingStatus({ status: "error", message: `Reset failed: ${result.error}` });
+610:       }
+611:     } catch (error: unknown) {
+612:       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+613:       console.error("Error invoking reset-ignore-patterns:", error);
+614:       setProcessingStatus({ status: "error", message: `Reset failed: ${errorMessage}` });
+615:     }
+616:   }, [isElectron, selectedFolder, reloadFolder]); // Dependency: reloadFolder
+617: 
+618:   // Clear local patterns
+619:   const clearLocalIgnorePatterns = useCallback(async (folderPath: string): Promise<void> => {
+620:     if (!isElectron || !folderPath) return;
+621: 
+622:     setProcessingStatus({ status: "processing", message: "Clearing local patterns..." });
+623: 
+624:     try {
+625:       const result = await window.electron.ipcRenderer.invoke("clear-local-ignore-patterns", { folderPath });
+626: 
+627:       if (result.success) {
+628:         console.log(`IPC: Clear local patterns successful for ${folderPath}.`);
+629:         // Update state *after* success
+630:         if (folderPath === selectedFolder) {
+631:           setLocalPatterns({ patterns: '', excludedSystemPatterns: [] });
+632:         }
+633:         setProcessingStatus({ status: "complete", message: "Local patterns cleared." });
+634:         // Reload folder data
+635:         setTimeout(() => {
+636:             reloadFolder();
+637:         }, 300);
+638:       } else {
+639:         console.error(`IPC: Clear local patterns failed for ${folderPath}:`, result.error);
+640:         setProcessingStatus({ status: "error", message: `Clear failed: ${result.error}` });
+641:       }
+642:     } catch (error: unknown) {
+643:       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+644:       console.error("Error invoking clear-local-ignore-patterns:", error);
+645:       setProcessingStatus({ status: "error", message: `Clear failed: ${errorMessage}` });
+646:     }
+647:   }, [isElectron, selectedFolder, reloadFolder]); // Dependency: reloadFolder
+648: 
+649: 
+650:   // --- Dialog State & Handlers ---
+651:   const [showClearSelectionDialog, setShowClearSelectionDialog] = useState(false);
+652:   const [showRemoveAllFoldersDialog, setShowRemoveAllFoldersDialog] = useState(false);
+653:   const [showResetPatternsDialog, setShowResetPatternsDialog] = useState(false);
+654:   const [resetPatternsContext, setResetPatternsContext] = useState<{isGlobal: boolean; folderPath: string} | null>(null);
+655: 
+656:   const handleClearSelectionClick = useCallback(() => setShowClearSelectionDialog(true), []);
+657:   const clearSelection = useCallback(() => { setSelectedFiles([]); setShowClearSelectionDialog(false); }, []);
+658:   const handleRemoveAllFoldersClick = useCallback(() => setShowRemoveAllFoldersDialog(true), []);
+659:   const removeAllFolders = useCallback(() => {
+660:     setSelectedFolder(null); setAllFiles([]); setSelectedFiles([]); setDisplayedFiles([]);
+661:     setLocalPatterns({ patterns: '', excludedSystemPatterns: [] }); // Reset local patterns
+662:     localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
+663:     localStorage.removeItem(STORAGE_KEYS.SELECTED_FILES);
+664:     localStorage.removeItem(STORAGE_KEYS.EXPANDED_NODES); // Also clear expanded nodes
+665:     setExpandedNodes(new Map()); // Reset map in state
+666:     sessionStorage.removeItem("hasLoadedInitialData");
+667:     setShowRemoveAllFoldersDialog(false);
+668:   }, []);
+669: 
+670:   const handleResetPatternsClick = useCallback((isGlobal: boolean, folderPath: string) => {
+671:     setResetPatternsContext({ isGlobal, folderPath });
+672:     setShowResetPatternsDialog(true);
+673:   }, []);
+674: 
+675:   const confirmResetPatterns = useCallback(() => {
+676:     if (resetPatternsContext) {
+677:       resetIgnorePatterns(resetPatternsContext.isGlobal, resetPatternsContext.folderPath);
+678:     }
+679:     setShowResetPatternsDialog(false);
+680:     setResetPatternsContext(null);
+681:   }, [resetPatternsContext, resetIgnorePatterns]);
+682: 
+683:   // --- Helper Functions ---
+684:   const truncatePath = (path: string | null): string => {
+685:     if (!path) return "No folder selected";
+686:     const parts = path.split(/[/\\]/); // Handle both slash types
+687:     if (parts.length <= 3) return path;
+688:     const lastParts = parts.filter(p => p).slice(-2);
+689:     return `.../${lastParts.join('/')}`;
+690:   };
+691: 
+692:   // Callback for IgnorePatterns component to update global excluded patterns
+693:   const handleExcludedSystemPatternsChange = useCallback((newExcluded: string[]) => {
+694:     setGlobalPatternsState((prev: IgnorePatternsState) => ({
+695:       ...prev,
+696:       excludedSystemPatterns: newExcluded
+697:     }));
+698:   }, []);
+699: 
+700:   // Update processing status handlers to include setTimeout for complete status
+701:   useEffect(() => {
+702:     // Handle auto-dismissing 'complete' status messages
+703:     if (processingStatus.status === 'complete') {
+704:       const timer = setTimeout(() => {
+705:         setProcessingStatus({ status: 'idle', message: '' });
+706:       }, 5000); // Use 5000ms to match StatusAlert default
+707:       
+708:       return () => clearTimeout(timer);
+709:     }
+710:   }, [processingStatus.status, processingStatus.message]);
+711: 
+712:   // --- Render ---
+713:   return (
+714:     <ThemeProvider>
+715:       <div className={styles.appContainer}>
+716:         <header className={styles.appHeader}>
+717:           <h1>PasteMax</h1>
+718:           <div className={styles.headerActions}>
+719:             {/* <a href="#" className={styles.headerLink}>Guide</a>
+720:             <div className={styles.headerSeparator}></div> */}
+721:             <ThemeToggle />
+722:             <div className={styles.headerSeparator}></div>
+723:             <a href="https://github.com/jsulpis/pastemax" target="_blank" rel="noopener noreferrer" className={styles.githubButton}>
+724:               <Github size={16} />
+725:             </a>
+726:           </div>
+727:         </header>
+728: 
+729:         {processingStatus.status !== 'idle' && (
+730:           <StatusAlert
+731:             status={processingStatus.status}
+732:             message={processingStatus.message}
+733:             onClose={() => setProcessingStatus({ status: 'idle', message: '' })}
+734:           />
+735:         )}
+736: 
+737:         <div className={styles.mainContainer}>
+738:           <Sidebar
+739:             selectedFolder={selectedFolder}
+740:             openFolder={openFolder}
+741:             allFiles={allFiles}
+742:             selectedFiles={selectedFiles}
+743:             toggleFileSelection={toggleFileSelection}
+744:             toggleFolderSelection={toggleFolderSelection}
+745:             searchTerm={searchTerm}
+746:             onSearchChange={handleSearchChange}
+747:             selectAllFiles={selectAllFiles}
+748:             deselectAllFiles={deselectAllFiles}
+749:             expandedNodes={expandedNodes}
+750:             toggleExpanded={toggleExpanded}
+751:             reloadFolder={reloadFolder}
+752:             clearSelection={clearSelection}
+753:             removeAllFolders={removeAllFolders}
+754:             loadIgnorePatterns={loadIgnorePatterns}
+755:             saveIgnorePatterns={saveIgnorePatterns}
+756:             resetIgnorePatterns={resetIgnorePatterns}
+757:             systemIgnorePatterns={systemIgnorePatterns}
+758:             clearIgnorePatterns={clearLocalIgnorePatterns}
+759:             onClearSelectionClick={handleClearSelectionClick}
+760:             onRemoveAllFoldersClick={handleRemoveAllFoldersClick}
+761:             onResetPatternsClick={handleResetPatternsClick}
+762:             fileTreeSortOrder={fileTreeSortOrder}
+763:             onSortOrderChange={setFileTreeSortOrder}
+764:             globalPatternsState={globalPatternsState}
+765:             localPatternsState={localIgnorePatterns}
+766:             onExcludedSystemPatternsChange={handleExcludedSystemPatternsChange}
+767:             ignorePatterns=""
+768:             setIgnorePatterns={() => {}}
+769:           />
 770: 
-771:   const confirmResetPatterns = useCallback(() => {
-772:     if (resetPatternsContext) {
-773:       resetIgnorePatterns(resetPatternsContext.isGlobal, resetPatternsContext.folderPath);
-774:     }
-775:     setShowResetPatternsDialog(false);
-776:     setResetPatternsContext(null);
-777:   }, [resetPatternsContext, resetIgnorePatterns]);
-778: 
-779:   // --- Helper Functions ---
-780:   const truncatePath = (path: string | null): string => {
-781:     if (!path) return "No folder selected";
-782:     const parts = path.split(/[/\\]/); // Handle both slash types
-783:     if (parts.length <= 3) return path;
-784:     const lastParts = parts.filter(p => p).slice(-2);
-785:     return `.../${lastParts.join('/')}`;
-786:   };
-787: 
-788:   // Callback for IgnorePatterns component to update global excluded patterns
-789:   const handleExcludedSystemPatternsChange = useCallback((newExcluded: string[]) => {
-790:     setGlobalPatterns(prev => ({
-791:         ...prev,
-792:         excludedSystemPatterns: newExcluded
-793:     }));
-794:   }, []);
-795: 
-796:   // --- Render ---
-797:   return (
-798:     <ThemeProvider>
-799:       <div className={styles.appContainer}>
-800:         <header className={styles.appHeader}>
-801:           <h1>PasteMax</h1>
-802:           <div className={styles.headerActions}>
-803:             {/* <a href="#" className={styles.headerLink}>Guide</a>
-804:             <div className={styles.headerSeparator}></div> */}
-805:             <ThemeToggle />
-806:             <div className={styles.headerSeparator}></div>
-807:             <a href="https://github.com/jsulpis/pastemax" target="_blank" rel="noopener noreferrer" className={styles.githubButton}>
-808:               <Github size={16} />
-809:             </a>
-810:           </div>
-811:         </header>
-812: 
-813:         {renderStatusMessage()}
-814: 
-815:         <div className={styles.mainContainer}>
-816:           <Sidebar
-817:             selectedFolder={selectedFolder}
-818:             openFolder={openFolder}
-819:             allFiles={allFiles}
-820:             selectedFiles={selectedFiles}
-821:             toggleFileSelection={toggleFileSelection}
-822:             toggleFolderSelection={toggleFolderSelection}
-823:             searchTerm={searchTerm}
-824:             onSearchChange={handleSearchChange}
-825:             selectAllFiles={selectAllFiles}
-826:             deselectAllFiles={deselectAllFiles}
-827:             expandedNodes={expandedNodes}
-828:             toggleExpanded={toggleExpanded}
-829:             reloadFolder={reloadFolder}
-830:             clearSelection={clearSelection}
-831:             removeAllFolders={removeAllFolders}
-832:             loadIgnorePatterns={loadIgnorePatterns}
-833:             saveIgnorePatterns={saveIgnorePatterns}
-834:             resetIgnorePatterns={resetIgnorePatterns}
-835:             systemIgnorePatterns={systemIgnorePatterns}
-836:             clearIgnorePatterns={clearLocalIgnorePatterns}
-837:             onClearSelectionClick={handleClearSelectionClick}
-838:             onRemoveAllFoldersClick={handleRemoveAllFoldersClick}
-839:             onResetPatternsClick={handleResetPatternsClick}
-840:             fileTreeSortOrder={fileTreeSortOrder}
-841:             onSortOrderChange={setFileTreeSortOrder}
-842:             globalPatternsState={globalIgnorePatterns}
-843:             localPatternsState={localIgnorePatterns}
-844:             onExcludedSystemPatternsChange={handleExcludedSystemPatternsChange}
-845:             ignorePatterns=""
-846:             setIgnorePatterns={() => {}}
-847:           />
-848: 
-849:           {selectedFolder ? (
-850:             <div className={styles.contentArea}>
-851:               <div className={styles.contentHeader}>
-852:                 <h1 className={styles.contentTitle}>Files</h1>
-853:                 <div className={styles.folderPathDisplay} title={selectedFolder}>{truncatePath(selectedFolder)}</div>
-854:                 <div className={styles.contentActions}>
-855:                   <Dropdown
-856:                     options={sortOptions}
-857:                     value={sortOrder}
-858:                     onChange={handleSortChange}
-859:                     trigger={
-860:                       <Button variant="secondary" size="sm" startIcon={getSortIcon(sortOrder)}> Sort </Button>
-861:                     }
-862:                     // menuClassName={styles.sortDropdownMenu} // Ensure this CSS class exists or remove
-863:                   />
-864:                 </div>
-865:                 <div className={styles.fileStats}>
-866:                   {selectedFiles.length} files selected ({totalTokens.toLocaleString()} tokens)
-867:                 </div>
-868:               </div>
-869: 
-870:               <FileList
-871:                 files={displayedFiles} // Pass metadata only
-872:                 selectedFiles={selectedFiles}
-873:                 toggleFileSelection={toggleFileSelection}
-874:               />
-875: 
-876:               {showUserInstructions && (
-877:                 <div className={styles.userInstructionsContainer}>
-878:                   <UserInstructions instructions={userInstructions} setInstructions={setUserInstructions} />
-879:                 </div>
-880:               )}
-881: 
-882:               <ControlContainer
-883:                 fileTreeMode={fileTreeMode}
-884:                 setFileTreeMode={setFileTreeMode}
-885:                 showUserInstructions={showUserInstructions}
-886:                 setShowUserInstructions={setShowUserInstructions}
-887:                 getSelectedFilesContent={getSelectedFilesContent} // Now async
-888:                 selectedFilesCount={selectedFiles.length}
-889:                 // Remove unused props passed to ControlContainer
-890:               />
-891:             </div>
-892:           ) : (
-893:             <div className={styles.contentArea}>
-894:               <div className={styles.emptyStateContent}>
-895:                 <h2>Welcome to PasteMax</h2>
-896:                 <p>Select a folder to get started.</p>
-897:                 <Button variant="primary" onClick={openFolder} className="mt-4"> Select Project Folder </Button>
-898:               </div>
-899:             </div>
-900:           )}
-901:         </div>
-902: 
-903:         {/* Confirmation Dialogs */}
-904:         <ConfirmationDialog isOpen={showClearSelectionDialog} onClose={() => setShowClearSelectionDialog(false)} onConfirm={clearSelection} title="Clear Selection" description="Clear all selected files?" confirmLabel="Clear" variant="destructive" />
-905:         <ConfirmationDialog isOpen={showRemoveAllFoldersDialog} onClose={() => setShowRemoveAllFoldersDialog(false)} onConfirm={removeAllFolders} title="Remove All Folders" description="Remove all folders and reset the application?" confirmLabel="Remove All" variant="destructive" />
-906:         <ConfirmationDialog isOpen={showResetPatternsDialog} onClose={() => setShowResetPatternsDialog(false)} onConfirm={confirmResetPatterns} title={`Reset ${resetPatternsContext?.isGlobal ? 'Global' : 'Local'} Ignore Patterns`} description="Reset patterns to their default values?" confirmLabel="Reset" variant="destructive" />
-907:       </div>
-908:     </ThemeProvider>
-909:   );
-910: };
-911: 
-912: export default App;
+771:           {selectedFolder ? (
+772:             <div className={styles.contentArea}>
+773:               <div className={styles.contentHeader}>
+774:                 <div className={styles.folderPathDisplay} title={selectedFolder}>
+775:                   <span className={styles.pathLabel}>{'>_'}</span> {truncatePath(selectedFolder)}
+776:                 </div>
+777:                 <div className={styles.headerSeparator} />
+778:                 <div className={styles.contentActions}>
+779:                   <Dropdown
+780:                     options={sortOptions}
+781:                     value={sortOrder}
+782:                     onChange={handleSortChange}
+783:                     trigger={
+784:                       <Button variant="secondary" size="sm" startIcon={getSortIcon(sortOrder)}> Sort </Button>
+785:                     }
+786:                   />
+787:                 </div>
+788:                 <div className={styles.headerSeparator} />
+789:                 <div className={styles.fileStats}>
+790:                   <span>{selectedFiles.length}</span> files selected (<span>{totalTokens.toLocaleString()}</span> tokens)
+791:                 </div>
+792:               </div>
+793:               <FileList
+794:                 files={displayedFiles} // Pass metadata only
+795:                 selectedFiles={selectedFiles}
+796:                 toggleFileSelection={toggleFileSelection}
+797:               />
+798: 
+799:               {showUserInstructions && (
+800:                 <div className={styles.userInstructionsContainer}>
+801:                   <UserInstructions instructions={userInstructions} setInstructions={setUserInstructions} />
+802:                 </div>
+803:               )}
+804: 
+805:               <ControlContainer
+806:                 fileTreeMode={fileTreeMode}
+807:                 setFileTreeMode={setFileTreeMode}
+808:                 showUserInstructions={showUserInstructions}
+809:                 setShowUserInstructions={setShowUserInstructions}
+810:                 getSelectedFilesContent={getSelectedFilesContent} // Now async
+811:                 selectedFilesCount={selectedFiles.length}
+812:                 // Remove unused props passed to ControlContainer
+813:               />
+814:             </div>
+815:           ) : (
+816:             <div className={styles.contentArea}>
+817:               <div className={styles.emptyStateContent}>
+818:                 <h2>Welcome to PasteMax</h2>
+819:                 <p>Select a folder to get started.</p>
+820:                 <Button variant="primary" onClick={openFolder} className="mt-4"> Select Project Folder </Button>
+821:               </div>
+822:             </div>
+823:           )}
+824:         </div>
+825: 
+826:         {/* Confirmation Dialogs */}
+827:         <ConfirmationDialog isOpen={showClearSelectionDialog} onClose={() => setShowClearSelectionDialog(false)} onConfirm={clearSelection} title="Clear Selection" description="Clear all selected files?" confirmLabel="Clear" variant="destructive" />
+828:         <ConfirmationDialog isOpen={showRemoveAllFoldersDialog} onClose={() => setShowRemoveAllFoldersDialog(false)} onConfirm={removeAllFolders} title="Remove All Folders" description="Remove all folders and reset the application?" confirmLabel="Remove All" variant="destructive" />
+829:         <ConfirmationDialog isOpen={showResetPatternsDialog} onClose={() => setShowResetPatternsDialog(false)} onConfirm={confirmResetPatterns} title={`Reset ${resetPatternsContext?.isGlobal ? 'Global' : 'Local'} Ignore Patterns`} description="Reset patterns to their default values?" confirmLabel="Reset" variant="destructive" />
+830:       </div>
+831:     </ThemeProvider>
+832:   );
+833: };
+834: 
+835: export default App;
 ```

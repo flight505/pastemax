@@ -116,9 +116,6 @@
   height: 32px;
   display: flex;
   align-items: center;
-  background: var(--background-secondary);
-  border-radius: var(--radius);
-  border: 1px solid var(--border-color);
   white-space: nowrap;
   flex-shrink: 0;
 }
