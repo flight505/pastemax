@@ -6,9 +6,9 @@
   width: fit-content;
   position: relative;
   height: 28px;
-  border: 1px solid hsla(240, 5.9%, 90%, 0.3);
+  border: 1px solid hsla(240, 6%, 90%, 0.6);
   gap: 1px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
   overflow: hidden;
 }
 
@@ -20,7 +20,7 @@
   height: calc(100% - 4px);
   background-color: var(--background-primary);
   border-radius: 9999px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.056), 0 0 0 1px rgba(0, 0, 0, 0.04);
   z-index: 0;
   transform: translateX(0);
 }

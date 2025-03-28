@@ -161,12 +161,12 @@
   padding: 0.5rem;
   border-radius: var(--radius);
   text-decoration: none;
-  color: var(--text-primary);
+  color: var(--accent-color);
   transition: color 0.2s;
 }
 
 .githubButton:hover {
-  color: var(--accent-color);
+  color: var(--text-primary);
 }
 
 .treeEmpty {
