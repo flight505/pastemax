@@ -1,0 +1,72 @@
+.alertContainer {
+    position: relative;
+    width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: opacity 300ms ease, transform 300ms ease;
+    display: flex;
+    align-items: flex-start;
+  }
+  
+  .enter {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .exit {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  
+  .alertContent {
+    display: flex;
+    gap: 0.75rem;
+    width: 100%;
+  }
+  
+  .messageContent {
+    flex: 1;
+  }
+  
+  .alertTitle {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+  }
+  
+  .alertDescription {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+  
+  /* Status-specific styles */
+  .processing {
+    background-color: var(--background);
+    border-color: var(--border);
+  }
+  
+  .complete {
+    background-color: var(--background);
+    border-color: var(--border);
+    /* Subtle success indication without bright green */
+  }
+  
+  .error {
+    background-color: var(--background);
+    border-color: var(--border);
+    /* Subtle error indication without bright red */
+  }
+  
+  .closeButton {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    padding: 0.25rem;
+    margin-left: auto;
+  }
+  
+  .closeButton:hover {
+    color: var(--foreground);
+  }

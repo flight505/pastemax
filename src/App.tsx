@@ -15,6 +15,8 @@ import { Button } from "./components/ui/Button";
 import { getSortIcon } from "./utils/sortIcons";
 // Import utilities from patternUtils
 import { SYSTEM_PATTERN_CATEGORIES, parseIgnorePatternsContent, IgnorePatternsState } from "./utils/patternUtils";
+// Import the StatusAlert component
+import { StatusAlert } from "./components/ui/StatusAlert";
 
 // Access the electron API from the window object
 declare global {
@@ -276,58 +278,6 @@ const App = () => {
     } else {
       console.warn("Folder selection not available in browser");
     }
-  };
-
-  // Status message renderer
-  const renderStatusMessage = () => {
-    if (!processingStatus || processingStatus.status === 'idle') {
-      return null;
-    }
-
-    let statusClass = styles.statusMessage; // Assuming this base class exists
-    let statusIcon = null;
-    let statusText = '';
-
-    // Define styles for different statuses if they don't exist in CSS modules
-    const statusStyles: { [key: string]: React.CSSProperties } = {
-        processing: { backgroundColor: 'lightblue', color: 'black', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center' },
-        complete: { backgroundColor: 'lightgreen', color: 'black', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center' },
-        error: { backgroundColor: 'lightcoral', color: 'black', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center' },
-        idle: { display: 'none' }
-    };
-
-
-    switch (processingStatus.status) {
-      case 'processing':
-        statusClass += ` ${styles.processing}`; // Use CSS module if available
-        statusIcon = <Loader2 size={16} className="animate-spin" />;
-        statusText = processingStatus.message || 'Processing...';
-        break;
-      case 'complete':
-        statusClass += ` ${styles.complete}`; // Use CSS module if available
-        statusIcon = <Check size={16} />;
-        statusText = processingStatus.message || 'Complete';
-        // Optional: Hide success message after a delay
-        setTimeout(() => setProcessingStatus({ status: 'idle', message: '' }), 3000);
-        break;
-      case 'error':
-        statusClass += ` ${styles.error}`; // Use CSS module if available
-        statusIcon = <AlertTriangle size={16} />;
-        statusText = processingStatus.message || 'Error';
-        break;
-      default:
-        return null; // Don't render for idle
-    }
-
-    // Use inline styles as fallback if CSS Modules aren't defined for these
-    const currentStyle = statusStyles[processingStatus.status] || {};
-
-    return (
-      <div style={currentStyle} className={statusClass}>
-        {statusIcon && <span style={{ marginRight: '8px' }}>{statusIcon}</span>}
-        {statusText}
-      </div>
-    );
   };
 
   // Apply filters and sorting (Lint fixes applied)
@@ -747,6 +697,18 @@ const App = () => {
     }));
   }, []);
 
+  // Update processing status handlers to include setTimeout for complete status
+  useEffect(() => {
+    // Handle auto-dismissing 'complete' status messages
+    if (processingStatus.status === 'complete') {
+      const timer = setTimeout(() => {
+        setProcessingStatus({ status: 'idle', message: '' });
+      }, 5000); // Use 5000ms to match StatusAlert default
+      
+      return () => clearTimeout(timer);
+    }
+  }, [processingStatus.status, processingStatus.message]);
+
   // --- Render ---
   return (
     <ThemeProvider>
@@ -764,7 +726,13 @@ const App = () => {
           </div>
         </header>
 
-        {renderStatusMessage()}
+        {processingStatus.status !== 'idle' && (
+          <StatusAlert
+            status={processingStatus.status}
+            message={processingStatus.message}
+            onClose={() => setProcessingStatus({ status: 'idle', message: '' })}
+          />
+        )}
 
         <div className={styles.mainContainer}>
           <Sidebar
