@@ -1,16 +1,20 @@
 import React, { useState, useCallback } from 'react'; // Import useCallback
-import { FileTreeMode } from '../types';
+import { FileTreeMode } from '../types/FileTypes';
+import { OutputFormatType, OUTPUT_FORMAT_OPTIONS } from '../constants/outputFormats';
 import { Switch, Button, ButtonGroup } from './ui';
 import { Copy, Download, Check, Loader2 } from 'lucide-react'; // Added Loader2
+import { Dropdown } from './ui/Dropdown';
 import styles from './ControlContainer.module.css';
 
 interface ControlContainerProps {
   fileTreeMode: FileTreeMode;
-  setFileTreeMode: (value: FileTreeMode) => void;
+  setFileTreeMode: (mode: FileTreeMode) => void;
   showUserInstructions: boolean;
-  setShowUserInstructions: (value: boolean) => void;
+  setShowUserInstructions: (show: boolean) => void;
   getSelectedFilesContent: () => Promise<string>; // Make async
   selectedFilesCount: number;
+  outputFormat: OutputFormatType;
+  setOutputFormat: (format: OutputFormatType) => void;
   // Removed unused props (previously prefixed with _)
 }
 
@@ -21,6 +25,8 @@ const ControlContainer: React.FC<ControlContainerProps> = ({
   setShowUserInstructions,
   getSelectedFilesContent,
   selectedFilesCount,
+  outputFormat,
+  setOutputFormat,
 }) => {
   const [copied, setCopied] = useState(false);
   const [isCopying, setIsCopying] = useState(false); // Add loading state for copy
@@ -85,6 +91,23 @@ const ControlContainer: React.FC<ControlContainerProps> = ({
               <option value="selected-with-roots">Selected Files with Path</option>
               <option value="complete">Complete Tree (Mark Selected)</option>
             </select>
+          </div>
+        </div>
+
+        {/* Output Format Group */}
+        <div className={styles.controlGroup}>
+          <div className={styles.controlGroupTitle}>Output Format</div>
+          <div className={styles.controlItem}>
+            <Dropdown
+              options={OUTPUT_FORMAT_OPTIONS}
+              value={outputFormat}
+              onChange={(value) => {
+                if (typeof value === 'string') {
+                  setOutputFormat(value as OutputFormatType);
+                }
+              }}
+              title="Select output format"
+            />
           </div>
         </div>
 

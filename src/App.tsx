@@ -17,6 +17,9 @@ import { getSortIcon } from "./utils/sortIcons";
 import { SYSTEM_PATTERN_CATEGORIES, parseIgnorePatternsContent, IgnorePatternsState } from "./utils/patternUtils";
 // Import the StatusAlert component
 import { StatusAlert } from "./components/ui/StatusAlert";
+import { OutputFormatType, OUTPUT_FORMAT_OPTIONS, OUTPUT_FORMAT_STORAGE_KEY } from './constants/outputFormats';
+import { formatAsXML, formatAsMarkdown, formatAsPlain } from './utils/formatters';
+import { UserInstructionsWithTemplates } from './components/UserInstructionsWithTemplates';
 
 // Access the electron API from the window object
 declare global {
@@ -126,6 +129,11 @@ const App = () => {
   const [localIgnorePatterns, setLocalPatterns] = useState<IgnorePatternsState>({ patterns: '', excludedSystemPatterns: [] }); // Local doesn't have excluded system patterns
   const [systemIgnorePatterns, setSystemIgnorePatterns] = useState<string[]>(DEFAULT_SYSTEM_PATTERNS);
 
+  const [outputFormat, setOutputFormat] = useState<OutputFormatType>(() => {
+    const saved = localStorage.getItem(OUTPUT_FORMAT_STORAGE_KEY);
+    return (saved as OutputFormatType) || 'xml';
+  });
+
   const isElectron = window.electron !== undefined;
 
   // --- Persist State Effects ---
@@ -162,6 +170,10 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.GLOBAL_IGNORE_PATTERNS, JSON.stringify(globalPatternsState));
   }, [globalPatternsState]);
+
+  useEffect(() => {
+    localStorage.setItem(OUTPUT_FORMAT_STORAGE_KEY, outputFormat);
+  }, [outputFormat]);
 
   // --- IPC Listeners ---
 
@@ -478,8 +490,23 @@ const App = () => {
         ? `\n<user_instructions>\n${userInstructions}\n</user_instructions>\n\n`
         : "";
 
-      setProcessingStatus({ status: 'complete', message: 'Content prepared.' });
-      return concatenatedString + userInstructionsBlock;
+      // Generate the file tree string
+      let fileTreeString = "";
+      if (fileTreeMode !== "none" && selectedFolder) {
+        const filesForTree = fileTreeMode === "complete" ? allFiles : sortedFiles;
+        fileTreeString = generateAsciiFileTree(filesForTree, selectedFolder, fileTreeMode);
+      }
+      
+      // Apply the appropriate formatter based on selected format
+      switch (outputFormat) {
+        case 'markdown':
+          return formatAsMarkdown(sortedFiles, selectedFolder, fileTreeMode, fileTreeString, userInstructions);
+        case 'plain':
+          return formatAsPlain(sortedFiles, selectedFolder, fileTreeMode, fileTreeString, userInstructions);
+        case 'xml':
+        default:
+          return formatAsXML(sortedFiles, selectedFolder, fileTreeMode, fileTreeString, userInstructions);
+      }
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -487,7 +514,7 @@ const App = () => {
       setProcessingStatus({ status: 'error', message: 'Failed to prepare content.' });
       return `Error preparing content: ${errorMessage}`;
     }
-  }, [selectedFiles, allFiles, sortOrder, fileTreeMode, selectedFolder, userInstructions]);
+  }, [selectedFiles, allFiles, sortOrder, fileTreeMode, selectedFolder, userInstructions, outputFormat]);
 
   // Sort options
   const sortOptions = useMemo(() => [
@@ -798,7 +825,10 @@ const App = () => {
 
               {showUserInstructions && (
                 <div className={styles.userInstructionsContainer}>
-                  <UserInstructions instructions={userInstructions} setInstructions={setUserInstructions} />
+                  <UserInstructionsWithTemplates
+                    instructions={userInstructions}
+                    setInstructions={setUserInstructions}
+                  />
                 </div>
               )}
 
@@ -809,7 +839,8 @@ const App = () => {
                 setShowUserInstructions={setShowUserInstructions}
                 getSelectedFilesContent={getSelectedFilesContent} // Now async
                 selectedFilesCount={selectedFiles.length}
-                // Remove unused props passed to ControlContainer
+                outputFormat={outputFormat}
+                setOutputFormat={setOutputFormat}
               />
             </div>
           ) : (
