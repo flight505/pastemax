@@ -77,6 +77,7 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(localFolderPath);
   const [applyingPatterns, setApplyingPatterns] = useState<boolean>(false);
   const [folderSelectOpen, setFolderSelectOpen] = useState(false);
+  const [actualPatternCount, setActualPatternCount] = useState<number>(0);
 
   // Derive excluded patterns directly from props for controlled behavior
   // Add safe fallback for initial render if globalPatternsState is somehow undefined briefly
@@ -119,17 +120,21 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
     
     // Start with an empty array for our preview lines
     const previewLines: string[] = [];
+    // Keep track of actual patterns for accurate counting
+    const actualPatterns: string[] = [];
 
     if (activeTab === "global") {
       // For global tab, show active system patterns first
       const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
       const activeSystemPatterns = systemIgnorePatterns
-        .filter(pattern => !safeExcluded.includes(pattern))
-        .map(pattern => `${pattern} (from system)`);
-      
+        .filter(pattern => !safeExcluded.includes(pattern));
+        
       if (activeSystemPatterns.length > 0) {
         previewLines.push("# Active System Patterns:");
-        previewLines.push(...activeSystemPatterns);
+        activeSystemPatterns.forEach(pattern => {
+          previewLines.push(`${pattern} (from system)`);
+          actualPatterns.push(pattern);
+        });
       }
 
       // Then show user patterns
@@ -137,18 +142,27 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
       if (userPatternLines.length > 0) {
         if (previewLines.length > 0) previewLines.push("");
         previewLines.push("# User Patterns:");
-        previewLines.push(...userPatternLines.map(pattern => `${pattern} (custom)`));
+        userPatternLines.forEach(pattern => {
+          previewLines.push(`${pattern} (custom)`);
+          actualPatterns.push(pattern);
+        });
       }
     } else {
       // For local tab, only show local patterns
       const userPatternLines = userPatterns.split("\n").filter(line => line.trim() !== "");
       if (userPatternLines.length > 0) {
         previewLines.push("# Local Patterns:");
-        previewLines.push(...userPatternLines.map(pattern => `${pattern} (local)`));
+        userPatternLines.forEach(pattern => {
+          previewLines.push(`${pattern} (local)`);
+          actualPatterns.push(pattern);
+        });
       }
     }
 
+    // Store the actual pattern count for display
     setMergedPreview(previewLines.join("\n"));
+    // Store the count in a ref or state if needed
+    setActualPatternCount(actualPatterns.length);
   }, [activeTab, currentGlobalPatterns, currentLocalPatterns, systemIgnorePatterns, excludedSystemPatterns]);
 
   /**
@@ -211,38 +225,31 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
       // Format disabled patterns using the derived prop value
       const safeExcluded = Array.isArray(excludedSystemPatterns) ? excludedSystemPatterns : [];
       
-      // First, add the system patterns section
-      const activeSystemPatterns = systemIgnorePatterns
-        .filter(pattern => !safeExcluded.includes(pattern))
-        .map(pattern => `# SYSTEM: ${pattern}`)
-        .join('\n');
-
-      // Then, add the disabled patterns section
+      // Format disabled patterns section - each disabled pattern on its own line
       const disabledPatternsSection = safeExcluded
         .map(pattern => `# DISABLED: ${pattern}`)
         .join('\n');
 
-      // Finally, add the user patterns section with a header
-      const userPatternsSection = currentGlobalPatterns.trim()
-        ? `# USER PATTERNS:\n${currentGlobalPatterns}`
-        : '';
+      // Add user patterns with proper header
+      let formattedContent = '';
+      
+      // Add the disabled patterns first
+      if (disabledPatternsSection) {
+        formattedContent += disabledPatternsSection + '\n\n';
+      }
+      
+      // Then add user patterns with header
+      if (currentGlobalPatterns.trim()) {
+        formattedContent += '# USER PATTERNS:\n' + currentGlobalPatterns.trim();
+      }
 
-      // Combine all sections with proper spacing
-      const sections = [
-        activeSystemPatterns,
-        disabledPatternsSection,
-        userPatternsSection
-      ].filter(Boolean);
-
-      const patternsToSave = sections.join('\n\n');
-
-      await saveIgnorePatterns(patternsToSave, true);
+      await saveIgnorePatterns(formattedContent, true);
       setApplyingPatterns(false);
     } catch (error) {
       console.error('Error saving global patterns:', error);
       setApplyingPatterns(false);
     }
-  }, [currentGlobalPatterns, excludedSystemPatterns, systemIgnorePatterns, saveIgnorePatterns]);
+  }, [currentGlobalPatterns, excludedSystemPatterns, saveIgnorePatterns]);
 
   const handleSaveLocalPatterns = useCallback(async () => {
     try {
@@ -525,7 +532,9 @@ const IgnorePatterns: React.FC<IgnorePatternsProps> = ({
             <div className={styles.previewContainer}>
                 <div className={styles.previewHeader}>
                     <span>Effective Patterns Preview</span>
-                    <span className={styles.patternCount}>{mergedPreview.split('\n').filter(line => line.trim()).length} active</span>
+                    <span className={styles.patternCount}>
+                        {actualPatternCount} active
+                    </span>
                 </div>
                 {mergedPreview.split('\n').map((line, index) => {
                     if (!line.trim()) return null;

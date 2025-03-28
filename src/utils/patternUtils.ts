@@ -56,16 +56,30 @@ export const SYSTEM_PATTERN_CATEGORIES = {
     const excludedPatterns: string[] = [];
     const userPatterns: string[] = [];
   
+    let inUserSection = false;
+  
     lines.forEach(line => {
       const trimmedLine = line.trim();
+      
+      // Check for section headers
+      if (trimmedLine === '# USER PATTERNS:') {
+        inUserSection = true;
+        return;
+      }
+      
       if (trimmedLine.startsWith('# DISABLED:')) {
+        // Extract pattern removing the DISABLED marker
         const pattern = trimmedLine.substring('# DISABLED:'.length).trim();
         if (pattern) {
           excludedPatterns.push(pattern);
         }
-      } else if (trimmedLine !== '' && !trimmedLine.startsWith('#')) {
-        // Add non-empty, non-comment lines to user patterns
-        userPatterns.push(line); // Keep original line to preserve indentation/whitespace if any
+      } else if (inUserSection && trimmedLine !== '' && !trimmedLine.startsWith('#')) {
+        // In user section, add non-comment lines to user patterns
+        userPatterns.push(line); // Keep original line to preserve indentation/whitespace
+      } else if (!inUserSection && !trimmedLine.startsWith('#') && trimmedLine !== '') {
+        // Not in user section yet, but found a pattern - also add to user patterns
+        // This handles the case where user patterns aren't properly marked with a section
+        userPatterns.push(line);
       }
       // Ignore empty lines and regular comments
     });
