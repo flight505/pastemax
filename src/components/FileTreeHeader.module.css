@@ -3,7 +3,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: var(--background-secondary);
+  background: var(--background-primary);
   border-bottom: 1px solid var(--border-color);
   height: 52px;
   justify-content: center;

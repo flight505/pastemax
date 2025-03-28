@@ -22,9 +22,10 @@ interface StatusAlertProps {
     
     // Icon mapping based on status
     const statusIcons = {
-      processing: <Loader2 className="animate-spin" size={16} />,
-      complete: <Check size={16} />,
-      error: <AlertTriangle size={16} />
+      processing: <Loader2 className="animate-spin" size={14} />,
+      complete: <Check size={14} />,
+      error: <AlertTriangle size={14} />,
+      idle: null
     };
     
     // Style mapping based on status
@@ -32,15 +33,7 @@ interface StatusAlertProps {
       processing: styles.processing,
       complete: styles.complete,
       error: styles.error,
-      idle: '' // Add idle status to avoid TypeScript index errors
-    };
-    
-    // Title mapping based on status
-    const statusTitles = {
-      processing: "Processing...",
-      complete: "Success",
-      error: "Error",
-      idle: "" // Add idle status to avoid TypeScript index errors
+      idle: ''
     };
     
     // Auto-dismiss logic for successful operations
@@ -70,20 +63,19 @@ interface StatusAlertProps {
       setTimeout(() => {
         setIsVisible(false);
         if (onClose) onClose();
-      }, 300); // Match transition duration
+      }, 200); // Match transition duration
     };
     
     if (!isVisible && status === "idle") return null;
     
     return (
       <div
-        className={`${styles.alertContainer} ${isExiting ? styles.exit : styles.enter} ${statusClasses[status] || ''}`}
+        className={`${styles.alertContainer} ${isExiting ? styles.exit : styles.enter} ${statusClasses[status]}`}
         role="alert"
       >
         <div className={styles.alertContent}>
-          {status !== "idle" && statusIcons[status]}
           <div className={styles.messageContent}>
-            <h5 className={styles.alertTitle}>{statusTitles[status]}</h5>
+            <span className={styles.terminalPrefix}>&gt;_</span>
             <div className={styles.alertDescription}>{message}</div>
           </div>
           {status === "error" && (
@@ -92,7 +84,7 @@ interface StatusAlertProps {
               onClick={handleExit}
               aria-label="Close"
             >
-              <X size={16} />
+              <X size={14} />
             </button>
           )}
         </div>
