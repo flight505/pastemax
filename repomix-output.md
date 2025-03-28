@@ -488,172 +488,6 @@ src/
 1: export * from './Card';
 ```
 
-## File: src/components/ui/Dialog/Dialog.tsx
-```typescript
-  1: import React, { useEffect, useRef } from 'react';
-  2: import { X } from 'lucide-react';
-  3: import { Button } from '../Button';
-  4: import { cn } from '../../../utils/cn';
-  5: import styles from './Dialog.module.css';
-  6: 
-  7: export interface DialogProps {
-  8:   /**
-  9:    * Whether the dialog is open
- 10:    */
- 11:   isOpen: boolean;
- 12: 
- 13:   /**
- 14:    * Callback when the dialog should close
- 15:    */
- 16:   onClose: () => void;
- 17: 
- 18:   /**
- 19:    * Dialog title
- 20:    */
- 21:   title: string;
- 22: 
- 23:   /**
- 24:    * Optional description text below the title
- 25:    */
- 26:   description?: string;
- 27: 
- 28:   /**
- 29:    * Dialog content
- 30:    */
- 31:   children: React.ReactNode;
- 32: 
- 33:   /**
- 34:    * Optional footer content (usually action buttons)
- 35:    */
- 36:   footer?: React.ReactNode;
- 37: 
- 38:   /**
- 39:    * Optional size variant
- 40:    * @default 'md'
- 41:    */
- 42:   size?: 'sm' | 'md' | 'lg';
- 43: 
- 44:   /**
- 45:    * Optional custom class name
- 46:    */
- 47:   className?: string;
- 48: }
- 49: 
- 50: /**
- 51:  * Dialog component for modal interactions
- 52:  * Handles focus trapping, keyboard interactions, and animations
- 53:  */
- 54: export const Dialog: React.FC<DialogProps> = ({
- 55:   isOpen,
- 56:   onClose,
- 57:   title,
- 58:   description,
- 59:   children,
- 60:   footer,
- 61:   size = 'md',
- 62:   className,
- 63: }) => {
- 64:   const dialogRef = useRef<HTMLDivElement>(null);
- 65:   const backdropRef = useRef<HTMLDivElement>(null); // Ref for the backdrop
- 66: 
- 67:   // Handle ESC key to close dialog
- 68:   useEffect(() => {
- 69:     const handleKeyDown = (e: KeyboardEvent) => {
- 70:       if (e.key === 'Escape' && isOpen) {
- 71:         onClose();
- 72:       }
- 73:     };
- 74: 
- 75:     window.addEventListener('keydown', handleKeyDown);
- 76:     return () => window.removeEventListener('keydown', handleKeyDown);
- 77:   }, [isOpen, onClose]);
- 78: 
- 79:   // Handle click outside (on backdrop) to close
- 80:   useEffect(() => {
- 81:     const handleClickOutside = (e: MouseEvent) => {
- 82:       // Only close if clicking directly on the backdrop
- 83:       if (backdropRef.current === e.target) {
- 84:         onClose();
- 85:       }
- 86:     };
- 87: 
- 88:     if (isOpen) {
- 89:       document.addEventListener('mousedown', handleClickOutside);
- 90:       return () => document.removeEventListener('mousedown', handleClickOutside);
- 91:     }
- 92:   }, [isOpen, onClose]);
- 93: 
- 94:   // Prevent body scroll when dialog is open
- 95:   useEffect(() => {
- 96:     if (isOpen) {
- 97:       document.body.style.overflow = 'hidden';
- 98:       // Focus the dialog container or first focusable element on open
- 99:       dialogRef.current?.focus();
-100:       return () => {
-101:         document.body.style.overflow = 'unset';
-102:       };
-103:     }
-104:   }, [isOpen]);
-105: 
-106:   if (!isOpen) return null;
-107: 
-108:   return (
-109:     <div
-110:       ref={backdropRef} // Add ref to backdrop
-111:       className={styles.backdrop}
-112:       role="presentation" // Backdrop is presentational
-113:     >
-114:       <div
-115:         ref={dialogRef}
-116:         className={cn(
-117:           styles.dialog, // Use .dialog for the main container
-118:           styles[size],
-119:           className
-120:         )}
-121:         role="dialog"
-122:         aria-modal="true"
-123:         aria-labelledby="dialog-title"
-124:         tabIndex={-1} // Make the dialog focusable
-125:       >
-126:         <div className={styles.header}>
-127:           <h2 id="dialog-title" className={styles.title}>{title}</h2>
-128:           <Button
-129:             variant="ghost"
-130:             size="sm"
-131:             iconOnly
-132:             onClick={onClose}
-133:             startIcon={<X size={16} />} // Correctly uses Button component
-134:             title="Close dialog"
-135:             aria-label="Close dialog" // Add aria-label
-136:           />
-137:         </div>
-138: 
-139:         {description && (
-140:           <div className={styles.description}>
-141:             {description}
-142:           </div>
-143:         )}
-144: 
-145:         <div className={styles.content}>
-146:           {children}
-147:         </div>
-148: 
-149:         {footer && (
-150:           <div className={styles.footer}>
-151:             {footer}
-152:           </div>
-153:         )}
-154:       </div>
-155:     </div>
-156:   );
-157: };
-```
-
-## File: src/components/ui/Dialog/index.ts
-```typescript
-1: export * from './Dialog';
-```
-
 ## File: src/components/ui/Dropdown/index.ts
 ```typescript
 1: export { Dropdown } from './Dropdown';
@@ -1618,113 +1452,170 @@ src/
 58: }
 ```
 
-## File: src/components/ui/Dialog/Dialog.module.css
-```css
-  1: .backdrop {
-  2:   position: fixed;
-  3:   top: 0;
-  4:   left: 0;
-  5:   right: 0;
-  6:   bottom: 0;
-  7:   background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-  8:   display: flex;
-  9:   justify-content: center;
- 10:   align-items: center;
- 11:   z-index: var(--z-index-modal, 50);
- 12:   backdrop-filter: blur(4px); /* Background blur */
- 13:   animation: fadeIn 0.15s ease-out;
- 14: }
- 15: 
- 16: .dialog { /* Style the main dialog container */
- 17:   background-color: var(--background-primary);
- 18:   border: 1px solid var(--border-color); /* Added border */
- 19:   border-radius: var(--radius-lg, 8px); /* Use variable or default */
- 20:   box-shadow: var(--shadow-lg);
- 21:   width: 90vw; /* Responsive width */
- 22:   max-width: 500px; /* Default max-width (size 'md') */
- 23:   max-height: 85vh;
- 24:   display: flex; /* Use flexbox for layout */
- 25:   flex-direction: column;
- 26:   overflow: hidden; /* Prevent content overflow issues */
- 27:   animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); /* Optional: entry animation */
- 28: }
- 29: 
- 30: /* Remove fixed positioning and transform, rely on backdrop flexbox for centering */
- 31: /* .dialogContent { ... } */
+## File: src/components/ui/Dialog/Dialog.tsx
+```typescript
+  1: import React, { useEffect, useRef } from 'react';
+  2: import { X } from 'lucide-react';
+  3: import { Button } from '../Button';
+  4: import { cn } from '../../../utils/cn';
+  5: import styles from './Dialog.module.css';
+  6: 
+  7: export interface DialogProps {
+  8:   /**
+  9:    * Whether the dialog is open
+ 10:    */
+ 11:   isOpen: boolean;
+ 12: 
+ 13:   /**
+ 14:    * Callback when the dialog should close
+ 15:    */
+ 16:   onClose: () => void;
+ 17: 
+ 18:   /**
+ 19:    * Dialog title
+ 20:    */
+ 21:   title: string;
+ 22: 
+ 23:   /**
+ 24:    * Optional description text below the title
+ 25:    */
+ 26:   description?: string;
+ 27: 
+ 28:   /**
+ 29:    * Dialog content
+ 30:    */
+ 31:   children: React.ReactNode;
  32: 
- 33: /* Size variants for .dialog */
- 34: .sm {
- 35:   max-width: 400px;
- 36: }
+ 33:   /**
+ 34:    * Optional footer content (usually action buttons)
+ 35:    */
+ 36:   footer?: React.ReactNode;
  37: 
- 38: .md {
- 39:   max-width: 500px; /* Consistent with above */
- 40: }
- 41: 
- 42: .lg {
- 43:   max-width: 800px;
- 44: }
- 45: 
- 46: .header {
- 47:   display: flex;
- 48:   justify-content: space-between;
- 49:   align-items: center;
- 50:   padding: 16px 20px;
- 51:   border-bottom: 1px solid var(--border-color);
- 52:   flex-shrink: 0; /* Prevent header from shrinking */
- 53: }
- 54: 
- 55: .title {
- 56:   margin: 0;
- 57:   font-size: 18px;
- 58:   font-weight: 600;
- 59:   color: var(--text-primary);
- 60:   line-height: 1.4;
- 61: }
- 62: 
- 63: /* Removed .closeButton - handled by Button component */
- 64: 
- 65: .description {
- 66:   padding: 12px 20px 0;
- 67:   font-size: 14px;
- 68:   color: var(--text-secondary);
- 69:   line-height: 1.5;
- 70:   flex-shrink: 0; /* Prevent shrinking */
- 71: }
- 72: 
- 73: .content {
- 74:   padding: 20px;
- 75:   overflow-y: auto; /* Allow content to scroll if needed */
- 76:   flex-grow: 1; /* Allow content to take available space */
- 77: }
+ 38:   /**
+ 39:    * Optional size variant
+ 40:    * @default 'md'
+ 41:    */
+ 42:   size?: 'sm' | 'md' | 'lg';
+ 43: 
+ 44:   /**
+ 45:    * Optional custom class name
+ 46:    */
+ 47:   className?: string;
+ 48: }
+ 49: 
+ 50: /**
+ 51:  * Dialog component for modal interactions
+ 52:  * Handles focus trapping, keyboard interactions, and animations
+ 53:  */
+ 54: export const Dialog: React.FC<DialogProps> = ({
+ 55:   isOpen,
+ 56:   onClose,
+ 57:   title,
+ 58:   description,
+ 59:   children,
+ 60:   footer,
+ 61:   size = 'md',
+ 62:   className,
+ 63: }) => {
+ 64:   const dialogRef = useRef<HTMLDivElement>(null);
+ 65:   const backdropRef = useRef<HTMLDivElement>(null); // Ref for the backdrop
+ 66: 
+ 67:   // Handle ESC key to close dialog
+ 68:   useEffect(() => {
+ 69:     const handleKeyDown = (e: KeyboardEvent) => {
+ 70:       if (e.key === 'Escape' && isOpen) {
+ 71:         onClose();
+ 72:       }
+ 73:     };
+ 74: 
+ 75:     window.addEventListener('keydown', handleKeyDown);
+ 76:     return () => window.removeEventListener('keydown', handleKeyDown);
+ 77:   }, [isOpen, onClose]);
  78: 
- 79: .footer {
- 80:   display: flex;
- 81:   justify-content: center; /* Center buttons */
- 82:   align-items: center;
- 83:   gap: 12px;
- 84:   padding: 16px 20px;
- 85:   border-top: 1px solid var(--border-color);
- 86:   background-color: var(--background-secondary);
- 87:   flex-shrink: 0; /* Prevent footer from shrinking */
- 88: }
- 89: 
- 90: /* Animations */
- 91: @keyframes fadeIn {
- 92:   from { opacity: 0; }
- 93:   to { opacity: 1; }
- 94: }
- 95: 
- 96: @keyframes slideIn {
- 97:   from {
- 98:     opacity: 0;
- 99:     transform: translateY(10px) scale(0.98);
-100:   }
-101:   to {
-102:     opacity: 1;
-103:     transform: translateY(0) scale(1);
-104:   }
-105: }
+ 79:   // Handle click outside (on backdrop) to close
+ 80:   useEffect(() => {
+ 81:     const handleClickOutside = (e: MouseEvent) => {
+ 82:       // Only close if clicking directly on the backdrop
+ 83:       if (backdropRef.current === e.target) {
+ 84:         onClose();
+ 85:       }
+ 86:     };
+ 87: 
+ 88:     if (isOpen) {
+ 89:       document.addEventListener('mousedown', handleClickOutside);
+ 90:       return () => document.removeEventListener('mousedown', handleClickOutside);
+ 91:     }
+ 92:   }, [isOpen, onClose]);
+ 93: 
+ 94:   // Prevent body scroll when dialog is open
+ 95:   useEffect(() => {
+ 96:     if (isOpen) {
+ 97:       document.body.style.overflow = 'hidden';
+ 98:       // Focus the dialog container or first focusable element on open
+ 99:       dialogRef.current?.focus();
+100:       return () => {
+101:         document.body.style.overflow = 'unset';
+102:       };
+103:     }
+104:   }, [isOpen]);
+105: 
+106:   if (!isOpen) return null;
+107: 
+108:   return (
+109:     <div
+110:       ref={backdropRef} // Add ref to backdrop
+111:       className={styles.backdrop}
+112:       role="presentation" // Backdrop is presentational
+113:     >
+114:       <div
+115:         ref={dialogRef}
+116:         className={cn(
+117:           styles.dialog, // Use .dialog for the main container
+118:           styles[size],
+119:           className
+120:         )}
+121:         role="dialog"
+122:         aria-modal="true"
+123:         aria-labelledby="dialog-title"
+124:         tabIndex={-1} // Make the dialog focusable
+125:       >
+126:         <div className={styles.header}>
+127:           <h2 id="dialog-title" className={styles.title}>{title}</h2>
+128:           <Button
+129:             variant="ghost"
+130:             size="sm"
+131:             iconOnly
+132:             onClick={onClose}
+133:             startIcon={<X size={16} />} // Correctly uses Button component
+134:             title="Close dialog"
+135:             aria-label="Close dialog" // Add aria-label
+136:           />
+137:         </div>
+138: 
+139:         {description && (
+140:           <div className={styles.description}>
+141:             {description}
+142:           </div>
+143:         )}
+144: 
+145:         <div className={styles.content}>
+146:           {children}
+147:         </div>
+148: 
+149:         {footer && (
+150:           <div className={styles.footer}>
+151:             {footer}
+152:           </div>
+153:         )}
+154:       </div>
+155:     </div>
+156:   );
+157: };
+```
+
+## File: src/components/ui/Dialog/index.ts
+```typescript
+1: export * from './Dialog';
 ```
 
 ## File: src/components/ui/Dropdown/DropdownDemo.tsx
@@ -2161,73 +2052,6 @@ src/
 95: export default StatusAlert;
 ```
 
-## File: src/components/ui/ConfirmationDialog.tsx
-```typescript
- 1: import React from 'react';
- 2: import { Dialog } from './Dialog'; // Use the updated Dialog
- 3: import { Button } from './Button';
- 4: import styles from './Dialog/Dialog.module.css'; // Can use styles if needed, but footer handles centering
- 5: 
- 6: interface ConfirmationDialogProps {
- 7:   isOpen: boolean;
- 8:   onClose: () => void;
- 9:   onConfirm: () => void;
-10:   title: string;
-11:   description: string;
-12:   confirmLabel?: string;
-13:   cancelLabel?: string;
-14:   variant?: 'default' | 'destructive'; // Semantic variant for the dialog itself
-15: }
-16: 
-17: export function ConfirmationDialog({
-18:   isOpen,
-19:   onClose,
-20:   onConfirm,
-21:   title,
-22:   description,
-23:   confirmLabel = 'Confirm',
-24:   cancelLabel = 'Cancel',
-25:   variant = 'default' // This prop influences the overall dialog but not buttons directly here
-26: }: ConfirmationDialogProps) {
-27:   const handleConfirm = () => {
-28:     onConfirm();
-29:     onClose(); // Typically close after confirm
-30:   };
-31: 
-32:   return (
-33:     <Dialog
-34:       isOpen={isOpen}
-35:       onClose={onClose}
-36:       title={title}
-37:       description={description}
-38:       size="sm" // Keep it small for confirmations
-39:       footer={ // Pass buttons as the footer content
-40:         <>
-41:           <Button
-42:             variant="ghost" // Standard cancel button
-43:             size="sm"
-44:             onClick={onClose}
-45:           >
-46:             {cancelLabel}
-47:           </Button>
-48:           <Button
-49:             variant="primary" // Standard confirm button (not destructive red)
-50:             size="sm"
-51:             onClick={handleConfirm}
-52:           >
-53:             {confirmLabel}
-54:           </Button>
-55:         </>
-56:       }
-57:     >
-58:       {/* No children needed if description covers the content */}
-59:       {/* If there was more complex content, it would go here */}
-60:       <div style={{ minHeight: '20px' }}></div> {/* Add some minimal height if description is short */}
-61:     </Dialog>
-62:   );
-63: }
-```
-
 ## File: src/components/FileList.module.css
 ```css
  1: .fileListContainer {
@@ -2465,6 +2289,115 @@ src/
 1: export * from './Button';
 ```
 
+## File: src/components/ui/Dialog/Dialog.module.css
+```css
+  1: .backdrop {
+  2:   position: fixed;
+  3:   top: 0;
+  4:   left: 0;
+  5:   right: 0;
+  6:   bottom: 0;
+  7:   background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  8:   display: flex;
+  9:   justify-content: center;
+ 10:   align-items: center;
+ 11:   z-index: var(--z-index-modal, 50);
+ 12:   backdrop-filter: blur(4px); /* Background blur */
+ 13:   animation: fadeIn 0.15s ease-out;
+ 14: }
+ 15: 
+ 16: .dialog { /* Style the main dialog container */
+ 17:   background-color: var(--background-primary);
+ 18:   border: 1px solid var(--border-color); /* Added border */
+ 19:   border-radius: var(--radius-lg, 8px); /* Use variable or default */
+ 20:   box-shadow: var(--shadow-lg);
+ 21:   width: 90vw; /* Responsive width */
+ 22:   max-width: 500px; /* Default max-width (size 'md') */
+ 23:   max-height: 85vh;
+ 24:   display: flex; /* Use flexbox for layout */
+ 25:   flex-direction: column;
+ 26:   overflow: hidden; /* Prevent content overflow issues */
+ 27:   animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); /* Optional: entry animation */
+ 28: }
+ 29: 
+ 30: /* Remove fixed positioning and transform, rely on backdrop flexbox for centering */
+ 31: /* .dialogContent { ... } */
+ 32: 
+ 33: /* Size variants for .dialog */
+ 34: .sm {
+ 35:   max-width: 400px;
+ 36: }
+ 37: 
+ 38: .md {
+ 39:   max-width: 500px; /* Consistent with above */
+ 40: }
+ 41: 
+ 42: .lg {
+ 43:   max-width: 800px;
+ 44: }
+ 45: 
+ 46: .header {
+ 47:   display: flex;
+ 48:   justify-content: space-between;
+ 49:   align-items: center;
+ 50:   padding: 16px 20px;
+ 51:   border-bottom: 1px solid var(--border-color);
+ 52:   flex-shrink: 0; /* Prevent header from shrinking */
+ 53: }
+ 54: 
+ 55: .title {
+ 56:   margin: 0;
+ 57:   font-size: 18px;
+ 58:   font-weight: 600;
+ 59:   color: var(--text-primary);
+ 60:   line-height: 1.4;
+ 61: }
+ 62: 
+ 63: /* Removed .closeButton - handled by Button component */
+ 64: 
+ 65: .description {
+ 66:   padding: 12px 20px 0;
+ 67:   font-size: 14px;
+ 68:   color: var(--text-secondary);
+ 69:   line-height: 1.5;
+ 70:   flex-shrink: 0; /* Prevent shrinking */
+ 71: }
+ 72: 
+ 73: .content {
+ 74:   padding: 20px;
+ 75:   overflow-y: auto; /* Allow content to scroll if needed */
+ 76:   flex-grow: 1; /* Allow content to take available space */
+ 77: }
+ 78: 
+ 79: .footer {
+ 80:   display: flex;
+ 81:   justify-content: center; /* Center buttons */
+ 82:   align-items: center;
+ 83:   gap: 12px;
+ 84:   padding: 16px 20px;
+ 85:   border-top: 1px solid var(--border-color);
+ 86:   background-color: var(--background-secondary);
+ 87:   flex-shrink: 0; /* Prevent footer from shrinking */
+ 88: }
+ 89: 
+ 90: /* Animations */
+ 91: @keyframes fadeIn {
+ 92:   from { opacity: 0; }
+ 93:   to { opacity: 1; }
+ 94: }
+ 95: 
+ 96: @keyframes slideIn {
+ 97:   from {
+ 98:     opacity: 0;
+ 99:     transform: translateY(10px) scale(0.98);
+100:   }
+101:   to {
+102:     opacity: 1;
+103:     transform: translateY(0) scale(1);
+104:   }
+105: }
+```
+
 ## File: src/components/ui/Switch/Switch.module.css
 ```css
  1: .switchContainer {
@@ -2519,6 +2452,73 @@ src/
 50: .switchChecked .switchThumb {
 51:   transform: translateX(16px);
 52: }
+```
+
+## File: src/components/ui/ConfirmationDialog.tsx
+```typescript
+ 1: import React from 'react';
+ 2: import { Dialog } from './Dialog'; // Use the updated Dialog
+ 3: import { Button } from './Button';
+ 4: import styles from './Dialog/Dialog.module.css'; // Can use styles if needed, but footer handles centering
+ 5: 
+ 6: interface ConfirmationDialogProps {
+ 7:   isOpen: boolean;
+ 8:   onClose: () => void;
+ 9:   onConfirm: () => void;
+10:   title: string;
+11:   description: string;
+12:   confirmLabel?: string;
+13:   cancelLabel?: string;
+14:   variant?: 'default' | 'destructive'; // Semantic variant for the dialog itself
+15: }
+16: 
+17: export function ConfirmationDialog({
+18:   isOpen,
+19:   onClose,
+20:   onConfirm,
+21:   title,
+22:   description,
+23:   confirmLabel = 'Confirm',
+24:   cancelLabel = 'Cancel',
+25:   variant = 'default' // This prop influences the overall dialog but not buttons directly here
+26: }: ConfirmationDialogProps) {
+27:   const handleConfirm = () => {
+28:     onConfirm();
+29:     onClose(); // Typically close after confirm
+30:   };
+31: 
+32:   return (
+33:     <Dialog
+34:       isOpen={isOpen}
+35:       onClose={onClose}
+36:       title={title}
+37:       description={description}
+38:       size="sm" // Keep it small for confirmations
+39:       footer={ // Pass buttons as the footer content
+40:         <>
+41:           <Button
+42:             variant="ghost" // Standard cancel button
+43:             size="sm"
+44:             onClick={onClose}
+45:           >
+46:             {cancelLabel}
+47:           </Button>
+48:           <Button
+49:             variant="primary" // Standard confirm button (not destructive red)
+50:             size="sm"
+51:             onClick={handleConfirm}
+52:           >
+53:             {confirmLabel}
+54:           </Button>
+55:         </>
+56:       }
+57:     >
+58:       {/* No children needed if description covers the content */}
+59:       {/* If there was more complex content, it would go here */}
+60:       <div style={{ minHeight: '20px' }}></div> {/* Add some minimal height if description is short */}
+61:     </Dialog>
+62:   );
+63: }
 ```
 
 ## File: src/components/ControlContainer.module.css
@@ -5844,163 +5844,160 @@ src/
 116:   height: 32px;
 117:   display: flex;
 118:   align-items: center;
-119:   background: var(--background-secondary);
-120:   border-radius: var(--radius);
-121:   border: 1px solid var(--border-color);
-122:   white-space: nowrap;
-123:   flex-shrink: 0;
-124: }
-125: 
-126: .fileStats span {
-127:   color: var(--text-primary);
-128:   font-weight: 500;
-129:   margin: 0 0.15rem;
-130: }
-131: 
-132: .appHeader {
-133:   display: flex;
-134:   justify-content: space-between;
-135:   align-items: center;
-136:   padding: 0.5rem 1rem;
-137:   background-color: var(--background-secondary);
-138:   border-bottom: 1px solid var(--border-color);
-139: }
-140: 
-141: .headerActions {
-142:   display: flex;
-143:   align-items: center;
-144:   gap: 0.5rem;
-145: }
-146: 
-147: .headerLink {
-148:   color: var(--text-primary);
-149:   text-decoration: none;
-150:   transition: color 0.2s;
-151: }
-152: 
-153: .headerLink:hover {
-154:   color: var(--accent-color);
-155: }
-156: 
-157: .headerSeparator {
-158:   width: 1px;
-159:   height: 24px;
-160:   background-color: var(--border-color);
-161:   margin: 0 0.75rem;
-162:   opacity: 0.6;
-163: }
-164: 
-165: .githubButton {
-166:   display: flex;
-167:   align-items: center;
-168:   gap: 0.5rem;
-169:   padding: 0.5rem;
-170:   border-radius: var(--radius);
-171:   text-decoration: none;
-172:   color: var(--accent-color);
-173:   transition: color 0.2s;
-174: }
-175: 
-176: .githubButton:hover {
-177:   color: var(--text-primary);
-178: }
-179: 
-180: .treeEmpty {
-181:   display: flex;
-182:   flex-direction: column;
-183:   align-items: center;
-184:   justify-content: center;
-185:   padding: 2rem;
-186:   text-align: center;
-187:   color: var(--text-secondary);
-188: }
-189: 
-190: .treeLoading {
-191:   display: flex;
-192:   flex-direction: column;
-193:   align-items: center;
-194:   justify-content: center;
-195:   padding: 2rem;
-196:   text-align: center;
-197:   color: var(--text-secondary);
-198: }
-199: 
-200: .spinner {
-201:   border: 3px solid rgba(0, 0, 0, 0.1);
-202:   border-top: 3px solid var(--accent-color);
-203:   border-radius: 50%;
-204:   width: 20px;
-205:   height: 20px;
-206:   animation: spin 1s linear infinite;
-207:   margin-bottom: 1rem;
-208: }
-209: 
-210: .processingIndicator {
-211:   display: flex;
-212:   align-items: center;
-213:   justify-content: center;
-214:   gap: 0.5rem;
-215:   padding: 0.5rem;
-216:   background-color: var(--background-secondary);
-217:   color: var(--text-secondary);
-218:   font-size: 0.9rem;
-219: }
-220: 
-221: .errorMessage {
-222:   padding: 0.5rem 1rem;
-223:   background-color: var(--error-color);
-224:   color: white;
-225:   font-size: 0.9rem;
-226: }
-227: 
-228: .userInstructionsContainer {
-229:   margin-top: 1rem;
-230: }
-231: 
-232: .emptyStateContent {
-233:   display: flex;
-234:   flex-direction: column;
-235:   align-items: center;
-236:   justify-content: center;
-237:   padding: 2rem;
-238:   text-align: center;
-239: }
-240: 
-241: .emptyStateContent h2 {
-242:   margin-bottom: 1rem;
-243: }
-244: 
-245: .emptyStateContent ul {
-246:   text-align: left;
-247:   margin-top: 1rem;
-248: }
-249: 
-250: @keyframes spin {
-251:   0% { transform: rotate(0deg); }
-252:   100% { transform: rotate(360deg); }
-253: }
-254: 
-255: @keyframes dropdownFadeIn {
-256:   from {
-257:     opacity: 0;
-258:     transform: translateY(-8px);
-259:   }
-260:   to {
-261:     opacity: 1;
-262:     transform: translateY(0);
-263:   }
-264: }
-265: 
-266: @keyframes tooltipFadeIn {
-267:   from {
-268:     opacity: 0;
-269:     transform: translateY(-4px);
-270:   }
-271:   to {
-272:     opacity: 1;
-273:     transform: translateY(0);
-274:   }
-275: }
+119:   white-space: nowrap;
+120:   flex-shrink: 0;
+121: }
+122: 
+123: .fileStats span {
+124:   color: var(--text-primary);
+125:   font-weight: 500;
+126:   margin: 0 0.15rem;
+127: }
+128: 
+129: .appHeader {
+130:   display: flex;
+131:   justify-content: space-between;
+132:   align-items: center;
+133:   padding: 0.5rem 1rem;
+134:   background-color: var(--background-secondary);
+135:   border-bottom: 1px solid var(--border-color);
+136: }
+137: 
+138: .headerActions {
+139:   display: flex;
+140:   align-items: center;
+141:   gap: 0.5rem;
+142: }
+143: 
+144: .headerLink {
+145:   color: var(--text-primary);
+146:   text-decoration: none;
+147:   transition: color 0.2s;
+148: }
+149: 
+150: .headerLink:hover {
+151:   color: var(--accent-color);
+152: }
+153: 
+154: .headerSeparator {
+155:   width: 1px;
+156:   height: 24px;
+157:   background-color: var(--border-color);
+158:   margin: 0 0.75rem;
+159:   opacity: 0.6;
+160: }
+161: 
+162: .githubButton {
+163:   display: flex;
+164:   align-items: center;
+165:   gap: 0.5rem;
+166:   padding: 0.5rem;
+167:   border-radius: var(--radius);
+168:   text-decoration: none;
+169:   color: var(--accent-color);
+170:   transition: color 0.2s;
+171: }
+172: 
+173: .githubButton:hover {
+174:   color: var(--text-primary);
+175: }
+176: 
+177: .treeEmpty {
+178:   display: flex;
+179:   flex-direction: column;
+180:   align-items: center;
+181:   justify-content: center;
+182:   padding: 2rem;
+183:   text-align: center;
+184:   color: var(--text-secondary);
+185: }
+186: 
+187: .treeLoading {
+188:   display: flex;
+189:   flex-direction: column;
+190:   align-items: center;
+191:   justify-content: center;
+192:   padding: 2rem;
+193:   text-align: center;
+194:   color: var(--text-secondary);
+195: }
+196: 
+197: .spinner {
+198:   border: 3px solid rgba(0, 0, 0, 0.1);
+199:   border-top: 3px solid var(--accent-color);
+200:   border-radius: 50%;
+201:   width: 20px;
+202:   height: 20px;
+203:   animation: spin 1s linear infinite;
+204:   margin-bottom: 1rem;
+205: }
+206: 
+207: .processingIndicator {
+208:   display: flex;
+209:   align-items: center;
+210:   justify-content: center;
+211:   gap: 0.5rem;
+212:   padding: 0.5rem;
+213:   background-color: var(--background-secondary);
+214:   color: var(--text-secondary);
+215:   font-size: 0.9rem;
+216: }
+217: 
+218: .errorMessage {
+219:   padding: 0.5rem 1rem;
+220:   background-color: var(--error-color);
+221:   color: white;
+222:   font-size: 0.9rem;
+223: }
+224: 
+225: .userInstructionsContainer {
+226:   margin-top: 1rem;
+227: }
+228: 
+229: .emptyStateContent {
+230:   display: flex;
+231:   flex-direction: column;
+232:   align-items: center;
+233:   justify-content: center;
+234:   padding: 2rem;
+235:   text-align: center;
+236: }
+237: 
+238: .emptyStateContent h2 {
+239:   margin-bottom: 1rem;
+240: }
+241: 
+242: .emptyStateContent ul {
+243:   text-align: left;
+244:   margin-top: 1rem;
+245: }
+246: 
+247: @keyframes spin {
+248:   0% { transform: rotate(0deg); }
+249:   100% { transform: rotate(360deg); }
+250: }
+251: 
+252: @keyframes dropdownFadeIn {
+253:   from {
+254:     opacity: 0;
+255:     transform: translateY(-8px);
+256:   }
+257:   to {
+258:     opacity: 1;
+259:     transform: translateY(0);
+260:   }
+261: }
+262: 
+263: @keyframes tooltipFadeIn {
+264:   from {
+265:     opacity: 0;
+266:     transform: translateY(-4px);
+267:   }
+268:   to {
+269:     opacity: 1;
+270:     transform: translateY(0);
+271:   }
+272: }
 ```
 
 ## File: src/components/FileTreeHeader.tsx
