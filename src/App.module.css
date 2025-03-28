@@ -65,23 +65,18 @@
 .contentHeader {
   display: flex;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--border-color);
   background: var(--background-primary);
-  height: 52px;
+  height: 46px;
   position: sticky;
   top: 0;
   z-index: 10;
+  gap: 12px;
 }
 
 .contentTitle {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  line-height: 1.4;
-  flex-shrink: 0;
-  margin-right: 0.75rem;
+  display: none;
 }
 
 .contentActions {
@@ -89,24 +84,29 @@
   gap: 0.75rem;
   align-items: center;
   height: 32px;
-  flex: 1;
+  margin-left: 0;
 }
 
 .folderPathDisplay {
   font-size: 0.875rem;
   color: var(--text-secondary);
   padding: 0 0.75rem;
-  background: var(--background-secondary);
-  width: 320px;
   height: 32px;
   display: inline-flex;
   align-items: center;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-color);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-right: auto;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono, monospace);
+}
+
+.pathLabel {
+  color: var(--text-primary);
+  margin-right: 0.5rem;
+  font-weight: 500;
+  font-family: var(--font-sans, Courier);
 }
 
 .fileStats {
@@ -120,6 +120,13 @@
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.fileStats span {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin: 0 0.15rem;
 }
 
 .appHeader {
@@ -151,7 +158,8 @@
   width: 1px;
   height: 24px;
   background-color: var(--border-color);
-  margin: 0 0.5rem;
+  margin: 0 0.75rem;
+  opacity: 0.6;
 }
 
 .githubButton {

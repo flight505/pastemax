@@ -16,7 +16,7 @@
   cursor: pointer;
   transition: all 0.15s ease;
   background: transparent;
-  border: none;
+  border: 1px solid var(--border-color);
   height: 32px;
   width: 32px;
 }

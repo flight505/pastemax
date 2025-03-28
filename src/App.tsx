@@ -771,8 +771,10 @@ const App = () => {
           {selectedFolder ? (
             <div className={styles.contentArea}>
               <div className={styles.contentHeader}>
-                <h1 className={styles.contentTitle}>Files</h1>
-                <div className={styles.folderPathDisplay} title={selectedFolder}>{truncatePath(selectedFolder)}</div>
+                <div className={styles.folderPathDisplay} title={selectedFolder}>
+                  <span className={styles.pathLabel}>{'>_'}</span> {truncatePath(selectedFolder)}
+                </div>
+                <div className={styles.headerSeparator} />
                 <div className={styles.contentActions}>
                   <Dropdown
                     options={sortOptions}
@@ -781,14 +783,13 @@ const App = () => {
                     trigger={
                       <Button variant="secondary" size="sm" startIcon={getSortIcon(sortOrder)}> Sort </Button>
                     }
-                    // menuClassName={styles.sortDropdownMenu} // Ensure this CSS class exists or remove
                   />
                 </div>
+                <div className={styles.headerSeparator} />
                 <div className={styles.fileStats}>
-                  {selectedFiles.length} files selected ({totalTokens.toLocaleString()} tokens)
+                  <span>{selectedFiles.length}</span> files selected (<span>{totalTokens.toLocaleString()}</span> tokens)
                 </div>
               </div>
-
               <FileList
                 files={displayedFiles} // Pass metadata only
                 selectedFiles={selectedFiles}

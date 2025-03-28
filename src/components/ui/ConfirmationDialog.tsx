@@ -36,7 +36,7 @@ export function ConfirmationDialog({
       description={description}
       size="sm"
     >
-      <div className="flex justify-end gap-3 mt-6">
+      <div className="flex justify-center gap-3 mt-6">
         <Button
           variant="ghost"
           size="sm"
@@ -45,7 +45,7 @@ export function ConfirmationDialog({
           {cancelLabel}
         </Button>
         <Button
-          variant={variant === 'destructive' ? 'destructive' : 'primary'}
+          variant="primary"
           size="sm"
           onClick={handleConfirm}
         >

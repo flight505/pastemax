@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: hsl(var(--background) / 0.8);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -58,21 +58,38 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid hsl(var(--border));
+  border-bottom: 1px solid var(--border-color);
 }
 
 .title {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: hsl(var(--foreground));
+  color: var(--text-primary);
   line-height: 1.4;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  padding: 8px;
+  border-radius: var(--radius);
+}
+
+.closeButton:hover {
+  background-color: var(--background-hover);
+  color: var(--text-primary);
 }
 
 .description {
   padding: 12px 20px 0;
   font-size: 14px;
-  color: hsl(var(--muted-foreground));
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -82,11 +99,11 @@
 
 .footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid hsl(var(--border));
-  background-color: hsl(var(--muted) / 0.5);
+  border-top: 1px solid var(--border-color);
+  background-color: var(--background-secondary);
 }
 
 /* Animations */
