@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown } from 'lucide-react';
+import { Plus, Minus } from 'lucide-react';
 import styles from './DropdownMenu.module.css';
 
 // Main types
@@ -356,14 +356,21 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         type="button"
       >
         <span className={styles.buttonLabel}>{getSelectedLabel()}</span>
-        <ChevronDown size={16} className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`} aria-hidden="true" />
+        {isOpen ? (
+          <Minus size={16} className={styles.accordionIcon} aria-hidden="true" />
+        ) : (
+          <Plus size={16} className={styles.accordionIcon} aria-hidden="true" />
+        )}
       </button>
       
       {isOpen && createPortal(
         <div 
           ref={menuRef}
           className={`${styles.dropdownContent} ${menuClassName || ''}`}
-          style={position}
+          style={{
+            ...position,
+            width: triggerRef.current ? `${triggerRef.current.offsetWidth}px` : undefined
+          }}
           role="listbox"
           aria-orientation="vertical"
           data-side={dropdownSide}
@@ -376,7 +383,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
               <div
                 key={option.value}
                 ref={isFirstNonDisabled ? firstItemRef : undefined}
-                className={`${styles.dropdownItem} ${isSelected ? styles.selected : ''} ${option.disabled ? styles.disabled : ''}`}
+                className={`${styles.dropdownItem} ${option.disabled ? styles.disabled : ''}`}
                 onClick={() => handleSelect(option)}
                 onKeyDown={(e) => handleMenuKeyDown(e, option)}
                 role="menuitem"

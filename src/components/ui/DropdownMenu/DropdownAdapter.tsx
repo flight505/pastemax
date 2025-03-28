@@ -21,6 +21,9 @@ interface DropdownAdapterProps {
   menuClassName?: string;
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
+  side?: 'top' | 'bottom' | 'auto';
+  sideOffset?: number;
+  align?: 'start' | 'center' | 'end';
 }
 
 export const DropdownAdapter: React.FC<DropdownAdapterProps> = ({
@@ -33,6 +36,9 @@ export const DropdownAdapter: React.FC<DropdownAdapterProps> = ({
   menuClassName,
   size = 'md',
   disabled = false,
+  side = 'auto',
+  sideOffset = 5,
+  align = 'start',
 }) => {
   // Map option icons to Lucide components
   const getIconForOption = (option: { value: string; icon?: string }) => {
@@ -67,9 +73,9 @@ export const DropdownAdapter: React.FC<DropdownAdapterProps> = ({
       menuClassName={menuClassName}
       size={size}
       disabled={disabled}
-      align="start"
-      side="bottom"
-      sideOffset={5}
+      align={align}
+      side={side}
+      sideOffset={sideOffset}
     />
   );
 }; 

@@ -70,21 +70,6 @@
   background-color: var(--hover-color);
 }
 
-.dropdownItem:focus {
-  outline: none;
-  background-color: var(--hover-color);
-}
-
-.dropdownItem.selected {
-  background-color: var(--hover-color);
-  font-weight: 500;
-}
-
-.dropdownItem.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .itemIcon {
   display: flex;
   align-items: center;
@@ -111,16 +96,26 @@
   margin-right: 0.5rem;
 }
 
-.chevron {
+.accordionIcon {
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
   color: var(--text-secondary);
-  transition: transform 0.2s ease;
   width: 16px;
   height: 16px;
   opacity: 0.6;
 }
 
-.chevronOpen {
+.accordionIcon path:last-child {
+  transform-origin: center;
+  transition: opacity 0.2s ease;
+}
+
+.accordionIcon.rotated {
   transform: rotate(180deg);
+}
+
+.accordionIcon.rotated path:last-child {
+  opacity: 0;
 }
 
 .sm {
@@ -182,7 +177,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-:global(.dark) .dropdownItem:hover:not(.disabled),
-:global(.dark) .dropdownItem.selected {
+:global(.dark) .dropdownItem:hover:not(.disabled) {
   background-color: var(--hover-color);
 } 

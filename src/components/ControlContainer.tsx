@@ -106,6 +106,7 @@ const ControlContainer: React.FC<ControlContainerProps> = ({
                 }
               }}
               title="Select output format"
+              side="top"
             />
           </div>
         </div>
