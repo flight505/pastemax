@@ -2,9 +2,9 @@ import React, { useState, useCallback } from 'react'; // Import useCallback
 import { FileTreeMode } from '../types/FileTypes';
 import { OutputFormatType, OUTPUT_FORMAT_OPTIONS } from '../constants/outputFormats';
 import { Switch, Button, ButtonGroup } from './ui';
-import { Copy, Download, Check, Loader2 } from 'lucide-react'; // Added Loader2
-import { Dropdown } from './ui/Dropdown';
+import { Copy, Download, Check, Loader2, FileText, Code, FileJson } from 'lucide-react'; // Added FileText, Code, FileJson
 import styles from './ControlContainer.module.css';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './ui/DropdownMenu';
 
 interface ControlContainerProps {
   fileTreeMode: FileTreeMode;
@@ -73,6 +73,20 @@ const ControlContainer: React.FC<ControlContainerProps> = ({
     }
   }, [getSelectedFilesContent, selectedFilesCount, isDownloading]); // Add dependencies
 
+  // Get icon based on format
+  const getFormatIcon = (format: OutputFormatType) => {
+    switch (format) {
+      case 'xml':
+        return <FileJson size={16} className="opacity-60" />;
+      case 'markdown':
+        return <FileText size={16} className="opacity-60" />;
+      case 'plain':
+        return <Code size={16} className="opacity-60" />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className={styles.controlContainer}>
       <div className={styles.controlContainerHeader}>Controls</div>
@@ -98,16 +112,25 @@ const ControlContainer: React.FC<ControlContainerProps> = ({
         <div className={styles.controlGroup}>
           <div className={styles.controlGroupTitle}>Output Format</div>
           <div className={styles.controlItem}>
-            <Dropdown
-              options={OUTPUT_FORMAT_OPTIONS}
-              value={outputFormat}
-              onChange={(value) => {
-                if (typeof value === 'string') {
-                  setOutputFormat(value as OutputFormatType);
-                }
-              }}
-              title="Select output format"
-            />
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <Button variant="outline" size="sm">
+                  {outputFormat.toUpperCase()}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down opacity-60 ml-2"><path d="m6 9 6 6 6-6"></path></svg>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="bottom">
+                {OUTPUT_FORMAT_OPTIONS.map((option) => (
+                  <DropdownMenuItem
+                    key={option.value}
+                    onSelect={() => setOutputFormat(option.value as OutputFormatType)}
+                    icon={getFormatIcon(option.value as OutputFormatType)}
+                  >
+                    {option.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { DropdownMenuProps } from './types';
 import { DropdownMenuProvider } from './context';
 import styles from './DropdownMenu.module.css';
