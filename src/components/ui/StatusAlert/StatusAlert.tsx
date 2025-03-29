@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, Check, AlertTriangle, X } from 'lucide-react';
 import styles from './StatusAlert.module.css';
 
@@ -16,37 +16,37 @@ interface StatusAlertProps {
     autoDismissTime = 5000, // longer default than current 3000ms
     onClose
   }) => {
-    // States
-    const [isVisible, setIsVisible] = useState(status !== "idle");
+    // Visual state management
+    const [isVisible, setIsVisible] = useState(true);
     const [isExiting, setIsExiting] = useState(false);
     
-    // Icon mapping based on status
-    const statusIcons = {
-      processing: <Loader2 className="animate-spin" size={14} />,
-      complete: <Check size={14} />,
-      error: <AlertTriangle size={14} />,
-      idle: null
-    };
-    
-    // Style mapping based on status
+    // Map status to classes
     const statusClasses = {
+      idle: styles.idle,
       processing: styles.processing,
-      complete: styles.complete,
-      error: styles.error,
-      idle: ''
+      complete: styles.success,
+      error: styles.error
     };
     
-    // Auto-dismiss logic for successful operations
+    // Array of icon components by status
+    const statusIcons = {
+      idle: () => <div />, // Empty icon
+      processing: () => <Loader2 className="animate-spin" size={14} />,
+      complete: () => <Check size={14} />,
+      error: () => <AlertTriangle size={14} />
+    };
+    
+    // Define handleExit before it's used in useEffect
+    const handleExit = useCallback(() => {
+      setIsExiting(true);
+      setTimeout(() => {
+        setIsVisible(false);
+        if (onClose) onClose();
+      }, 200); // Match transition duration
+    }, [onClose]);
+    
+    // Handle status changes
     useEffect(() => {
-      if (status === "idle") {
-        handleExit();
-        return;
-      }
-      
-      setIsVisible(true);
-      setIsExiting(false);
-      
-      // Only auto-dismiss for complete status
       if (status === "complete" && autoDismissTime) {
         const timer = setTimeout(() => {
           handleExit();
@@ -54,17 +54,7 @@ interface StatusAlertProps {
         
         return () => clearTimeout(timer);
       }
-    }, [status, message, autoDismissTime]);
-    
-    // Handle exit animation
-    const handleExit = () => {
-      setIsExiting(true);
-      // Wait for animation to complete
-      setTimeout(() => {
-        setIsVisible(false);
-        if (onClose) onClose();
-      }, 200); // Match transition duration
-    };
+    }, [status, message, autoDismissTime, handleExit]);
     
     if (!isVisible && status === "idle") return null;
     

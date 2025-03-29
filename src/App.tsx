@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Sidebar from "./components/Sidebar";
 import FileList from "./components/FileList";
-import UserInstructions from "./components/UserInstructions";
 import ControlContainer from "./components/ControlContainer";
 import { FileData, FileTreeMode, SortOrder } from "./types/FileTypes";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 import { generateAsciiFileTree, normalizePath, arePathsEqual } from "./utils/pathUtils";
-import { Github, Loader2, Check, AlertTriangle } from "lucide-react";
+import { Github } from "lucide-react";
 import styles from "./App.module.css";
 import { Dropdown } from "./components/ui";
 import { ConfirmationDialog } from "./components/ui/ConfirmationDialog";
@@ -17,7 +16,7 @@ import { getSortIcon } from "./utils/sortIcons";
 import { SYSTEM_PATTERN_CATEGORIES, parseIgnorePatternsContent, IgnorePatternsState } from "./utils/patternUtils";
 // Import the StatusAlert component
 import { StatusAlert } from "./components/ui/StatusAlert";
-import { OutputFormatType, OUTPUT_FORMAT_OPTIONS, OUTPUT_FORMAT_STORAGE_KEY } from './constants/outputFormats';
+import { OutputFormatType, OUTPUT_FORMAT_STORAGE_KEY } from './constants/outputFormats';
 import { formatAsXML, formatAsMarkdown, formatAsPlain } from './utils/formatters';
 import { UserInstructionsWithTemplates } from './components/UserInstructionsWithTemplates';
 
@@ -138,6 +137,51 @@ const App = () => {
 
   const isElectron = window.electron !== undefined;
 
+  // Define applyFiltersAndSort early to avoid reference issues
+  const applyFiltersAndSort = useCallback((files: Omit<FileData, 'content'>[], sort: SortOrder, filter: string) => {
+    let filtered = files;
+    if (filter) {
+      const lowerFilter = filter.toLowerCase();
+      filtered = files.filter(file =>
+        file.name.toLowerCase().includes(lowerFilter) ||
+        file.path.toLowerCase().includes(lowerFilter)
+      );
+    }
+
+    const [sortKey, sortDir] = sort.split("-");
+
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+      // Moved declarations outside switch
+      const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
+      const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
+      const aDate = a.lastModified || 0;
+      const bDate = b.lastModified || 0;
+
+      switch (sortKey) {
+        case "name":
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case "tokens":
+          comparison = aTokens - bTokens;
+          break;
+        case "date":
+          comparison = Number(aDate) - Number(bDate);
+          break;
+        default:
+          comparison = a.name.localeCompare(b.name);
+      }
+      return sortDir === "ascending" ? comparison : -comparison;
+    });
+
+    setDisplayedFiles(sorted);
+  }, []);
+  
+  // Re-run applyFiltersAndSort when relevant state changes
+  useEffect(() => {
+    applyFiltersAndSort(allFiles, sortOrder, searchTerm);
+  }, [allFiles, sortOrder, searchTerm, applyFiltersAndSort]); 
+
   // --- Persist State Effects ---
   useEffect(() => {
     if (selectedFolder) localStorage.setItem(STORAGE_KEYS.SELECTED_FOLDER, selectedFolder);
@@ -198,66 +242,51 @@ const App = () => {
       if (typeof folderPath === "string") {
         console.log("Folder selected:", folderPath);
         setSelectedFolder(folderPath);
+        // Reset selection and patterns when folder changes
         setSelectedFiles([]);
-        setAllFiles([]); // Clear previous files immediately
-        setDisplayedFiles([]);
-        setLocalPatterns({ patterns: '', excludedSystemPatterns: [] }); // Reset local patterns
-        setProcessingStatus({ status: "processing", message: "Requesting file list..." });
+        setLocalPatterns({ patterns: '', excludedSystemPatterns: [] });
+        setProcessingStatus({ status: "processing", message: "Loading files..." });
         window.electron.ipcRenderer.send("request-file-list", folderPath);
-      } else {
-        console.error("Invalid folder path received:", folderPath);
-        setProcessingStatus({ status: "error", message: "Invalid folder path" });
       }
     };
 
-    // Updated to handle metadata only
     const handleFileListData = (filesMetadata: Omit<FileData, 'content'>[]) => {
-      console.log("Received file list metadata:", filesMetadata.length, "files");
-      if (filesMetadata.length === 1 && filesMetadata[0].isAppDirectory) {
-        console.log("Detected app directory selection");
-        setAllFiles([]); setSelectedFiles([]); setDisplayedFiles([]);
-        setProcessingStatus({ status: "error", message: "Cannot select the application directory" });
-        return;
-      }
-
-      // Store only metadata, content will be fetched on demand
+      console.log(`Received metadata for ${filesMetadata.length} files`);
       setAllFiles(filesMetadata);
+      applyFiltersAndSort(filesMetadata, sortOrder, searchTerm);  
       setProcessingStatus({ status: "complete", message: `Loaded ${filesMetadata.length} files` });
-
-      applyFiltersAndSort(filesMetadata, sortOrder, searchTerm); // Apply filters/sort to metadata
-
-      // Auto-select non-binary/non-skipped files
-      const selectablePaths = filesMetadata
-        .filter(file => !file.isBinary && !file.isSkipped && !file.excluded)
-        .map(file => file.path);
-      setSelectedFiles(selectablePaths);
     };
 
     const handleProcessingStatus = (status: { status: "idle" | "processing" | "complete" | "error"; message: string; }) => {
-      console.log("Processing status:", status);
       setProcessingStatus(status);
     };
 
+    const handleIgnorePatternsLoaded = (result: { patterns: string; isGlobal: boolean; systemPatterns?: string[]; folderPath?: string }) => {
+      console.log(`Ignore patterns loaded (global: ${result.isGlobal})`);
+      
+      if (result.systemPatterns) {
+        setSystemIgnorePatterns(result.systemPatterns);
+      }
+      
+      const parsedPatterns = parseIgnorePatternsContent(result.patterns);
+      
+      if (result.isGlobal) {
+        setGlobalPatternsState({
+          patterns: parsedPatterns.userPatterns,
+          excludedSystemPatterns: parsedPatterns.excludedPatterns
+        });
+      } else if (result.folderPath && selectedFolder && arePathsEqual(result.folderPath, selectedFolder)) {
+        setLocalPatterns({
+          patterns: parsedPatterns.userPatterns,
+          excludedSystemPatterns: parsedPatterns.excludedPatterns
+        });
+      }
+    };
+
+    // Setup IPC listeners
     window.electron.ipcRenderer.on("folder-selected", handleFolderSelected);
     window.electron.ipcRenderer.on("file-list-data", handleFileListData);
     window.electron.ipcRenderer.on("file-processing-status", handleProcessingStatus);
-
-    // Listener for loaded ignore patterns (both global and local)
-    const handleIgnorePatternsLoaded = (result: { patterns: string; isGlobal: boolean; systemPatterns?: string[]; folderPath?: string }) => {
-        console.log(`IPC: Received ${result.isGlobal ? 'global' : 'local'} patterns loaded event.`);
-        const { excludedPatterns, userPatterns } = parseIgnorePatternsContent(result.patterns || '');
-
-        if (result.isGlobal) {
-            setGlobalPatternsState({ patterns: userPatterns, excludedSystemPatterns: excludedPatterns });
-            if (result.systemPatterns) {
-                setSystemIgnorePatterns(result.systemPatterns);
-            }
-            console.log(`Updated global state: ${userPatterns.split('\n').length} patterns, ${excludedPatterns.length} excluded system.`);
-        } else if (result.folderPath === selectedFolder) { // Ensure it's for the current folder
-            setLocalPatterns({ patterns: userPatterns, excludedSystemPatterns: [] }); // Local patterns don't manage system excludes
-            console.log(`Updated local state for ${result.folderPath}: ${userPatterns.split('\n').length} patterns.`);
-        }
-    };
     window.electron.ipcRenderer.on("ignore-patterns-loaded", handleIgnorePatternsLoaded);
 
     return () => {
@@ -266,7 +295,7 @@ const App = () => {
       window.electron.ipcRenderer.removeListener("file-processing-status", handleProcessingStatus);
       window.electron.ipcRenderer.removeListener("ignore-patterns-loaded", handleIgnorePatternsLoaded);
     };
-  }, [isElectron, sortOrder, searchTerm, selectedFolder]); // Added selectedFolder dependency for local pattern updates
+  }, [isElectron, sortOrder, searchTerm, selectedFolder, applyFiltersAndSort]); // Added applyFiltersAndSort dependency
 
   // Add ESC key handler
   useEffect(() => {
@@ -293,51 +322,6 @@ const App = () => {
       console.warn("Folder selection not available in browser");
     }
   };
-
-  // Apply filters and sorting (Lint fixes applied)
-  const applyFiltersAndSort = useCallback((files: Omit<FileData, 'content'>[], sort: SortOrder, filter: string) => {
-    let filtered = files;
-    if (filter) {
-      const lowerFilter = filter.toLowerCase();
-      filtered = files.filter(file =>
-        file.name.toLowerCase().includes(lowerFilter) ||
-        file.path.toLowerCase().includes(lowerFilter)
-      );
-    }
-
-    const [sortKey, sortDir] = sort.split("-");
-
-    const sorted = [...filtered].sort((a, b) => {
-      let comparison = 0;
-      // Moved declarations outside switch
-      const aTokens = typeof a.tokenCount === 'number' ? a.tokenCount : 0;
-      const bTokens = typeof b.tokenCount === 'number' ? b.tokenCount : 0;
-      const aDate = a.lastModified || 0;
-      const bDate = b.lastModified || 0;
-
-      switch (sortKey) {
-        case "name":
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case "tokens":
-          comparison = aTokens - bTokens;
-          break;
-        case "date":
-          comparison = Number(aDate) - Number(bDate);
-          break;
-        default:
-          comparison = a.name.localeCompare(b.name);
-      }
-      return sortDir === "ascending" ? comparison : -comparison;
-    });
-
-    setDisplayedFiles(sorted);
-  }, []); // Add empty dependency array as it doesn't depend on component state/props
-
-  // Re-run applyFiltersAndSort when relevant state changes
-  useEffect(() => {
-    applyFiltersAndSort(allFiles as Omit<FileData, 'content'>[], sortOrder, searchTerm);
-  }, [allFiles, sortOrder, searchTerm, applyFiltersAndSort]); // applyFiltersAndSort is stable and doesn't depend on state
 
   // Toggle file selection
   const toggleFileSelection = useCallback((filePath: string) => {

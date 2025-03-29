@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { ConfirmationDialog } from './ui/ConfirmationDialog';
-import { Button } from './ui/Button';
 import { TemplateDropdownAdapter } from './ui/DropdownMenu/TemplateDropdownAdapter';
 import {
   PromptTemplate,

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Minus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import styles from './DropdownMenu.module.css';
 
 // Main types
@@ -110,6 +110,17 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     return selectedOption ? selectedOption.label : placeholder;
   };
   
+  // Define closeDropdown before it's used by other functions
+  const closeDropdown = useCallback(() => {
+    if (!isOpen) return;
+    
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsOpen(false);
+      setIsClosing(false);
+    }, 150); // Match this duration to CSS animation time
+  }, [isOpen]);
+  
   // Determine the best side for the dropdown based on available space
   const determineDropdownSide = useCallback(() => {
     if (side !== 'auto') return side;
@@ -205,7 +216,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isOpen]);
+  }, [isOpen, closeDropdown]);
   
   // Handle window resize and scroll
   useEffect(() => {
@@ -345,17 +356,6 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         setIsOpen(true);
       }
     }
-  };
-
-  // Handle closing with animation
-  const closeDropdown = () => {
-    if (!isOpen) return;
-    
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsOpen(false);
-      setIsClosing(false);
-    }, 150); // Match this duration to CSS animation time
   };
   
   return (

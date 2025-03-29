@@ -1,7 +1,6 @@
 import React from 'react';
 import { Dialog } from './Dialog'; // Use the updated Dialog
 import { Button } from './Button';
-import styles from './Dialog/Dialog.module.css'; // Can use styles if needed, but footer handles centering
 
 interface ConfirmationDialogProps {
   isOpen: boolean;
