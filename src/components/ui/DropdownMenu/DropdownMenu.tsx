@@ -97,6 +97,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<React.CSSProperties>({});
   const [dropdownSide, setDropdownSide] = useState<'top' | 'bottom'>('bottom');
+  const [isClosing, setIsClosing] = useState(false);
   
   // Refs
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -140,7 +141,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     const scrollY = window.scrollY || document.documentElement.scrollTop;
     const scrollX = window.scrollX || document.documentElement.scrollLeft;
     
-    let positionStyles: React.CSSProperties = {};
+    const positionStyles: React.CSSProperties = {};
     const determinedSide = determineDropdownSide();
     setDropdownSide(determinedSide === 'top' ? 'top' : 'bottom');
     
@@ -196,7 +197,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node) &&
           triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        closeDropdown();
       }
     };
     
@@ -247,7 +248,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         break;
       case 'Escape':
         e.preventDefault();
-        setIsOpen(false);
+        closeDropdown();
         break;
       case 'ArrowDown':
         if (isOpen) {
@@ -282,7 +283,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         break;
       case 'Escape':
         e.preventDefault();
-        setIsOpen(false);
+        closeDropdown();
         triggerRef.current?.focus();
         break;
       case 'ArrowDown':
@@ -331,15 +332,30 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     if (option.disabled) return;
     
     onChange(option.value);
-    setIsOpen(false);
+    closeDropdown();
     triggerRef.current?.focus();
   };
   
   // Toggle the dropdown
   const toggleDropdown = () => {
     if (!disabled) {
-      setIsOpen(!isOpen);
+      if (isOpen) {
+        closeDropdown();
+      } else {
+        setIsOpen(true);
+      }
     }
+  };
+
+  // Handle closing with animation
+  const closeDropdown = () => {
+    if (!isOpen) return;
+    
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsOpen(false);
+      setIsClosing(false);
+    }, 150); // Match this duration to CSS animation time
   };
   
   return (
@@ -356,17 +372,17 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         type="button"
       >
         <span className={styles.buttonLabel}>{getSelectedLabel()}</span>
-        {isOpen ? (
-          <Minus size={16} className={styles.accordionIcon} aria-hidden="true" />
-        ) : (
-          <Plus size={16} className={styles.accordionIcon} aria-hidden="true" />
-        )}
+        <Plus 
+          size={16} 
+          className={`${styles.accordionIcon} ${isOpen ? styles.rotated : ''}`} 
+          aria-hidden="true" 
+        />
       </button>
       
-      {isOpen && createPortal(
+      {(isOpen || isClosing) && createPortal(
         <div 
           ref={menuRef}
-          className={`${styles.dropdownContent} ${menuClassName || ''}`}
+          className={`${styles.dropdownContent} ${isClosing ? styles.closing : ''} ${menuClassName || ''}`}
           style={{
             ...position,
             width: triggerRef.current ? `${triggerRef.current.offsetWidth}px` : undefined

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Dropdown, DropdownOption } from './ui/Dropdown';
 import { ConfirmationDialog } from './ui/ConfirmationDialog';
 import { Button } from './ui/Button';
+import { TemplateDropdownAdapter } from './ui/DropdownMenu/TemplateDropdownAdapter';
 import {
   PromptTemplate,
   PROMPT_TEMPLATES,
@@ -17,15 +17,13 @@ interface UserInstructionsWithTemplatesProps {
   setInstructions: (value: string | ((prev: string) => string)) => void;
 }
 
-interface TemplateOption extends Omit<DropdownOption, 'icon'> {
+interface TemplateOption {
+  value: string;
+  label: string;
   category: TemplateCategory;
   icon?: string;
   description?: string;
-}
-
-interface GroupedOption {
-  label: string;
-  options: TemplateOption[];
+  disabled?: boolean;
 }
 
 export const UserInstructionsWithTemplates: React.FC<UserInstructionsWithTemplatesProps> = ({
@@ -47,32 +45,19 @@ export const UserInstructionsWithTemplates: React.FC<UserInstructionsWithTemplat
     return (localStorage.getItem(TEMPLATE_INSERT_MODE_KEY) as TemplateInsertMode) || 'replace';
   });
 
-  // Group templates by category for the dropdown
-  const templateOptions = useMemo<GroupedOption[]>(() => {
-    const categories = PROMPT_TEMPLATES.reduce<Record<string, TemplateOption[]>>((acc, template) => {
-      if (!acc[template.category]) {
-        acc[template.category] = [];
-      }
-      acc[template.category].push({
-        value: template.id,
-        label: template.name,
-        description: template.description,
-        icon: template.icon,
-        category: template.category
-      });
-      return acc;
-    }, {});
-
-    return Object.entries(categories).map(([category, templates]) => ({
-      label: category,
-      options: templates
+  // Create template options for the dropdown
+  const templateOptions = useMemo<TemplateOption[]>(() => {
+    return PROMPT_TEMPLATES.map(template => ({
+      value: template.id,
+      label: template.name,
+      description: template.description,
+      icon: template.icon,
+      category: template.category
     }));
   }, []);
 
   // Handle template selection
-  const handleTemplateSelect = useCallback((value: string | string[]) => {
-    if (typeof value !== 'string') return;
-    
+  const handleTemplateSelect = useCallback((value: string) => {
     const template = PROMPT_TEMPLATES.find(t => t.id === value);
     if (!template) return;
     
@@ -121,8 +106,8 @@ export const UserInstructionsWithTemplates: React.FC<UserInstructionsWithTemplat
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.templateSelector}>
-          <Dropdown
-            options={templateOptions.flatMap(group => group.options)}
+          <TemplateDropdownAdapter
+            options={templateOptions}
             value={selectedTemplate || undefined}
             onChange={handleTemplateSelect}
             placeholder="Select a template..."

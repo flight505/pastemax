@@ -50,7 +50,12 @@
   z-index: 1000;
   max-height: 80vh;
   overflow-y: auto;
-  animation: dropdownIn 0.15s ease forwards;
+  animation: dropdownIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  will-change: transform, opacity;
+}
+
+.dropdownContent.closing {
+  animation: dropdownOut 0.15s ease-in forwards;
 }
 
 .dropdownItem {
@@ -139,17 +144,32 @@
 @keyframes dropdownIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateY(-4px) scale(0.97);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dropdownOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
   }
 }
 
 .dropdownContent[data-side="top"] {
   transform-origin: bottom;
-  animation: dropdownInTop 0.15s ease forwards;
+  animation: dropdownInTop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.dropdownContent[data-side="top"].closing {
+  animation: dropdownOutTop 0.15s ease-in forwards;
 }
 
 .dropdownContent[data-side="bottom"] {
@@ -159,11 +179,22 @@
 @keyframes dropdownInTop {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateY(4px) scale(0.97);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dropdownOutTop {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
   }
 }
 

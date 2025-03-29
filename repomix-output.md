@@ -68,15 +68,11 @@ src/
         DropdownDemo.tsx
         index.ts
       DropdownMenu/
-        context.tsx
+        DropdownAdapter.tsx
         DropdownMenu.module.css
         DropdownMenu.tsx
-        DropdownMenuContent.tsx
-        DropdownMenuItem.tsx
-        DropdownMenuSeparator.tsx
-        DropdownMenuTrigger.tsx
         index.ts
-        types.ts
+        TemplateDropdownAdapter.tsx
       Input/
         index.ts
         Input.module.css
@@ -145,12 +141,102 @@ src/
   App.module.css
   App.tsx
   declarations.d.ts
-  index.css
   main.tsx
   react-app-env.d.ts
 ```
 
 # Files
+
+## File: src/components/ui/DropdownMenu/TemplateDropdownAdapter.tsx
+````typescript
+ 1: import React from 'react';
+ 2: import { 
+ 3:   BookText, 
+ 4:   FileText, 
+ 5:   BarChart, 
+ 6:   TestTube, 
+ 7:   CheckCircle 
+ 8: } from 'lucide-react';
+ 9: import { DropdownMenu } from './DropdownMenu';
+10: import { TemplateCategory } from '../../../constants/promptTemplates';
+11: import styles from './DropdownMenu.module.css';
+12: 
+13: // Match the interface needed for the templateSelector
+14: interface TemplateDropdownAdapterProps {
+15:   options: {
+16:     value: string;
+17:     label: string;
+18:     description?: string;
+19:     category: TemplateCategory;
+20:     icon?: string;
+21:     disabled?: boolean;
+22:   }[];
+23:   value?: string;
+24:   onChange: (value: string) => void;
+25:   placeholder?: string;
+26:   title?: string;
+27:   className?: string;
+28:   menuClassName?: string;
+29:   size?: 'sm' | 'md' | 'lg';
+30:   disabled?: boolean;
+31: }
+32: 
+33: export const TemplateDropdownAdapter: React.FC<TemplateDropdownAdapterProps> = ({
+34:   options,
+35:   value,
+36:   onChange,
+37:   placeholder = 'Select template',
+38:   title,
+39:   className,
+40:   menuClassName,
+41:   size = 'md',
+42:   disabled = false,
+43: }) => {
+44:   // Map category to Lucide component icons
+45:   const getIconForCategory = (category: TemplateCategory) => {
+46:     switch (category) {
+47:       case 'Code Review':
+48:         return <BookText size={16} className={styles.itemIcon} aria-hidden="true" />;
+49:       case 'Documentation Generation':
+50:         return <FileText size={16} className={styles.itemIcon} aria-hidden="true" />;
+51:       case 'Analysis and Improvement':
+52:         return <BarChart size={16} className={styles.itemIcon} aria-hidden="true" />;
+53:       case 'Testing':
+54:         return <TestTube size={16} className={styles.itemIcon} aria-hidden="true" />;
+55:       case 'Code Quality':
+56:         return <CheckCircle size={16} className={styles.itemIcon} aria-hidden="true" />;
+57:       default:
+58:         return null;
+59:     }
+60:   };
+61: 
+62:   // Convert options to the format expected by DropdownMenu
+63:   const dropdownOptions = options.map(option => ({
+64:     value: option.value,
+65:     label: option.label,
+66:     description: option.description,
+67:     icon: getIconForCategory(option.category),
+68:     disabled: option.disabled,
+69:   }));
+70: 
+71:   return (
+72:     <DropdownMenu
+73:       options={dropdownOptions}
+74:       value={value}
+75:       onChange={onChange}
+76:       placeholder={placeholder}
+77:       title={title}
+78:       className={className}
+79:       menuClassName={menuClassName}
+80:       size={size}
+81:       disabled={disabled}
+82:       align="start"
+83:       side="bottom"
+84:       sideOffset={5}
+85:     />
+86:   );
+87: };
+````
 
 ## File: src/main.tsx
 ````typescript
@@ -510,450 +596,6 @@ src/
 2: export type { DropdownOption, DropdownProps } from './Dropdown';
 ````
 
-## File: src/components/ui/DropdownMenu/context.tsx
-````typescript
- 1: import React, { createContext, useContext, useReducer } from 'react';
- 2: import { DropdownMenuState, DropdownMenuAction } from './types';
- 3: 
- 4: const initialState: DropdownMenuState = {
- 5:   isOpen: false,
- 6:   activeItemIndex: null,
- 7:   triggerRect: null,
- 8: };
- 9: 
-10: function dropdownMenuReducer(state: DropdownMenuState, action: DropdownMenuAction): DropdownMenuState {
-11:   switch (action.type) {
-12:     case 'OPEN':
-13:       return { ...state, isOpen: true };
-14:     case 'CLOSE':
-15:       return { ...state, isOpen: false, activeItemIndex: null };
-16:     case 'SET_TRIGGER_RECT':
-17:       return { ...state, triggerRect: action.rect };
-18:     case 'SET_ACTIVE_ITEM':
-19:       return { ...state, activeItemIndex: action.index };
-20:     default:
-21:       return state;
-22:   }
-23: }
-24: 
-25: type DropdownMenuContextType = {
-26:   state: DropdownMenuState;
-27:   dispatch: React.Dispatch<DropdownMenuAction>;
-28: };
-29: 
-30: const DropdownMenuContext = createContext<DropdownMenuContextType | undefined>(undefined);
-31: 
-32: export function DropdownMenuProvider({ children }: { children: React.ReactNode }) {
-33:   const [state, dispatch] = useReducer(dropdownMenuReducer, initialState);
-34: 
-35:   return (
-36:     <DropdownMenuContext.Provider value={{ state, dispatch }}>
-37:       {children}
-38:     </DropdownMenuContext.Provider>
-39:   );
-40: }
-41: 
-42: export function useDropdownMenu() {
-43:   const context = useContext(DropdownMenuContext);
-44:   if (!context) {
-45:     throw new Error('useDropdownMenu must be used within a DropdownMenuProvider');
-46:   }
-47:   return context;
-48: }
-````
-
-## File: src/components/ui/DropdownMenu/DropdownMenu.module.css
-````css
-  1: .dropdownMenu {
-  2:   position: relative;
-  3:   display: inline-block;
-  4: }
-  5: 
-  6: .dropdownTrigger {
-  7:   display: inline-flex;
-  8:   align-items: center;
-  9:   justify-content: center;
- 10:   gap: 0.5rem;
- 11:   padding: 0.5rem 1rem;
- 12:   background-color: var(--surface-color);
- 13:   border: 1px solid var(--border-color);
- 14:   border-radius: 0.5rem;
- 15:   color: var(--text-color);
- 16:   font-size: 0.875rem;
- 17:   font-weight: 500;
- 18:   cursor: pointer;
- 19:   transition: all 0.2s ease;
- 20: }
- 21: 
- 22: .dropdownTrigger:hover {
- 23:   background-color: var(--hover-color);
- 24: }
- 25: 
- 26: .dropdownTrigger:focus {
- 27:   outline: none;
- 28:   box-shadow: 0 0 0 2px var(--focus-ring-color);
- 29: }
- 30: 
- 31: .dropdownContent {
- 32:   position: fixed;
- 33:   min-width: 12rem;
- 34:   padding: 0.5rem;
- 35:   background-color: var(--surface-color);
- 36:   border: 1px solid var(--border-color);
- 37:   border-radius: 0.5rem;
- 38:   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
- 39:   z-index: 1000;
- 40:   opacity: 0;
- 41:   transform-origin: top;
- 42:   animation: dropdownIn 0.2s ease forwards;
- 43: }
- 44: 
- 45: .dropdownItem {
- 46:   display: flex;
- 47:   align-items: center;
- 48:   gap: 0.5rem;
- 49:   padding: 0.5rem 1rem;
- 50:   color: var(--text-color);
- 51:   font-size: 0.875rem;
- 52:   cursor: pointer;
- 53:   border-radius: 0.375rem;
- 54:   transition: all 0.2s ease;
- 55:   user-select: none;
- 56: }
- 57: 
- 58: .dropdownItem:hover:not(.disabled) {
- 59:   background-color: var(--hover-color);
- 60: }
- 61: 
- 62: .dropdownItem:focus {
- 63:   outline: none;
- 64:   background-color: var(--hover-color);
- 65: }
- 66: 
- 67: .dropdownItem.disabled {
- 68:   opacity: 0.5;
- 69:   cursor: not-allowed;
- 70: }
- 71: 
- 72: .itemIcon {
- 73:   display: flex;
- 74:   align-items: center;
- 75:   justify-content: center;
- 76:   width: 1rem;
- 77:   height: 1rem;
- 78:   opacity: 0.6;
- 79: }
- 80: 
- 81: @keyframes dropdownIn {
- 82:   from {
- 83:     opacity: 0;
- 84:     transform: scale(0.95);
- 85:   }
- 86:   to {
- 87:     opacity: 1;
- 88:     transform: scale(1);
- 89:   }
- 90: }
- 91: 
- 92: /* Animation for closing */
- 93: .dropdownContent[data-state="closed"] {
- 94:   animation: dropdownOut 0.2s ease forwards;
- 95: }
- 96: 
- 97: @keyframes dropdownOut {
- 98:   from {
- 99:     opacity: 1;
-100:     transform: scale(1);
-101:   }
-102:   to {
-103:     opacity: 0;
-104:     transform: scale(0.95);
-105:   }
-106: }
-````
-
-## File: src/components/ui/DropdownMenu/DropdownMenuContent.tsx
-````typescript
- 1: import React, { useRef, useEffect } from 'react';
- 2: import { DropdownMenuContentProps } from './types';
- 3: import { useDropdownMenu } from './context';
- 4: import { createPortal } from 'react-dom';
- 5: import styles from './DropdownMenu.module.css';
- 6: 
- 7: export const DropdownMenuContent: React.FC<DropdownMenuContentProps> = ({
- 8:   children,
- 9:   className,
-10:   sideOffset = 4,
-11:   align = 'start',
-12:   side = 'bottom'
-13: }) => {
-14:   const contentRef = useRef<HTMLDivElement>(null);
-15:   const { state, dispatch } = useDropdownMenu();
-16: 
-17:   useEffect(() => {
-18:     const handleClickOutside = (event: MouseEvent) => {
-19:       if (contentRef.current && !contentRef.current.contains(event.target as Node)) {
-20:         dispatch({ type: 'CLOSE' });
-21:       }
-22:     };
-23: 
-24:     const handleEscape = (event: KeyboardEvent) => {
-25:       if (event.key === 'Escape') {
-26:         dispatch({ type: 'CLOSE' });
-27:       }
-28:     };
-29: 
-30:     if (state.isOpen) {
-31:       document.addEventListener('mousedown', handleClickOutside);
-32:       document.addEventListener('keydown', handleEscape);
-33:     }
-34: 
-35:     return () => {
-36:       document.removeEventListener('mousedown', handleClickOutside);
-37:       document.removeEventListener('keydown', handleEscape);
-38:     };
-39:   }, [state.isOpen, dispatch]);
-40: 
-41:   if (!state.isOpen || !state.triggerRect) return null;
-42: 
-43:   const getPosition = () => {
-44:     if (!state.triggerRect || !contentRef.current) return {};
-45:     
-46:     const contentRect = contentRef.current.getBoundingClientRect();
-47:     const { top, left, bottom, width } = state.triggerRect;
-48:     
-49:     let positionStyles: React.CSSProperties = {};
-50:     
-51:     switch (side) {
-52:       case 'bottom':
-53:         positionStyles.top = bottom + sideOffset;
-54:         break;
-55:       case 'top':
-56:         positionStyles.bottom = window.innerHeight - top + sideOffset;
-57:         break;
-58:       case 'right':
-59:         positionStyles.left = left + width + sideOffset;
-60:         break;
-61:       case 'left':
-62:         positionStyles.right = window.innerWidth - left + sideOffset;
-63:         break;
-64:     }
-65: 
-66:     switch (align) {
-67:       case 'start':
-68:         positionStyles.left = left;
-69:         break;
-70:       case 'center':
-71:         positionStyles.left = left + (width / 2) - (contentRect.width / 2);
-72:         break;
-73:       case 'end':
-74:         positionStyles.left = left + width - contentRect.width;
-75:         break;
-76:     }
-77: 
-78:     return positionStyles;
-79:   };
-80: 
-81:   return createPortal(
-82:     <div
-83:       ref={contentRef}
-84:       className={`${styles.dropdownContent} ${className || ''}`}
-85:       style={getPosition()}
-86:       role="menu"
-87:       aria-orientation="vertical"
-88:     >
-89:       {children}
-90:     </div>,
-91:     document.body
-92:   );
-93: };
-````
-
-## File: src/components/ui/DropdownMenu/DropdownMenuItem.tsx
-````typescript
- 1: import React from 'react';
- 2: import { DropdownMenuItemProps } from './types';
- 3: import { useDropdownMenu } from './context';
- 4: import styles from './DropdownMenu.module.css';
- 5: 
- 6: export const DropdownMenuItem: React.FC<DropdownMenuItemProps> = ({
- 7:   children,
- 8:   className,
- 9:   disabled,
-10:   onSelect,
-11:   icon
-12: }) => {
-13:   const { dispatch } = useDropdownMenu();
-14: 
-15:   const handleClick = () => {
-16:     if (disabled) return;
-17:     onSelect?.();
-18:     dispatch({ type: 'CLOSE' });
-19:   };
-20: 
-21:   const handleKeyDown = (e: React.KeyboardEvent) => {
-22:     if (disabled) return;
-23:     
-24:     switch (e.key) {
-25:       case 'Enter':
-26:       case ' ':
-27:         e.preventDefault();
-28:         onSelect?.();
-29:         dispatch({ type: 'CLOSE' });
-30:         break;
-31:     }
-32:   };
-33: 
-34:   return (
-35:     <div
-36:       className={`${styles.dropdownItem} ${disabled ? styles.disabled : ''} ${className || ''}`}
-37:       onClick={handleClick}
-38:       onKeyDown={handleKeyDown}
-39:       role="menuitem"
-40:       tabIndex={disabled ? -1 : 0}
-41:       aria-disabled={disabled}
-42:     >
-43:       {icon && <span className={styles.itemIcon}>{icon}</span>}
-44:       {children}
-45:     </div>
-46:   );
-47: };
-````
-
-## File: src/components/ui/DropdownMenu/DropdownMenuSeparator.tsx
-````typescript
- 1: import React from 'react';
- 2: import { DropdownMenuSeparatorProps } from './types';
- 3: import styles from './DropdownMenu.module.css';
- 4: 
- 5: export const DropdownMenuSeparator: React.FC<DropdownMenuSeparatorProps> = ({
- 6:   className
- 7: }) => {
- 8:   return (
- 9:     <div 
-10:       className={`${styles.dropdownSeparator} ${className || ''}`}
-11:       role="separator"
-12:     />
-13:   );
-14: };
-````
-
-## File: src/components/ui/DropdownMenu/DropdownMenuTrigger.tsx
-````typescript
- 1: import React, { useRef, useEffect } from 'react';
- 2: import { DropdownMenuTriggerProps } from './types';
- 3: import { useDropdownMenu } from './context';
- 4: import styles from './DropdownMenu.module.css';
- 5: 
- 6: export const DropdownMenuTrigger: React.FC<DropdownMenuTriggerProps> = ({ 
- 7:   children, 
- 8:   className 
- 9: }) => {
-10:   const triggerRef = useRef<HTMLButtonElement>(null);
-11:   const { state, dispatch } = useDropdownMenu();
-12: 
-13:   useEffect(() => {
-14:     if (triggerRef.current) {
-15:       dispatch({ 
-16:         type: 'SET_TRIGGER_RECT', 
-17:         rect: triggerRef.current.getBoundingClientRect() 
-18:       });
-19:     }
-20:   }, [dispatch]);
-21: 
-22:   const handleClick = () => {
-23:     if (state.isOpen) {
-24:       dispatch({ type: 'CLOSE' });
-25:     } else {
-26:       dispatch({ type: 'OPEN' });
-27:     }
-28:   };
-29: 
-30:   const handleKeyDown = (e: React.KeyboardEvent) => {
-31:     switch (e.key) {
-32:       case 'Enter':
-33:       case ' ':
-34:         e.preventDefault();
-35:         dispatch({ type: 'OPEN' });
-36:         break;
-37:       case 'Escape':
-38:         e.preventDefault();
-39:         dispatch({ type: 'CLOSE' });
-40:         break;
-41:     }
-42:   };
-43: 
-44:   return (
-45:     <button
-46:       ref={triggerRef}
-47:       className={`${styles.dropdownTrigger} ${className || ''}`}
-48:       onClick={handleClick}
-49:       onKeyDown={handleKeyDown}
-50:       aria-haspopup="true"
-51:       aria-expanded={state.isOpen}
-52:       type="button"
-53:     >
-54:       {children}
-55:     </button>
-56:   );
-57: };
-````
-
-## File: src/components/ui/DropdownMenu/types.ts
-````typescript
- 1: export interface DropdownMenuProps {
- 2:   children: React.ReactNode;
- 3:   className?: string;
- 4: }
- 5: 
- 6: export interface DropdownMenuTriggerProps {
- 7:   children: React.ReactNode;
- 8:   className?: string;
- 9: }
-10: 
-11: export interface DropdownMenuContentProps {
-12:   children: React.ReactNode;
-13:   className?: string;
-14:   sideOffset?: number;
-15:   align?: 'start' | 'center' | 'end';
-16:   side?: 'top' | 'right' | 'bottom' | 'left';
-17: }
-18: 
-19: export interface DropdownMenuItemProps {
-20:   children: React.ReactNode;
-21:   className?: string;
-22:   disabled?: boolean;
-23:   onSelect?: () => void;
-24:   icon?: React.ReactNode;
-25: }
-26: 
-27: export interface DropdownMenuSeparatorProps {
-28:   className?: string;
-29: }
-30: 
-31: export interface DropdownMenuGroupProps {
-32:   children: React.ReactNode;
-33:   className?: string;
-34: }
-35: 
-36: export interface DropdownMenuLabelProps {
-37:   children: React.ReactNode;
-38:   className?: string;
-39: }
-40: 
-41: export type DropdownMenuState = {
-42:   isOpen: boolean;
-43:   activeItemIndex: number | null;
-44:   triggerRect: DOMRect | null;
-45: };
-46: 
-47: export type DropdownMenuAction = 
-48:   | { type: 'OPEN' }
-49:   | { type: 'CLOSE' }
-50:   | { type: 'SET_TRIGGER_RECT'; rect: DOMRect }
-51:   | { type: 'SET_ACTIVE_ITEM'; index: number | null };
-````
-
 ## File: src/components/ui/Input/index.ts
 ````typescript
 1: export * from './Input';
@@ -1238,9 +880,9 @@ src/
 ## File: src/components/UserInstructionsWithTemplates.tsx
 ````typescript
   1: import React, { useState, useCallback, useMemo } from 'react';
-  2: import { Dropdown, DropdownOption } from './ui/Dropdown';
-  3: import { ConfirmationDialog } from './ui/ConfirmationDialog';
-  4: import { Button } from './ui/Button';
+  2: import { ConfirmationDialog } from './ui/ConfirmationDialog';
+  3: import { Button } from './ui/Button';
+  4: import { TemplateDropdownAdapter } from './ui/DropdownMenu/TemplateDropdownAdapter';
   5: import {
   6:   PromptTemplate,
   7:   PROMPT_TEMPLATES,
@@ -1256,159 +898,144 @@ src/
  17:   setInstructions: (value: string | ((prev: string) => string)) => void;
  18: }
  19: 
- 20: interface TemplateOption extends Omit<DropdownOption, 'icon'> {
- 21:   category: TemplateCategory;
- 22:   icon?: string;
- 23:   description?: string;
- 24: }
- 25: 
- 26: interface GroupedOption {
- 27:   label: string;
- 28:   options: TemplateOption[];
- 29: }
- 30: 
- 31: export const UserInstructionsWithTemplates: React.FC<UserInstructionsWithTemplatesProps> = ({
- 32:   instructions,
- 33:   setInstructions,
- 34: }) => {
- 35:   // State for selected template and preview
- 36:   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(() => {
- 37:     return localStorage.getItem(TEMPLATE_STORAGE_KEY);
- 38:   });
- 39:   const [previewTemplate, setPreviewTemplate] = useState<PromptTemplate | null>(null);
- 40:   
- 41:   // State for confirmation dialog
- 42:   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
- 43:   const [pendingTemplate, setPendingTemplate] = useState<PromptTemplate | null>(null);
- 44:   
- 45:   // State for insertion mode
- 46:   const [insertMode, setInsertMode] = useState<TemplateInsertMode>(() => {
- 47:     return (localStorage.getItem(TEMPLATE_INSERT_MODE_KEY) as TemplateInsertMode) || 'replace';
- 48:   });
- 49: 
- 50:   // Group templates by category for the dropdown
- 51:   const templateOptions = useMemo<GroupedOption[]>(() => {
- 52:     const categories = PROMPT_TEMPLATES.reduce<Record<string, TemplateOption[]>>((acc, template) => {
- 53:       if (!acc[template.category]) {
- 54:         acc[template.category] = [];
- 55:       }
- 56:       acc[template.category].push({
- 57:         value: template.id,
- 58:         label: template.name,
- 59:         description: template.description,
- 60:         icon: template.icon,
- 61:         category: template.category
- 62:       });
- 63:       return acc;
- 64:     }, {});
- 65: 
- 66:     return Object.entries(categories).map(([category, templates]) => ({
- 67:       label: category,
- 68:       options: templates
- 69:     }));
- 70:   }, []);
- 71: 
- 72:   // Handle template selection
- 73:   const handleTemplateSelect = useCallback((value: string | string[]) => {
- 74:     if (typeof value !== 'string') return;
- 75:     
- 76:     const template = PROMPT_TEMPLATES.find(t => t.id === value);
- 77:     if (!template) return;
- 78:     
- 79:     // Save last selected template
- 80:     localStorage.setItem(TEMPLATE_STORAGE_KEY, value);
- 81:     setSelectedTemplate(value);
- 82:     
- 83:     // If instructions are empty, directly insert
- 84:     if (!instructions.trim()) {
- 85:       setInstructions(template.content);
- 86:       return;
- 87:     }
- 88:     
- 89:     // Otherwise, show confirmation dialog
- 90:     setPendingTemplate(template);
- 91:     setShowConfirmDialog(true);
- 92:   }, [instructions, setInstructions]);
- 93: 
- 94:   // Handle template insertion
- 95:   const insertTemplate = useCallback((template: PromptTemplate, mode: TemplateInsertMode) => {
- 96:     // Save insertion mode preference
- 97:     localStorage.setItem(TEMPLATE_INSERT_MODE_KEY, mode);
- 98:     setInsertMode(mode);
- 99:     
-100:     if (mode === 'replace') {
-101:       setInstructions(template.content);
-102:     } else {
-103:       setInstructions((prev: string) => {
-104:         if (prev.trim()) {
-105:           return `${prev.trim()}\n\n${template.content}`;
-106:         }
-107:         return template.content;
-108:       });
-109:     }
-110:   }, [setInstructions]);
-111: 
-112:   // Handle template preview on hover
-113:   const handleTemplateHover = useCallback((value: string) => {
-114:     const template = PROMPT_TEMPLATES.find(t => t.id === value);
-115:     if (template) {
-116:       setPreviewTemplate(template);
-117:     }
-118:   }, []);
-119: 
-120:   return (
-121:     <div className={styles.container}>
-122:       <div className={styles.header}>
-123:         <div className={styles.templateSelector}>
-124:           <Dropdown
-125:             options={templateOptions.flatMap(group => group.options)}
-126:             value={selectedTemplate || undefined}
-127:             onChange={handleTemplateSelect}
-128:             placeholder="Select a template..."
-129:             title="Select a prompt template"
-130:           />
-131:         </div>
-132:       </div>
-133: 
-134:       <div className={styles.textareaContainer}>
-135:         <textarea
-136:           value={instructions}
-137:           onChange={(e) => setInstructions(e.target.value)}
-138:           placeholder="Enter your instructions here..."
-139:           className={styles.textarea}
-140:           aria-label="User instructions"
-141:         />
-142:       </div>
-143: 
-144:       {previewTemplate && (
-145:         <div className={styles.templatePreview} role="complementary" aria-label="Template preview">
-146:           <h4>{previewTemplate.name}</h4>
-147:           <p className={styles.templateDescription}>{previewTemplate.description}</p>
-148:           <pre className={styles.templateContent}>{previewTemplate.content}</pre>
-149:         </div>
-150:       )}
-151: 
-152:       <ConfirmationDialog
-153:         isOpen={showConfirmDialog}
-154:         onClose={() => {
-155:           setShowConfirmDialog(false);
-156:           setPendingTemplate(null);
-157:         }}
-158:         onConfirm={() => {
-159:           if (pendingTemplate) {
-160:             insertTemplate(pendingTemplate, insertMode);
-161:           }
-162:           setShowConfirmDialog(false);
-163:           setPendingTemplate(null);
-164:         }}
-165:         title="Insert Template"
-166:         description="Would you like to replace your current instructions or append the template?"
-167:         confirmLabel={insertMode === 'replace' ? 'Replace' : 'Append'}
-168:         cancelLabel="Cancel"
-169:       />
-170:     </div>
-171:   );
-172: };
+ 20: interface TemplateOption {
+ 21:   value: string;
+ 22:   label: string;
+ 23:   category: TemplateCategory;
+ 24:   icon?: string;
+ 25:   description?: string;
+ 26:   disabled?: boolean;
+ 27: }
+ 28: 
+ 29: export const UserInstructionsWithTemplates: React.FC<UserInstructionsWithTemplatesProps> = ({
+ 30:   instructions,
+ 31:   setInstructions,
+ 32: }) => {
+ 33:   // State for selected template and preview
+ 34:   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(() => {
+ 35:     return localStorage.getItem(TEMPLATE_STORAGE_KEY);
+ 36:   });
+ 37:   const [previewTemplate, setPreviewTemplate] = useState<PromptTemplate | null>(null);
+ 38:   
+ 39:   // State for confirmation dialog
+ 40:   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+ 41:   const [pendingTemplate, setPendingTemplate] = useState<PromptTemplate | null>(null);
+ 42:   
+ 43:   // State for insertion mode
+ 44:   const [insertMode, setInsertMode] = useState<TemplateInsertMode>(() => {
+ 45:     return (localStorage.getItem(TEMPLATE_INSERT_MODE_KEY) as TemplateInsertMode) || 'replace';
+ 46:   });
+ 47: 
+ 48:   // Create template options for the dropdown
+ 49:   const templateOptions = useMemo<TemplateOption[]>(() => {
+ 50:     return PROMPT_TEMPLATES.map(template => ({
+ 51:       value: template.id,
+ 52:       label: template.name,
+ 53:       description: template.description,
+ 54:       icon: template.icon,
+ 55:       category: template.category
+ 56:     }));
+ 57:   }, []);
+ 58: 
+ 59:   // Handle template selection
+ 60:   const handleTemplateSelect = useCallback((value: string) => {
+ 61:     const template = PROMPT_TEMPLATES.find(t => t.id === value);
+ 62:     if (!template) return;
+ 63:     
+ 64:     // Save last selected template
+ 65:     localStorage.setItem(TEMPLATE_STORAGE_KEY, value);
+ 66:     setSelectedTemplate(value);
+ 67:     
+ 68:     // If instructions are empty, directly insert
+ 69:     if (!instructions.trim()) {
+ 70:       setInstructions(template.content);
+ 71:       return;
+ 72:     }
+ 73:     
+ 74:     // Otherwise, show confirmation dialog
+ 75:     setPendingTemplate(template);
+ 76:     setShowConfirmDialog(true);
+ 77:   }, [instructions, setInstructions]);
+ 78: 
+ 79:   // Handle template insertion
+ 80:   const insertTemplate = useCallback((template: PromptTemplate, mode: TemplateInsertMode) => {
+ 81:     // Save insertion mode preference
+ 82:     localStorage.setItem(TEMPLATE_INSERT_MODE_KEY, mode);
+ 83:     setInsertMode(mode);
+ 84:     
+ 85:     if (mode === 'replace') {
+ 86:       setInstructions(template.content);
+ 87:     } else {
+ 88:       setInstructions((prev: string) => {
+ 89:         if (prev.trim()) {
+ 90:           return `${prev.trim()}\n\n${template.content}`;
+ 91:         }
+ 92:         return template.content;
+ 93:       });
+ 94:     }
+ 95:   }, [setInstructions]);
+ 96: 
+ 97:   // Handle template preview on hover
+ 98:   const handleTemplateHover = useCallback((value: string) => {
+ 99:     const template = PROMPT_TEMPLATES.find(t => t.id === value);
+100:     if (template) {
+101:       setPreviewTemplate(template);
+102:     }
+103:   }, []);
+104: 
+105:   return (
+106:     <div className={styles.container}>
+107:       <div className={styles.header}>
+108:         <div className={styles.templateSelector}>
+109:           <TemplateDropdownAdapter
+110:             options={templateOptions}
+111:             value={selectedTemplate || undefined}
+112:             onChange={handleTemplateSelect}
+113:             placeholder="Select a template..."
+114:             title="Select a prompt template"
+115:           />
+116:         </div>
+117:       </div>
+118: 
+119:       <div className={styles.textareaContainer}>
+120:         <textarea
+121:           value={instructions}
+122:           onChange={(e) => setInstructions(e.target.value)}
+123:           placeholder="Enter your instructions here..."
+124:           className={styles.textarea}
+125:           aria-label="User instructions"
+126:         />
+127:       </div>
+128: 
+129:       {previewTemplate && (
+130:         <div className={styles.templatePreview} role="complementary" aria-label="Template preview">
+131:           <h4>{previewTemplate.name}</h4>
+132:           <p className={styles.templateDescription}>{previewTemplate.description}</p>
+133:           <pre className={styles.templateContent}>{previewTemplate.content}</pre>
+134:         </div>
+135:       )}
+136: 
+137:       <ConfirmationDialog
+138:         isOpen={showConfirmDialog}
+139:         onClose={() => {
+140:           setShowConfirmDialog(false);
+141:           setPendingTemplate(null);
+142:         }}
+143:         onConfirm={() => {
+144:           if (pendingTemplate) {
+145:             insertTemplate(pendingTemplate, insertMode);
+146:           }
+147:           setShowConfirmDialog(false);
+148:           setPendingTemplate(null);
+149:         }}
+150:         title="Insert Template"
+151:         description="Would you like to replace your current instructions or append the template?"
+152:         confirmLabel={insertMode === 'replace' ? 'Replace' : 'Append'}
+153:         cancelLabel="Cancel"
+154:       />
+155:     </div>
+156:   );
+157: };
 ````
 
 ## File: src/constants/outputFormats.ts
@@ -2329,30 +1956,6 @@ src/
 47: };
 ````
 
-## File: src/index.css
-````css
- 1: :root {
- 2:   /* ... existing variables ... */
- 3: 
- 4:   /* Dropdown Menu Variables */
- 5:   --surface-color: var(--background-primary);
- 6:   --border-color: var(--border);
- 7:   --text-color: var(--text-primary);
- 8:   --hover-color: var(--background-secondary);
- 9:   --focus-ring-color: var(--accent-color);
-10:   --accent-color: var(--accent);
-11:   --accent-foreground: var(--text-primary);
-12:   --popover-foreground: var(--text-primary);
-13:   --background: var(--background-primary);
-14:   --popover: var(--background-primary);
-15:   --border: var(--border-color);
-16:   --ring: var(--accent-color);
-17:   --muted-foreground: var(--text-secondary);
-18: }
-19: 
-20: /* ... rest of the existing styles ... */
-````
-
 ## File: src/components/__tests__/IgnorePatterns.test.tsx
 ````typescript
   1: import React from 'react';
@@ -2851,35 +2454,89 @@ src/
 91: };
 ````
 
-## File: src/components/ui/DropdownMenu/DropdownMenu.tsx
+## File: src/components/ui/DropdownMenu/DropdownAdapter.tsx
 ````typescript
  1: import React from 'react';
- 2: import { DropdownMenuProps } from './types';
- 3: import { DropdownMenuProvider } from './context';
+ 2: import { FileText, FileCode, Code } from 'lucide-react';
+ 3: import { DropdownMenu } from './DropdownMenu';
  4: import styles from './DropdownMenu.module.css';
  5: 
- 6: export const DropdownMenu: React.FC<DropdownMenuProps> = ({ children, className }) => {
- 7:   return (
- 8:     <DropdownMenuProvider>
- 9:       <div className={`${styles.dropdownMenu} ${className || ''}`}>
-10:         {children}
-11:       </div>
-12:     </DropdownMenuProvider>
-13:   );
-14: };
-15: 
-16: export * from './DropdownMenuTrigger';
-17: export * from './DropdownMenuContent';
-18: export * from './DropdownMenuItem';
-19: export * from './DropdownMenuSeparator';
-20: export * from './DropdownMenuGroup';
-21: export * from './DropdownMenuLabel';
-````
-
-## File: src/components/ui/DropdownMenu/index.ts
-````typescript
-1: export * from './DropdownMenu';
-2: export * from './types';
+ 6: // Match the interface of the original Dropdown component
+ 7: interface DropdownAdapterProps {
+ 8:   options: {
+ 9:     value: string;
+10:     label: string;
+11:     description?: string;
+12:     icon?: string;
+13:     disabled?: boolean;
+14:   }[];
+15:   value?: string | string[];
+16:   onChange: (value: string | string[]) => void;
+17:   placeholder?: string;
+18:   multiple?: boolean;
+19:   title?: string;
+20:   className?: string;
+21:   menuClassName?: string;
+22:   size?: 'sm' | 'md' | 'lg';
+23:   disabled?: boolean;
+24:   side?: 'top' | 'bottom' | 'auto';
+25:   sideOffset?: number;
+26:   align?: 'start' | 'center' | 'end';
+27: }
+28: 
+29: export const DropdownAdapter: React.FC<DropdownAdapterProps> = ({
+30:   options,
+31:   value,
+32:   onChange,
+33:   placeholder = 'Select option',
+34:   title,
+35:   className,
+36:   menuClassName,
+37:   size = 'md',
+38:   disabled = false,
+39:   side = 'auto',
+40:   sideOffset = 5,
+41:   align = 'start',
+42: }) => {
+43:   // Map option icons to Lucide components
+44:   const getIconForOption = (option: { value: string; icon?: string }) => {
+45:     switch (option.value) {
+46:       case 'xml':
+47:         return <Code size={16} className={styles.itemIcon} aria-hidden="true" />;
+48:       case 'markdown':
+49:         return <FileCode size={16} className={styles.itemIcon} aria-hidden="true" />;
+50:       case 'plain':
+51:         return <FileText size={16} className={styles.itemIcon} aria-hidden="true" />;
+52:       default:
+53:         return null;
+54:     }
+55:   };
+56: 
+57:   // Convert options to the format expected by the new DropdownMenu
+58:   const dropdownOptions = options.map(option => ({
+59:     value: option.value,
+60:     label: option.label,
+61:     icon: getIconForOption(option),
+62:     disabled: option.disabled,
+63:   }));
+64: 
+65:   return (
+66:     <DropdownMenu
+67:       options={dropdownOptions}
+68:       value={value as string}
+69:       onChange={(val) => onChange(val)}
+70:       placeholder={placeholder}
+71:       title={title}
+72:       className={className}
+73:       menuClassName={menuClassName}
+74:       size={size}
+75:       disabled={disabled}
+76:       align={align}
+77:       side={side}
+78:       sideOffset={sideOffset}
+79:     />
+80:   );
+81: };
 ````
 
 ## File: src/components/ui/Input/Input.module.css
@@ -3565,6 +3222,230 @@ src/
 103:     transform: translateY(0) scale(1);
 104:   }
 105: }
+````
+
+## File: src/components/ui/DropdownMenu/DropdownMenu.module.css
+````css
+  1: .dropdownMenu {
+  2:   position: relative;
+  3:   display: inline-block;
+  4:   width: 100%;
+  5: }
+  6: 
+  7: .dropdownTrigger {
+  8:   display: flex;
+  9:   align-items: center;
+ 10:   justify-content: space-between;
+ 11:   width: 100%;
+ 12:   padding: 0.5rem 1rem;
+ 13:   background-color: var(--background-primary);
+ 14:   border: 1px solid var(--border-color);
+ 15:   border-radius: var(--radius);
+ 16:   color: var(--text-primary);
+ 17:   font-size: 0.875rem;
+ 18:   cursor: pointer;
+ 19:   transition: all 0.15s ease;
+ 20:   text-align: left;
+ 21: }
+ 22: 
+ 23: .dropdownTrigger:hover:not(:disabled) {
+ 24:   background-color: var(--hover-color);
+ 25: }
+ 26: 
+ 27: .dropdownTrigger:focus {
+ 28:   outline: none;
+ 29:   box-shadow: 0 0 0 2px var(--focus-ring-color);
+ 30: }
+ 31: 
+ 32: .dropdownTrigger:disabled {
+ 33:   opacity: 0.5;
+ 34:   cursor: not-allowed;
+ 35: }
+ 36: 
+ 37: .dropdownTriggerOpen {
+ 38:   background-color: var(--hover-color);
+ 39: }
+ 40: 
+ 41: .dropdownContent {
+ 42:   position: fixed;
+ 43:   min-width: 12rem;
+ 44:   width: max-content;
+ 45:   padding: 0.5rem;
+ 46:   background-color: var(--background-primary);
+ 47:   border: 1px solid var(--border-color);
+ 48:   border-radius: var(--radius);
+ 49:   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+ 50:   z-index: 1000;
+ 51:   max-height: 80vh;
+ 52:   overflow-y: auto;
+ 53:   animation: dropdownIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+ 54:   will-change: transform, opacity;
+ 55: }
+ 56: 
+ 57: .dropdownContent.closing {
+ 58:   animation: dropdownOut 0.15s ease-in forwards;
+ 59: }
+ 60: 
+ 61: .dropdownItem {
+ 62:   display: flex;
+ 63:   align-items: center;
+ 64:   gap: 0.5rem;
+ 65:   padding: 0.5rem 1rem;
+ 66:   color: var(--text-primary);
+ 67:   font-size: 0.875rem;
+ 68:   cursor: pointer;
+ 69:   border-radius: 0.375rem;
+ 70:   transition: all 0.1s ease;
+ 71:   user-select: none;
+ 72: }
+ 73: 
+ 74: .dropdownItem:hover:not(.disabled) {
+ 75:   background-color: var(--hover-color);
+ 76: }
+ 77: 
+ 78: .itemIcon {
+ 79:   display: flex;
+ 80:   align-items: center;
+ 81:   justify-content: center;
+ 82:   width: 1rem;
+ 83:   height: 1rem;
+ 84:   opacity: 0.6;
+ 85:   flex-shrink: 0;
+ 86: }
+ 87: 
+ 88: .itemText {
+ 89:   flex: 1;
+ 90:   white-space: nowrap;
+ 91:   text-overflow: ellipsis;
+ 92:   overflow: hidden;
+ 93: }
+ 94: 
+ 95: .buttonLabel {
+ 96:   flex: 1;
+ 97:   text-align: left;
+ 98:   overflow: hidden;
+ 99:   text-overflow: ellipsis;
+100:   white-space: nowrap;
+101:   margin-right: 0.5rem;
+102: }
+103: 
+104: .accordionIcon {
+105:   transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+106:   position: relative;
+107:   color: var(--text-secondary);
+108:   width: 16px;
+109:   height: 16px;
+110:   opacity: 0.6;
+111: }
+112: 
+113: .accordionIcon path:last-child {
+114:   transform-origin: center;
+115:   transition: opacity 0.2s ease;
+116: }
+117: 
+118: .accordionIcon.rotated {
+119:   transform: rotate(180deg);
+120: }
+121: 
+122: .accordionIcon.rotated path:last-child {
+123:   opacity: 0;
+124: }
+125: 
+126: .sm {
+127:   height: 28px;
+128:   font-size: 0.8125rem;
+129:   padding: 0.25rem 0.75rem;
+130: }
+131: 
+132: .md {
+133:   height: 32px;
+134:   font-size: 0.875rem;
+135:   padding: 0.375rem 1rem;
+136: }
+137: 
+138: .lg {
+139:   height: 40px;
+140:   font-size: 0.9375rem;
+141:   padding: 0.5rem 1.25rem;
+142: }
+143: 
+144: @keyframes dropdownIn {
+145:   from {
+146:     opacity: 0;
+147:     transform: translateY(-4px) scale(0.97);
+148:   }
+149:   to {
+150:     opacity: 1;
+151:     transform: translateY(0) scale(1);
+152:   }
+153: }
+154: 
+155: @keyframes dropdownOut {
+156:   from {
+157:     opacity: 1;
+158:     transform: translateY(0) scale(1);
+159:   }
+160:   to {
+161:     opacity: 0;
+162:     transform: translateY(-4px) scale(0.97);
+163:   }
+164: }
+165: 
+166: .dropdownContent[data-side="top"] {
+167:   transform-origin: bottom;
+168:   animation: dropdownInTop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+169: }
+170: 
+171: .dropdownContent[data-side="top"].closing {
+172:   animation: dropdownOutTop 0.15s ease-in forwards;
+173: }
+174: 
+175: .dropdownContent[data-side="bottom"] {
+176:   transform-origin: top;
+177: }
+178: 
+179: @keyframes dropdownInTop {
+180:   from {
+181:     opacity: 0;
+182:     transform: translateY(4px) scale(0.97);
+183:   }
+184:   to {
+185:     opacity: 1;
+186:     transform: translateY(0) scale(1);
+187:   }
+188: }
+189: 
+190: @keyframes dropdownOutTop {
+191:   from {
+192:     opacity: 1;
+193:     transform: translateY(0) scale(1);
+194:   }
+195:   to {
+196:     opacity: 0;
+197:     transform: translateY(4px) scale(0.97);
+198:   }
+199: }
+200: 
+201: @media (max-width: 768px) {
+202:   .dropdownContent {
+203:     max-width: calc(100vw - 2rem);
+204:   }
+205: }
+206: 
+207: :global(.dark) .dropdownContent {
+208:   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+209: }
+210: 
+211: :global(.dark) .dropdownItem:hover:not(.disabled) {
+212:   background-color: var(--hover-color);
+213: }
+````
+
+## File: src/components/ui/DropdownMenu/index.ts
+````typescript
+1: export { DropdownMenu } from "./DropdownMenu";
+2: export type { DropdownMenuProps, DropdownMenuOption } from "./DropdownMenu";
+3: export { DropdownAdapter } from "./DropdownAdapter";
 ````
 
 ## File: src/components/ui/Switch/Switch.module.css
@@ -4312,6 +4193,433 @@ src/
 50:   export type ChangeEvent<T = Element> = React.ChangeEvent<T>;
 51:   export type ReactElement = React.ReactElement;
 52: }
+````
+
+## File: src/components/ui/DropdownMenu/DropdownMenu.tsx
+````typescript
+  1: import React, { useState, useRef, useEffect, useCallback } from 'react';
+  2: import { createPortal } from 'react-dom';
+  3: import { Plus, Minus } from 'lucide-react';
+  4: import styles from './DropdownMenu.module.css';
+  5: 
+  6: // Main types
+  7: export interface DropdownMenuOption {
+  8:   value: string;
+  9:   label: string;
+ 10:   description?: string;
+ 11:   icon?: React.ReactNode;
+ 12:   disabled?: boolean;
+ 13: }
+ 14: 
+ 15: export interface DropdownMenuProps {
+ 16:   /**
+ 17:    * Options to display in the dropdown menu
+ 18:    */
+ 19:   options: DropdownMenuOption[];
+ 20:   
+ 21:   /**
+ 22:    * Currently selected value
+ 23:    */
+ 24:   value?: string;
+ 25:   
+ 26:   /**
+ 27:    * Callback when selection changes
+ 28:    */
+ 29:   onChange: (value: string) => void;
+ 30:   
+ 31:   /**
+ 32:    * Optional placeholder text when no option is selected
+ 33:    */
+ 34:   placeholder?: string;
+ 35:   
+ 36:   /**
+ 37:    * Optional title for the dropdown button (for accessibility)
+ 38:    */
+ 39:   title?: string;
+ 40:   
+ 41:   /**
+ 42:    * Optional custom class name for the dropdown container
+ 43:    */
+ 44:   className?: string;
+ 45:   
+ 46:   /**
+ 47:    * Optional custom class name for the dropdown menu
+ 48:    */
+ 49:   menuClassName?: string;
+ 50:   
+ 51:   /**
+ 52:    * Optional size variant
+ 53:    * @default 'md'
+ 54:    */
+ 55:   size?: 'sm' | 'md' | 'lg';
+ 56:   
+ 57:   /**
+ 58:    * Whether the dropdown is disabled
+ 59:    * @default false
+ 60:    */
+ 61:   disabled?: boolean;
+ 62:   
+ 63:   /**
+ 64:    * Custom alignment of the dropdown menu
+ 65:    * @default 'start'
+ 66:    */
+ 67:   align?: 'start' | 'center' | 'end';
+ 68:   
+ 69:   /**
+ 70:    * Side to render the dropdown menu
+ 71:    * @default 'auto'
+ 72:    */
+ 73:   side?: 'top' | 'right' | 'bottom' | 'left' | 'auto';
+ 74:   
+ 75:   /**
+ 76:    * Offset from the trigger element
+ 77:    * @default 5
+ 78:    */
+ 79:   sideOffset?: number;
+ 80: }
+ 81: 
+ 82: export const DropdownMenu: React.FC<DropdownMenuProps> = ({
+ 83:   options,
+ 84:   value,
+ 85:   onChange,
+ 86:   placeholder = 'Select option',
+ 87:   title,
+ 88:   className,
+ 89:   menuClassName,
+ 90:   size = 'md',
+ 91:   disabled = false,
+ 92:   align = 'start',
+ 93:   side = 'auto',
+ 94:   sideOffset = 5
+ 95: }) => {
+ 96:   // State
+ 97:   const [isOpen, setIsOpen] = useState(false);
+ 98:   const [position, setPosition] = useState<React.CSSProperties>({});
+ 99:   const [dropdownSide, setDropdownSide] = useState<'top' | 'bottom'>('bottom');
+100:   const [isClosing, setIsClosing] = useState(false);
+101:   
+102:   // Refs
+103:   const triggerRef = useRef<HTMLButtonElement>(null);
+104:   const menuRef = useRef<HTMLDivElement>(null);
+105:   const firstItemRef = useRef<HTMLDivElement>(null);
+106:   
+107:   // Get the label of the selected option
+108:   const getSelectedLabel = () => {
+109:     const selectedOption = options.find(opt => opt.value === value);
+110:     return selectedOption ? selectedOption.label : placeholder;
+111:   };
+112:   
+113:   // Determine the best side for the dropdown based on available space
+114:   const determineDropdownSide = useCallback(() => {
+115:     if (side !== 'auto') return side;
+116:     
+117:     if (!triggerRef.current) return 'bottom';
+118:     
+119:     const rect = triggerRef.current.getBoundingClientRect();
+120:     const spaceBelow = window.innerHeight - rect.bottom;
+121:     const spaceAbove = rect.top;
+122:     const menuHeight = menuRef.current?.getBoundingClientRect().height || 200; // Default height estimate
+123:     
+124:     // If there's not enough space below and more space above, flip to top
+125:     if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+126:       return 'top';
+127:     }
+128:     
+129:     return 'bottom';
+130:   }, [side]);
+131:   
+132:   // Calculate position of the dropdown menu
+133:   const calculatePosition = useCallback(() => {
+134:     if (!triggerRef.current || !menuRef.current) return {};
+135:     
+136:     const triggerRect = triggerRef.current.getBoundingClientRect();
+137:     const menuRect = menuRef.current.getBoundingClientRect();
+138:     
+139:     const { top, left, bottom, right, width, height } = triggerRect;
+140:     const { innerWidth, innerHeight } = window;
+141:     const scrollY = window.scrollY || document.documentElement.scrollTop;
+142:     const scrollX = window.scrollX || document.documentElement.scrollLeft;
+143:     
+144:     const positionStyles: React.CSSProperties = {};
+145:     const determinedSide = determineDropdownSide();
+146:     setDropdownSide(determinedSide === 'top' ? 'top' : 'bottom');
+147:     
+148:     // Vertical positioning
+149:     if (determinedSide === 'top') {
+150:       positionStyles.bottom = innerHeight - top + sideOffset;
+151:     } else if (determinedSide === 'bottom') {
+152:       positionStyles.top = bottom + scrollY + sideOffset;
+153:     } else if (determinedSide === 'right') {
+154:       positionStyles.left = right + scrollX + sideOffset;
+155:     } else if (determinedSide === 'left') {
+156:       positionStyles.right = innerWidth - left + scrollX + sideOffset;
+157:     }
+158:     
+159:     // Horizontal alignment
+160:     if ((determinedSide === 'top' || determinedSide === 'bottom') && !positionStyles.left && !positionStyles.right) {
+161:       switch (align) {
+162:         case 'start':
+163:           positionStyles.left = left + scrollX;
+164:           break;
+165:         case 'center':
+166:           positionStyles.left = left + scrollX + (width / 2) - (menuRect.width / 2);
+167:           break;
+168:         case 'end':
+169:           positionStyles.left = left + scrollX + width - menuRect.width;
+170:           break;
+171:       }
+172:     }
+173:     
+174:     // Ensure the menu stays within viewport bounds
+175:     if (positionStyles.left !== undefined) {
+176:       const leftPos = positionStyles.left as number;
+177:       positionStyles.left = Math.max(sideOffset, Math.min(leftPos, innerWidth - menuRect.width - sideOffset));
+178:     }
+179:     
+180:     if (positionStyles.top !== undefined) {
+181:       const topPos = positionStyles.top as number;
+182:       positionStyles.top = Math.max(sideOffset, Math.min(topPos, innerHeight - menuRect.height - sideOffset + scrollY));
+183:     }
+184:     
+185:     return positionStyles;
+186:   }, [align, determineDropdownSide, sideOffset]);
+187:   
+188:   // Update position when needed
+189:   const updatePosition = useCallback(() => {
+190:     if (isOpen) {
+191:       setPosition(calculatePosition());
+192:     }
+193:   }, [isOpen, calculatePosition]);
+194:   
+195:   // Handle outside clicks
+196:   useEffect(() => {
+197:     const handleClickOutside = (event: MouseEvent) => {
+198:       if (menuRef.current && !menuRef.current.contains(event.target as Node) &&
+199:           triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
+200:         closeDropdown();
+201:       }
+202:     };
+203:     
+204:     if (isOpen) {
+205:       document.addEventListener('mousedown', handleClickOutside);
+206:       return () => document.removeEventListener('mousedown', handleClickOutside);
+207:     }
+208:   }, [isOpen]);
+209:   
+210:   // Handle window resize and scroll
+211:   useEffect(() => {
+212:     if (isOpen) {
+213:       window.addEventListener('resize', updatePosition);
+214:       window.addEventListener('scroll', updatePosition, true);
+215:       
+216:       return () => {
+217:         window.removeEventListener('resize', updatePosition);
+218:         window.removeEventListener('scroll', updatePosition, true);
+219:       };
+220:     }
+221:   }, [isOpen, updatePosition]);
+222:   
+223:   // Update position when opening the dropdown
+224:   useEffect(() => {
+225:     if (isOpen) {
+226:       updatePosition();
+227:       
+228:       // Focus the first non-disabled item
+229:       setTimeout(() => {
+230:         if (firstItemRef.current) {
+231:           firstItemRef.current.focus();
+232:         }
+233:       }, 10);
+234:     }
+235:   }, [isOpen, updatePosition]);
+236:   
+237:   // Handle keyboard navigation
+238:   const handleKeyDown = (e: React.KeyboardEvent) => {
+239:     if (disabled) return;
+240:     
+241:     switch (e.key) {
+242:       case 'Enter':
+243:       case ' ':
+244:         e.preventDefault();
+245:         if (!isOpen) {
+246:           setIsOpen(true);
+247:         }
+248:         break;
+249:       case 'Escape':
+250:         e.preventDefault();
+251:         closeDropdown();
+252:         break;
+253:       case 'ArrowDown':
+254:         if (isOpen) {
+255:           e.preventDefault();
+256:           focusNextItem();
+257:         } else {
+258:           e.preventDefault();
+259:           setIsOpen(true);
+260:         }
+261:         break;
+262:       case 'ArrowUp':
+263:         if (isOpen) {
+264:           e.preventDefault();
+265:           focusPreviousItem();
+266:         } else {
+267:           e.preventDefault();
+268:           setIsOpen(true);
+269:         }
+270:         break;
+271:     }
+272:   };
+273:   
+274:   // Handle key navigation within the menu
+275:   const handleMenuKeyDown = (e: React.KeyboardEvent, option: DropdownMenuOption) => {
+276:     if (option.disabled) return;
+277:     
+278:     switch (e.key) {
+279:       case 'Enter':
+280:       case ' ':
+281:         e.preventDefault();
+282:         handleSelect(option);
+283:         break;
+284:       case 'Escape':
+285:         e.preventDefault();
+286:         closeDropdown();
+287:         triggerRef.current?.focus();
+288:         break;
+289:       case 'ArrowDown':
+290:         e.preventDefault();
+291:         focusNextItem();
+292:         break;
+293:       case 'ArrowUp':
+294:         e.preventDefault();
+295:         focusPreviousItem();
+296:         break;
+297:       case 'Tab':
+298:         // Do not prevent default to allow regular tabbing behavior
+299:         setIsOpen(false);
+300:         break;
+301:     }
+302:   };
+303:   
+304:   // Focus the next menu item
+305:   const focusNextItem = () => {
+306:     const menuItems = menuRef.current?.querySelectorAll('[role="menuitem"]:not([aria-disabled="true"])');
+307:     if (!menuItems || menuItems.length === 0) return;
+308:     
+309:     const currentIndex = Array.from(menuItems).findIndex(
+310:       item => item === document.activeElement
+311:     );
+312:     
+313:     const nextIndex = currentIndex + 1 < menuItems.length ? currentIndex + 1 : 0;
+314:     (menuItems[nextIndex] as HTMLElement).focus();
+315:   };
+316:   
+317:   // Focus the previous menu item
+318:   const focusPreviousItem = () => {
+319:     const menuItems = menuRef.current?.querySelectorAll('[role="menuitem"]:not([aria-disabled="true"])');
+320:     if (!menuItems || menuItems.length === 0) return;
+321:     
+322:     const currentIndex = Array.from(menuItems).findIndex(
+323:       item => item === document.activeElement
+324:     );
+325:     
+326:     const prevIndex = currentIndex > 0 ? currentIndex - 1 : menuItems.length - 1;
+327:     (menuItems[prevIndex] as HTMLElement).focus();
+328:   };
+329:   
+330:   // Handle option selection
+331:   const handleSelect = (option: DropdownMenuOption) => {
+332:     if (option.disabled) return;
+333:     
+334:     onChange(option.value);
+335:     closeDropdown();
+336:     triggerRef.current?.focus();
+337:   };
+338:   
+339:   // Toggle the dropdown
+340:   const toggleDropdown = () => {
+341:     if (!disabled) {
+342:       if (isOpen) {
+343:         closeDropdown();
+344:       } else {
+345:         setIsOpen(true);
+346:       }
+347:     }
+348:   };
+349: 
+350:   // Handle closing with animation
+351:   const closeDropdown = () => {
+352:     if (!isOpen) return;
+353:     
+354:     setIsClosing(true);
+355:     setTimeout(() => {
+356:       setIsOpen(false);
+357:       setIsClosing(false);
+358:     }, 150); // Match this duration to CSS animation time
+359:   };
+360:   
+361:   return (
+362:     <div className={`${styles.dropdownMenu} ${className || ''}`}>
+363:       <button
+364:         ref={triggerRef}
+365:         className={`${styles.dropdownTrigger} ${isOpen ? styles.dropdownTriggerOpen : ''} ${size ? styles[size] : ''}`}
+366:         onClick={toggleDropdown}
+367:         onKeyDown={handleKeyDown}
+368:         aria-haspopup="listbox"
+369:         aria-expanded={isOpen}
+370:         aria-labelledby={title}
+371:         disabled={disabled}
+372:         type="button"
+373:       >
+374:         <span className={styles.buttonLabel}>{getSelectedLabel()}</span>
+375:         <Plus 
+376:           size={16} 
+377:           className={`${styles.accordionIcon} ${isOpen ? styles.rotated : ''}`} 
+378:           aria-hidden="true" 
+379:         />
+380:       </button>
+381:       
+382:       {(isOpen || isClosing) && createPortal(
+383:         <div 
+384:           ref={menuRef}
+385:           className={`${styles.dropdownContent} ${isClosing ? styles.closing : ''} ${menuClassName || ''}`}
+386:           style={{
+387:             ...position,
+388:             width: triggerRef.current ? `${triggerRef.current.offsetWidth}px` : undefined
+389:           }}
+390:           role="listbox"
+391:           aria-orientation="vertical"
+392:           data-side={dropdownSide}
+393:         >
+394:           {options.map((option, index) => {
+395:             const isSelected = option.value === value;
+396:             const isFirstNonDisabled = !option.disabled && options.findIndex(o => !o.disabled) === index;
+397:             
+398:             return (
+399:               <div
+400:                 key={option.value}
+401:                 ref={isFirstNonDisabled ? firstItemRef : undefined}
+402:                 className={`${styles.dropdownItem} ${option.disabled ? styles.disabled : ''}`}
+403:                 onClick={() => handleSelect(option)}
+404:                 onKeyDown={(e) => handleMenuKeyDown(e, option)}
+405:                 role="menuitem"
+406:                 aria-selected={isSelected}
+407:                 aria-disabled={option.disabled}
+408:                 tabIndex={option.disabled ? -1 : 0}
+409:                 data-value={option.value}
+410:               >
+411:                 {option.icon && (
+412:                   <span className={styles.itemIcon}>{option.icon}</span>
+413:                 )}
+414:                 <span className={styles.itemText}>{option.label}</span>
+415:               </div>
+416:             );
+417:           })}
+418:         </div>,
+419:         document.body
+420:       )}
+421:     </div>
+422:   );
+423: };
 ````
 
 ## File: src/components/FileCard.module.css
@@ -5150,17 +5458,6 @@ src/
 272: };
 ````
 
-## File: src/components/ui/index.ts
-````typescript
-1: export { Button } from './Button';
-2: export { Switch } from './Switch';
-3: export { ButtonGroup } from './ButtonGroup';
-4: export * from './Input';
-5: export * from './Card';
-6: export * from './Dialog';
-7: export * from './Dropdown';
-````
-
 ## File: src/components/Sidebar.module.css
 ````css
   1: .sidebar {
@@ -5279,280 +5576,6 @@ src/
 114:   opacity: 0.7;
 115:   border-bottom: 1px solid var(--border-color);
 116: }
-````
-
-## File: src/components/ui/Dropdown/Dropdown.module.css
-````css
-  1: .dropdown {
-  2:   position: relative;
-  3:   display: inline-flex;
-  4:   vertical-align: middle;
-  5: }
-  6: 
-  7: .button {
-  8:   display: inline-flex;
-  9:   align-items: center;
- 10:   justify-content: center;
- 11:   gap: 0.5rem;
- 12:   padding: 0.5rem;
- 13:   font-size: 0.875rem;
- 14:   color: var(--icon-color);
- 15:   border-radius: var(--radius);
- 16:   cursor: pointer;
- 17:   transition: all 0.15s ease;
- 18:   background: transparent;
- 19:   border: 1px solid var(--border-color);
- 20:   height: 32px;
- 21:   width: 32px;
- 22: }
- 23: 
- 24: .button:hover:not(:disabled) {
- 25:   background: var(--hover-color);
- 26: }
- 27: 
- 28: .button:focus-visible {
- 29:   outline: 2px solid var(--ring-color);
- 30:   outline-offset: -1px;
- 31: }
- 32: 
- 33: .button.active {
- 34:   background: var(--hover-color);
- 35: }
- 36: 
- 37: .buttonLabel {
- 38:   flex: 1;
- 39:   text-align: left;
- 40:   overflow: hidden;
- 41:   text-overflow: ellipsis;
- 42:   white-space: nowrap;
- 43: }
- 44: 
- 45: .chevron {
- 46:   color: var(--text-secondary);
- 47:   transition: transform 0.2s ease;
- 48:   width: 16px;
- 49:   height: 16px;
- 50: }
- 51: 
- 52: .chevronOpen {
- 53:   transform: rotate(180deg);
- 54: }
- 55: 
- 56: .menu {
- 57:   position: absolute;
- 58:   top: 100%;
- 59:   left: 0;
- 60:   z-index: var(--z-index-dropdown);
- 61:   min-width: 180px;
- 62:   margin-top: 0.25rem;
- 63:   padding: 0.375rem;
- 64:   background: var(--background-primary);
- 65:   border: 1px solid var(--border-color);
- 66:   border-radius: var(--radius);
- 67:   box-shadow: var(--shadow-md);
- 68:   overflow-y: auto;
- 69:   max-height: 300px;
- 70:   animation: dropdownFadeIn 0.15s ease;
- 71: }
- 72: 
- 73: .option {
- 74:   display: flex;
- 75:   align-items: center;
- 76:   gap: 0.5rem;
- 77:   padding: 0.5rem 0.75rem;
- 78:   font-size: 0.875rem;
- 79:   color: var(--text-primary);
- 80:   cursor: pointer;
- 81:   border-radius: var(--radius);
- 82:   transition: background-color 0.1s ease;
- 83:   user-select: none;
- 84: }
- 85: 
- 86: .option:hover:not(.disabled) {
- 87:   background: var(--hover-color);
- 88: }
- 89: 
- 90: .option:focus {
- 91:   outline: none;
- 92:   background: var(--hover-color);
- 93: }
- 94: 
- 95: .option.selected {
- 96:   background: var(--background-selected);
- 97:   color: var(--text-primary);
- 98: }
- 99: 
-100: .option.disabled {
-101:   opacity: 0.5;
-102:   cursor: not-allowed;
-103: }
-104: 
-105: .optionIcon {
-106:   flex-shrink: 0;
-107:   color: var(--icon-color);
-108:   width: 16px;
-109:   height: 16px;
-110: }
-111: 
-112: .optionLabel {
-113:   flex: 1;
-114:   white-space: nowrap;
-115:   overflow: hidden;
-116:   text-overflow: ellipsis;
-117: }
-118: 
-119: .checkmark {
-120:   color: var(--accent-color);
-121: }
-122: 
-123: /* Size variants */
-124: .sm .button {
-125:   height: 28px;
-126:   width: 28px;
-127:   padding: 0.25rem;
-128: }
-129: 
-130: .lg .button {
-131:   height: 36px;
-132:   width: 36px;
-133:   padding: 0.75rem;
-134: }
-135: 
-136: @keyframes dropdownFadeIn {
-137:   from {
-138:     opacity: 0;
-139:     transform: translateY(4px);
-140:   }
-141:   to {
-142:     opacity: 1;
-143:     transform: translateY(0);
-144:   }
-145: }
-146: 
-147: /* Dark mode enhancements */
-148: :global(.dark-mode) .menu {
-149:   background: var(--dropdown-menu-background);
-150:   border-color: var(--border-color);
-151: }
-152: 
-153: :global(.dark-mode) .option:hover:not(.disabled) {
-154:   background: var(--dropdown-item-hover);
-155: }
-156: 
-157: /* Improved focus styles for keyboard navigation */
-158: .option:focus-visible {
-159:   outline: none;
-160:   box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--ring-color);
-161: }
-162: 
-163: /* Add subtle divider between groups of options if needed */
-164: .option + .option {
-165:   border-top: 1px solid transparent;
-166: }
-167: 
-168: .option:hover + .option {
-169:   border-top-color: transparent;
-170: }
-````
-
-## File: src/components/ui/Button/Button.tsx
-````typescript
- 1: import React from 'react';
- 2: import { cn } from '../../../utils/cn';
- 3: import styles from './Button.module.css';
- 4: 
- 5: export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'round' | 'icon' | 'pill';
- 6: export type ButtonSize = 'sm' | 'md' | 'lg';
- 7: 
- 8: export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
- 9:   /**
-10:    * Button visual variant
-11:    * @default 'primary'
-12:    */
-13:   variant?: ButtonVariant;
-14:   
-15:   /**
-16:    * Button size
-17:    * @default 'md'
-18:    */
-19:   size?: ButtonSize;
-20:   
-21:   /**
-22:    * Optional icon to display before the button text
-23:    */
-24:   startIcon?: React.ReactNode;
-25:   
-26:   /**
-27:    * Optional icon to display after the button text
-28:    */
-29:   endIcon?: React.ReactNode;
-30:   
-31:   /**
-32:    * If true, button will have equal width and height, and padding will be adjusted
-33:    * Useful for icon-only buttons
-34:    * @default false
-35:    */
-36:   iconOnly?: boolean;
-37:   
-38:   /**
-39:    * If true, button will have fully rounded corners (pill shape)
-40:    * Note: This is different from the 'pill' variant which has specific styling
-41:    * @default false
-42:    */
-43:   pill?: boolean;
-44:   
-45:   /**
-46:    * Button children (text content or other elements)
-47:    */
-48:   children?: React.ReactNode;
-49: }
-50: 
-51: /**
-52:  * Primary UI component for user interaction.
-53:  * Supports multiple variants (primary, secondary, ghost, destructive, round, pill, icon) and sizes.
-54:  * Round variant is always pill-shaped and inherits primary colors with enhanced styling.
-55:  * Pill variant is a compact, high-contrast tag-like button (similar to the Platform badge in the reference).
-56:  */
-57: export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-58:   (
-59:     {
-60:       className,
-61:       variant = 'primary',
-62:       size = 'md',
-63:       startIcon,
-64:       endIcon,
-65:       iconOnly = false,
-66:       pill = false,
-67:       children,
-68:       ...props
-69:     },
-70:     ref
-71:   ) => {
-72:     // Force pill shape for round variant and pill variant
-73:     const isPillShaped = variant === 'round' || variant === 'pill' || pill;
-74:     
-75:     return (
-76:       <button
-77:         className={cn(
-78:           styles.button,
-79:           styles[variant],
-80:           styles[size],
-81:           iconOnly && styles.iconOnly,
-82:           isPillShaped && !variant.includes('pill') && styles.pillShaped, // Apply pill shape but not pill styling
-83:           className
-84:         )}
-85:         ref={ref}
-86:         {...props}
-87:       >
-88:         {startIcon && <span className={styles.startIcon}>{startIcon}</span>}
-89:         {children}
-90:         {endIcon && <span className={styles.endIcon}>{endIcon}</span>}
-91:       </button>
-92:     );
-93:   }
-94: );
-95: 
-96: Button.displayName = 'Button';
 ````
 
 ## File: src/components/TreeItem.tsx
@@ -5741,6 +5764,292 @@ src/
 182: TreeItem.displayName = "TreeItem";
 183: 
 184: export default TreeItem;
+````
+
+## File: src/components/ui/Dropdown/Dropdown.module.css
+````css
+  1: .dropdown {
+  2:   position: relative;
+  3:   display: inline-flex;
+  4:   vertical-align: middle;
+  5: }
+  6: 
+  7: .button {
+  8:   display: inline-flex;
+  9:   align-items: center;
+ 10:   justify-content: center;
+ 11:   gap: 0.5rem;
+ 12:   padding: 0.5rem;
+ 13:   font-size: 0.875rem;
+ 14:   color: var(--icon-color);
+ 15:   border-radius: var(--radius);
+ 16:   cursor: pointer;
+ 17:   transition: all 0.15s ease;
+ 18:   background: transparent;
+ 19:   border: 1px solid var(--border-color);
+ 20:   height: 32px;
+ 21:   width: 32px;
+ 22: }
+ 23: 
+ 24: .button:hover:not(:disabled) {
+ 25:   background: var(--hover-color);
+ 26: }
+ 27: 
+ 28: .button:focus-visible {
+ 29:   outline: 2px solid var(--ring-color);
+ 30:   outline-offset: -1px;
+ 31: }
+ 32: 
+ 33: .button.active {
+ 34:   background: var(--hover-color);
+ 35: }
+ 36: 
+ 37: .buttonLabel {
+ 38:   flex: 1;
+ 39:   text-align: left;
+ 40:   overflow: hidden;
+ 41:   text-overflow: ellipsis;
+ 42:   white-space: nowrap;
+ 43: }
+ 44: 
+ 45: .chevron {
+ 46:   color: var(--text-secondary);
+ 47:   transition: transform 0.2s ease;
+ 48:   width: 16px;
+ 49:   height: 16px;
+ 50: }
+ 51: 
+ 52: .chevronOpen {
+ 53:   transform: rotate(180deg);
+ 54: }
+ 55: 
+ 56: .menu {
+ 57:   position: absolute;
+ 58:   top: 100%;
+ 59:   left: 0;
+ 60:   z-index: var(--z-index-dropdown);
+ 61:   min-width: 180px;
+ 62:   margin-top: 0.25rem;
+ 63:   padding: 0.375rem;
+ 64:   background: var(--background-primary);
+ 65:   border: 1px solid var(--border-color);
+ 66:   border-radius: var(--radius);
+ 67:   box-shadow: var(--shadow-md);
+ 68:   overflow-y: auto;
+ 69:   max-height: 300px;
+ 70:   animation: dropdownFadeIn 0.15s ease;
+ 71: }
+ 72: 
+ 73: .option {
+ 74:   display: flex;
+ 75:   align-items: center;
+ 76:   gap: 0.5rem;
+ 77:   padding: 0.5rem 0.75rem;
+ 78:   font-size: 0.875rem;
+ 79:   color: var(--text-primary);
+ 80:   cursor: pointer;
+ 81:   border-radius: var(--radius);
+ 82:   transition: background-color 0.1s ease;
+ 83:   user-select: none;
+ 84: }
+ 85: 
+ 86: .option:hover:not(.disabled) {
+ 87:   background: var(--hover-color);
+ 88: }
+ 89: 
+ 90: .option:focus {
+ 91:   outline: none;
+ 92:   background: var(--hover-color);
+ 93: }
+ 94: 
+ 95: .option.selected {
+ 96:   background: var(--background-selected);
+ 97:   color: var(--text-primary);
+ 98: }
+ 99: 
+100: .option.disabled {
+101:   opacity: 0.5;
+102:   cursor: not-allowed;
+103: }
+104: 
+105: .optionIcon {
+106:   flex-shrink: 0;
+107:   color: var(--icon-color);
+108:   width: 16px;
+109:   height: 16px;
+110: }
+111: 
+112: .optionLabel {
+113:   flex: 1;
+114:   white-space: nowrap;
+115:   overflow: hidden;
+116:   text-overflow: ellipsis;
+117: }
+118: 
+119: .checkmark {
+120:   color: var(--accent-color);
+121: }
+122: 
+123: /* Size variants */
+124: .sm .button {
+125:   height: 28px;
+126:   width: 28px;
+127:   padding: 0.25rem;
+128: }
+129: 
+130: .lg .button {
+131:   height: 36px;
+132:   width: 36px;
+133:   padding: 0.75rem;
+134: }
+135: 
+136: @keyframes dropdownFadeIn {
+137:   from {
+138:     opacity: 0;
+139:     transform: translateY(4px);
+140:   }
+141:   to {
+142:     opacity: 1;
+143:     transform: translateY(0);
+144:   }
+145: }
+146: 
+147: /* Dark mode enhancements */
+148: :global(.dark-mode) .menu {
+149:   background: var(--dropdown-menu-background);
+150:   border-color: var(--border-color);
+151: }
+152: 
+153: :global(.dark-mode) .option:hover:not(.disabled) {
+154:   background: var(--dropdown-item-hover);
+155: }
+156: 
+157: /* Improved focus styles for keyboard navigation */
+158: .option:focus-visible {
+159:   outline: none;
+160:   box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--ring-color);
+161: }
+162: 
+163: /* Add subtle divider between groups of options if needed */
+164: .option + .option {
+165:   border-top: 1px solid transparent;
+166: }
+167: 
+168: .option:hover + .option {
+169:   border-top-color: transparent;
+170: }
+````
+
+## File: src/components/ui/index.ts
+````typescript
+1: export { Button } from './Button';
+2: export { Switch } from './Switch';
+3: export { ButtonGroup } from './ButtonGroup';
+4: export * from './Input';
+5: export * from './Card';
+6: export * from './Dialog';
+7: export * from './Dropdown';
+8: export * from './DropdownMenu';
+````
+
+## File: src/components/ui/Button/Button.tsx
+````typescript
+ 1: import React from 'react';
+ 2: import { cn } from '../../../utils/cn';
+ 3: import styles from './Button.module.css';
+ 4: 
+ 5: export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'round' | 'icon' | 'pill';
+ 6: export type ButtonSize = 'sm' | 'md' | 'lg';
+ 7: 
+ 8: export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+ 9:   /**
+10:    * Button visual variant
+11:    * @default 'primary'
+12:    */
+13:   variant?: ButtonVariant;
+14:   
+15:   /**
+16:    * Button size
+17:    * @default 'md'
+18:    */
+19:   size?: ButtonSize;
+20:   
+21:   /**
+22:    * Optional icon to display before the button text
+23:    */
+24:   startIcon?: React.ReactNode;
+25:   
+26:   /**
+27:    * Optional icon to display after the button text
+28:    */
+29:   endIcon?: React.ReactNode;
+30:   
+31:   /**
+32:    * If true, button will have equal width and height, and padding will be adjusted
+33:    * Useful for icon-only buttons
+34:    * @default false
+35:    */
+36:   iconOnly?: boolean;
+37:   
+38:   /**
+39:    * If true, button will have fully rounded corners (pill shape)
+40:    * Note: This is different from the 'pill' variant which has specific styling
+41:    * @default false
+42:    */
+43:   pill?: boolean;
+44:   
+45:   /**
+46:    * Button children (text content or other elements)
+47:    */
+48:   children?: React.ReactNode;
+49: }
+50: 
+51: /**
+52:  * Primary UI component for user interaction.
+53:  * Supports multiple variants (primary, secondary, ghost, destructive, round, pill, icon) and sizes.
+54:  * Round variant is always pill-shaped and inherits primary colors with enhanced styling.
+55:  * Pill variant is a compact, high-contrast tag-like button (similar to the Platform badge in the reference).
+56:  */
+57: export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+58:   (
+59:     {
+60:       className,
+61:       variant = 'primary',
+62:       size = 'md',
+63:       startIcon,
+64:       endIcon,
+65:       iconOnly = false,
+66:       pill = false,
+67:       children,
+68:       ...props
+69:     },
+70:     ref
+71:   ) => {
+72:     // Force pill shape for round variant and pill variant
+73:     const isPillShaped = variant === 'round' || variant === 'pill' || pill;
+74:     
+75:     return (
+76:       <button
+77:         className={cn(
+78:           styles.button,
+79:           styles[variant],
+80:           styles[size],
+81:           iconOnly && styles.iconOnly,
+82:           isPillShaped && !variant.includes('pill') && styles.pillShaped, // Apply pill shape but not pill styling
+83:           className
+84:         )}
+85:         ref={ref}
+86:         {...props}
+87:       >
+88:         {startIcon && <span className={styles.startIcon}>{startIcon}</span>}
+89:         {children}
+90:         {endIcon && <span className={styles.endIcon}>{endIcon}</span>}
+91:       </button>
+92:     );
+93:   }
+94: );
+95: 
+96: Button.displayName = 'Button';
 ````
 
 ## File: src/types/FileTypes.ts
@@ -6916,6 +7225,107 @@ src/
 145: }
 ````
 
+## File: src/components/FileTreeHeader.tsx
+````typescript
+ 1: import React, { useCallback } from "react"; // Import useCallback
+ 2: import { Folder, Filter, X, RefreshCw } from "lucide-react"; // Removed unused sort icons
+ 3: import { SortOrder } from "../types/FileTypes";
+ 4: import { Button } from "./ui";
+ 5: import { Dropdown } from "./ui/Dropdown";
+ 6: import { getSortIcon } from "../utils/sortIcons"; // Keep this utility
+ 7: import styles from "./FileTreeHeader.module.css";
+ 8: 
+ 9: // Removed unused sortIconMap and iconComponents
+10: 
+11: interface FileTreeHeaderProps {
+12:   onOpenFolder: () => void;
+13:   onSortChange: (sortOrder: SortOrder) => void;
+14:   onClearSelection: () => void; // Should trigger dialog in App
+15:   onRemoveAllFolders: () => void; // Should trigger dialog in App
+16:   onReloadFileTree: () => void;
+17:   onOpenIgnorePatterns: () => void; // Simplified: always opens modal
+18:   excludedFilesCount?: number;
+19:   currentSortOrder?: SortOrder;
+20: }
+21: 
+22: // Keep sortOptions definition
+23: const sortOptions = [
+24:   { value: "name-ascending", label: "Name (A to Z)" },
+25:   { value: "name-descending", label: "Name (Z to A)" },
+26:   { value: "tokens-ascending", label: "Tokens (Asc)" }, // Updated labels for brevity if desired
+27:   { value: "tokens-descending", label: "Tokens (Desc)" },
+28:   { value: "date-ascending", label: "Date (Oldest)" },
+29:   { value: "date-descending", label: "Date (Newest)" }
+30: ];
+31: 
+32: // Keep clearOptions definition
+33: const clearOptions = [
+34:   { value: "clear", label: "Clear selection" },
+35:   { value: "removeAll", label: "Remove All Folders" },
+36: ];
+37: 
+38: const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({ // Use React.FC for consistency
+39:   onOpenFolder,
+40:   onSortChange,
+41:   onClearSelection,
+42:   onRemoveAllFolders,
+43:   onReloadFileTree,
+44:   onOpenIgnorePatterns,
+45:   excludedFilesCount,
+46:   currentSortOrder,
+47: }) => {
+48: 
+49:   // Use useCallback for handlers passed to Dropdown
+50:   const handleSortSelect = useCallback((value: string | string[]) => {
+51:     if (typeof value === 'string') {
+52:         onSortChange(value as SortOrder);
+53:     }
+54:   }, [onSortChange]);
+55: 
+56:   const handleClearSelect = useCallback((value: string | string[]) => {
+57:     if (typeof value === 'string') {
+58:       if (value === 'clear') onClearSelection();
+59:       else if (value === 'removeAll') onRemoveAllFolders();
+60:     }
+61:   }, [onClearSelection, onRemoveAllFolders]);
+62: 
+63:   return (
+64:     <>
+65:       <div className={styles.fileTreeHeader}>
+66:         <Button variant="icon" size="sm" iconOnly startIcon={<Folder size={16} />} onClick={onOpenFolder} title="Select Folder" className={styles.fileTreeBtn} />
+67:         <div className={styles.dropdownContainer}>
+68:           <Dropdown
+69:             options={sortOptions}
+70:             onChange={handleSortSelect}
+71:             value={currentSortOrder}
+72:             trigger={<Button variant="icon" size="sm" iconOnly startIcon={getSortIcon(currentSortOrder)} title="Sort By" className={styles.fileTreeBtn} />}
+73:             menuClassName={styles.headerDropdownMenu} // Ensure this class exists or remove
+74:           />
+75:         </div>
+76:         <Button variant="icon" size="sm" iconOnly startIcon={<Filter size={16} />} onClick={onOpenIgnorePatterns} title="Ignore Patterns" className={styles.fileTreeBtn} />
+77:         <div className={styles.dropdownContainer}>
+78:           <Dropdown
+79:             options={clearOptions}
+80:             onChange={handleClearSelect}
+81:             trigger={<Button variant="icon" size="sm" iconOnly startIcon={<X size={16} />} title="Clear Actions" className={styles.fileTreeBtn} />}
+82:             menuClassName={styles.headerDropdownMenu} // Ensure this class exists or remove
+83:           />
+84:         </div>
+85:         <Button variant="icon" size="sm" iconOnly startIcon={<RefreshCw size={16} />} onClick={onReloadFileTree} title="Reload" className={styles.fileTreeBtn} />
+86:       </div>
+87: 
+88:       {excludedFilesCount !== undefined && excludedFilesCount > 0 && (
+89:         <div className={styles.excludedFilesCount}>
+90:           {excludedFilesCount} {excludedFilesCount === 1 ? 'file' : 'files'} excluded
+91:         </div>
+92:       )}
+93:     </>
+94:   );
+95: };
+96: 
+97: export default FileTreeHeader; // Add default export if not already present
+````
+
 ## File: src/App.module.css
 ````css
   1: .app {
@@ -7197,272 +7607,148 @@ src/
   1: import React, { useState, useCallback } from 'react'; // Import useCallback
   2: import { FileTreeMode } from '../types/FileTypes';
   3: import { OutputFormatType, OUTPUT_FORMAT_OPTIONS } from '../constants/outputFormats';
-  4: import { Switch, Button, ButtonGroup } from './ui';
-  5: import { Copy, Download, Check, Loader2, FileText, Code, FileJson } from 'lucide-react'; // Added FileText, Code, FileJson
+  4: import { Switch, Button, ButtonGroup, DropdownAdapter } from './ui';
+  5: import { Copy, Download, Check, Loader2 } from 'lucide-react'; // Added Loader2
   6: import styles from './ControlContainer.module.css';
-  7: import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './ui/DropdownMenu';
-  8: 
-  9: interface ControlContainerProps {
- 10:   fileTreeMode: FileTreeMode;
- 11:   setFileTreeMode: (mode: FileTreeMode) => void;
- 12:   showUserInstructions: boolean;
- 13:   setShowUserInstructions: (show: boolean) => void;
- 14:   getSelectedFilesContent: () => Promise<string>; // Make async
- 15:   selectedFilesCount: number;
- 16:   outputFormat: OutputFormatType;
- 17:   setOutputFormat: (format: OutputFormatType) => void;
- 18:   // Removed unused props (previously prefixed with _)
- 19: }
- 20: 
- 21: const ControlContainer: React.FC<ControlContainerProps> = ({
- 22:   fileTreeMode,
- 23:   setFileTreeMode,
- 24:   showUserInstructions,
- 25:   setShowUserInstructions,
- 26:   getSelectedFilesContent,
- 27:   selectedFilesCount,
- 28:   outputFormat,
- 29:   setOutputFormat,
- 30: }) => {
- 31:   const [copied, setCopied] = useState(false);
- 32:   const [isCopying, setIsCopying] = useState(false); // Add loading state for copy
- 33:   const [isDownloading, setIsDownloading] = useState(false); // Add loading state for download
- 34: 
- 35:   const handleCopy = useCallback(async () => {
- 36:     if (selectedFilesCount === 0 || isCopying) return;
- 37:     setIsCopying(true);
- 38:     setCopied(false); // Reset copied state
- 39:     try {
- 40:       const content = await getSelectedFilesContent(); // Await the async function
- 41:       await navigator.clipboard.writeText(content);
- 42:       setCopied(true);
- 43:       setTimeout(() => setCopied(false), 2000);
- 44:     } catch (err) {
- 45:       console.error('Failed to copy:', err);
- 46:       // TODO: Show user error feedback
- 47:     } finally {
- 48:       setIsCopying(false);
- 49:     }
- 50:   }, [getSelectedFilesContent, selectedFilesCount, isCopying]); // Add dependencies
- 51: 
- 52:   const handleDownload = useCallback(async () => {
- 53:     if (selectedFilesCount === 0 || isDownloading) return;
- 54:     setIsDownloading(true);
- 55:     try {
- 56:         const content = await getSelectedFilesContent(); // Await the async function
- 57:         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' }); // Specify charset
- 58:         const url = URL.createObjectURL(blob);
- 59:         const a = document.createElement('a');
- 60:         a.href = url;
- 61:         // Generate filename based on current context if possible
- 62:         const filename = `pastemax_output_${new Date().toISOString().split('T')[0]}.txt`;
- 63:         a.download = filename;
- 64:         document.body.appendChild(a);
- 65:         a.click();
- 66:         document.body.removeChild(a);
- 67:         URL.revokeObjectURL(url);
- 68:     } catch (err) {
- 69:         console.error('Failed to download:', err);
- 70:         // TODO: Show user error feedback
- 71:     } finally {
- 72:         setIsDownloading(false);
- 73:     }
- 74:   }, [getSelectedFilesContent, selectedFilesCount, isDownloading]); // Add dependencies
- 75: 
- 76:   // Get icon based on format
- 77:   const getFormatIcon = (format: OutputFormatType) => {
- 78:     switch (format) {
- 79:       case 'xml':
- 80:         return <FileJson size={16} className="opacity-60" />;
- 81:       case 'markdown':
- 82:         return <FileText size={16} className="opacity-60" />;
- 83:       case 'plain':
- 84:         return <Code size={16} className="opacity-60" />;
- 85:       default:
- 86:         return null;
- 87:     }
- 88:   };
- 89: 
- 90:   return (
- 91:     <div className={styles.controlContainer}>
- 92:       <div className={styles.controlContainerHeader}>Controls</div>
- 93:       <div className={styles.controlItems}>
- 94:         {/* Display Options Group */}
- 95:         <div className={styles.controlGroup}>
- 96:           <div className={styles.controlGroupTitle}>Display Options</div>
- 97:           <div className={styles.controlItem}>
- 98:             <Switch checked={showUserInstructions} onChange={() => setShowUserInstructions(!showUserInstructions)} label="Show User Instructions" id="user-instructions-toggle" />
- 99:           </div>
-100:           <div className={styles.controlItem}>
-101:             <label className={styles.controlSelectLabel} htmlFor="file-tree-mode">File Tree:</label>
-102:             <select id="file-tree-mode" value={fileTreeMode} onChange={(e) => setFileTreeMode(e.target.value as FileTreeMode)} className={styles.controlSelect}>
-103:               <option value="none">None</option>
-104:               <option value="selected">Selected Files Only</option>
-105:               <option value="selected-with-roots">Selected Files with Path</option>
-106:               <option value="complete">Complete Tree (Mark Selected)</option>
-107:             </select>
-108:           </div>
-109:         </div>
-110: 
-111:         {/* Output Format Group */}
-112:         <div className={styles.controlGroup}>
-113:           <div className={styles.controlGroupTitle}>Output Format</div>
-114:           <div className={styles.controlItem}>
-115:             <DropdownMenu>
-116:               <DropdownMenuTrigger>
-117:                 <Button variant="outline" size="sm">
-118:                   {outputFormat.toUpperCase()}
-119:                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down opacity-60 ml-2"><path d="m6 9 6 6 6-6"></path></svg>
-120:                 </Button>
-121:               </DropdownMenuTrigger>
-122:               <DropdownMenuContent align="start" side="bottom">
-123:                 {OUTPUT_FORMAT_OPTIONS.map((option) => (
-124:                   <DropdownMenuItem
-125:                     key={option.value}
-126:                     onSelect={() => setOutputFormat(option.value as OutputFormatType)}
-127:                     icon={getFormatIcon(option.value as OutputFormatType)}
-128:                   >
-129:                     {option.label}
-130:                   </DropdownMenuItem>
-131:                 ))}
-132:               </DropdownMenuContent>
-133:             </DropdownMenu>
-134:           </div>
-135:         </div>
-136: 
-137:         {/* Output Options Group */}
-138:         <div className={styles.controlGroup}>
-139:           <div className={styles.controlGroupTitle}>Output</div>
-140:           <div className={styles.controlItem}>
-141:             <ButtonGroup size="sm">
-142:               <Button
-143:                 variant="secondary"
-144:                 onClick={handleCopy}
-145:                 startIcon={isCopying ? <Loader2 size={16} className="animate-spin" /> : copied ? <Check size={16} /> : <Copy size={16} />}
-146:                 disabled={selectedFilesCount === 0 || isCopying || isDownloading}
-147:                 title={isCopying ? "Copying..." : copied ? "Copied!" : `Copy ${selectedFilesCount} selected files to clipboard`}
-148:               >
-149:                 {isCopying ? 'Copying...' : copied ? 'Copied!' : `Copy (${selectedFilesCount})`}
-150:               </Button>
-151:               <Button
-152:                 variant="secondary"
-153:                 onClick={handleDownload}
-154:                 startIcon={isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-155:                 disabled={selectedFilesCount === 0 || isCopying || isDownloading}
-156:                 title={isDownloading ? "Saving..." : "Save selected files content"}
-157:               >
-158:                 {isDownloading ? 'Saving...' : 'Save'}
-159:               </Button>
-160:             </ButtonGroup>
-161:           </div>
-162:         </div>
-163:       </div>
-164:     </div>
-165:   );
-166: };
-167: 
-168: export default ControlContainer;
-````
-
-## File: src/components/FileTreeHeader.tsx
-````typescript
- 1: import React, { useCallback } from "react"; // Import useCallback
- 2: import { Folder, Filter, X, RefreshCw } from "lucide-react"; // Removed unused sort icons
- 3: import { SortOrder } from "../types/FileTypes";
- 4: import { Button } from "./ui";
- 5: import { Dropdown } from "./ui/Dropdown";
- 6: import { getSortIcon } from "../utils/sortIcons"; // Keep this utility
- 7: import styles from "./FileTreeHeader.module.css";
- 8: 
- 9: // Removed unused sortIconMap and iconComponents
-10: 
-11: interface FileTreeHeaderProps {
-12:   onOpenFolder: () => void;
-13:   onSortChange: (sortOrder: SortOrder) => void;
-14:   onClearSelection: () => void; // Should trigger dialog in App
-15:   onRemoveAllFolders: () => void; // Should trigger dialog in App
-16:   onReloadFileTree: () => void;
-17:   onOpenIgnorePatterns: () => void; // Simplified: always opens modal
-18:   excludedFilesCount?: number;
-19:   currentSortOrder?: SortOrder;
-20: }
-21: 
-22: // Keep sortOptions definition
-23: const sortOptions = [
-24:   { value: "name-ascending", label: "Name (A to Z)" },
-25:   { value: "name-descending", label: "Name (Z to A)" },
-26:   { value: "tokens-ascending", label: "Tokens (Asc)" }, // Updated labels for brevity if desired
-27:   { value: "tokens-descending", label: "Tokens (Desc)" },
-28:   { value: "date-ascending", label: "Date (Oldest)" },
-29:   { value: "date-descending", label: "Date (Newest)" }
-30: ];
-31: 
-32: // Keep clearOptions definition
-33: const clearOptions = [
-34:   { value: "clear", label: "Clear selection" },
-35:   { value: "removeAll", label: "Remove All Folders" },
-36: ];
-37: 
-38: const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({ // Use React.FC for consistency
-39:   onOpenFolder,
-40:   onSortChange,
-41:   onClearSelection,
-42:   onRemoveAllFolders,
-43:   onReloadFileTree,
-44:   onOpenIgnorePatterns,
-45:   excludedFilesCount,
-46:   currentSortOrder,
-47: }) => {
-48: 
-49:   // Use useCallback for handlers passed to Dropdown
-50:   const handleSortSelect = useCallback((value: string | string[]) => {
-51:     if (typeof value === 'string') {
-52:         onSortChange(value as SortOrder);
-53:     }
-54:   }, [onSortChange]);
-55: 
-56:   const handleClearSelect = useCallback((value: string | string[]) => {
-57:     if (typeof value === 'string') {
-58:       if (value === 'clear') onClearSelection();
-59:       else if (value === 'removeAll') onRemoveAllFolders();
-60:     }
-61:   }, [onClearSelection, onRemoveAllFolders]);
-62: 
-63:   return (
-64:     <>
-65:       <div className={styles.fileTreeHeader}>
-66:         <Button variant="icon" size="sm" iconOnly startIcon={<Folder size={16} />} onClick={onOpenFolder} title="Select Folder" className={styles.fileTreeBtn} />
-67:         <div className={styles.dropdownContainer}>
-68:           <Dropdown
-69:             options={sortOptions}
-70:             onChange={handleSortSelect}
-71:             value={currentSortOrder}
-72:             trigger={<Button variant="icon" size="sm" iconOnly startIcon={getSortIcon(currentSortOrder)} title="Sort By" className={styles.fileTreeBtn} />}
-73:             menuClassName={styles.headerDropdownMenu} // Ensure this class exists or remove
-74:           />
-75:         </div>
-76:         <Button variant="icon" size="sm" iconOnly startIcon={<Filter size={16} />} onClick={onOpenIgnorePatterns} title="Ignore Patterns" className={styles.fileTreeBtn} />
-77:         <div className={styles.dropdownContainer}>
-78:           <Dropdown
-79:             options={clearOptions}
-80:             onChange={handleClearSelect}
-81:             trigger={<Button variant="icon" size="sm" iconOnly startIcon={<X size={16} />} title="Clear Actions" className={styles.fileTreeBtn} />}
-82:             menuClassName={styles.headerDropdownMenu} // Ensure this class exists or remove
-83:           />
-84:         </div>
-85:         <Button variant="icon" size="sm" iconOnly startIcon={<RefreshCw size={16} />} onClick={onReloadFileTree} title="Reload" className={styles.fileTreeBtn} />
-86:       </div>
-87: 
-88:       {excludedFilesCount !== undefined && excludedFilesCount > 0 && (
-89:         <div className={styles.excludedFilesCount}>
-90:           {excludedFilesCount} {excludedFilesCount === 1 ? 'file' : 'files'} excluded
-91:         </div>
-92:       )}
-93:     </>
-94:   );
-95: };
-96: 
-97: export default FileTreeHeader; // Add default export if not already present
+  7: 
+  8: interface ControlContainerProps {
+  9:   fileTreeMode: FileTreeMode;
+ 10:   setFileTreeMode: (mode: FileTreeMode) => void;
+ 11:   showUserInstructions: boolean;
+ 12:   setShowUserInstructions: (show: boolean) => void;
+ 13:   getSelectedFilesContent: () => Promise<string>; // Make async
+ 14:   selectedFilesCount: number;
+ 15:   outputFormat: OutputFormatType;
+ 16:   setOutputFormat: (format: OutputFormatType) => void;
+ 17:   // Removed unused props (previously prefixed with _)
+ 18: }
+ 19: 
+ 20: const ControlContainer: React.FC<ControlContainerProps> = ({
+ 21:   fileTreeMode,
+ 22:   setFileTreeMode,
+ 23:   showUserInstructions,
+ 24:   setShowUserInstructions,
+ 25:   getSelectedFilesContent,
+ 26:   selectedFilesCount,
+ 27:   outputFormat,
+ 28:   setOutputFormat,
+ 29: }) => {
+ 30:   const [copied, setCopied] = useState(false);
+ 31:   const [isCopying, setIsCopying] = useState(false); // Add loading state for copy
+ 32:   const [isDownloading, setIsDownloading] = useState(false); // Add loading state for download
+ 33: 
+ 34:   const handleCopy = useCallback(async () => {
+ 35:     if (selectedFilesCount === 0 || isCopying) return;
+ 36:     setIsCopying(true);
+ 37:     setCopied(false); // Reset copied state
+ 38:     try {
+ 39:       const content = await getSelectedFilesContent(); // Await the async function
+ 40:       await navigator.clipboard.writeText(content);
+ 41:       setCopied(true);
+ 42:       setTimeout(() => setCopied(false), 2000);
+ 43:     } catch (err) {
+ 44:       console.error('Failed to copy:', err);
+ 45:       // TODO: Show user error feedback
+ 46:     } finally {
+ 47:       setIsCopying(false);
+ 48:     }
+ 49:   }, [getSelectedFilesContent, selectedFilesCount, isCopying]); // Add dependencies
+ 50: 
+ 51:   const handleDownload = useCallback(async () => {
+ 52:     if (selectedFilesCount === 0 || isDownloading) return;
+ 53:     setIsDownloading(true);
+ 54:     try {
+ 55:         const content = await getSelectedFilesContent(); // Await the async function
+ 56:         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' }); // Specify charset
+ 57:         const url = URL.createObjectURL(blob);
+ 58:         const a = document.createElement('a');
+ 59:         a.href = url;
+ 60:         // Generate filename based on current context if possible
+ 61:         const filename = `pastemax_output_${new Date().toISOString().split('T')[0]}.txt`;
+ 62:         a.download = filename;
+ 63:         document.body.appendChild(a);
+ 64:         a.click();
+ 65:         document.body.removeChild(a);
+ 66:         URL.revokeObjectURL(url);
+ 67:     } catch (err) {
+ 68:         console.error('Failed to download:', err);
+ 69:         // TODO: Show user error feedback
+ 70:     } finally {
+ 71:         setIsDownloading(false);
+ 72:     }
+ 73:   }, [getSelectedFilesContent, selectedFilesCount, isDownloading]); // Add dependencies
+ 74: 
+ 75:   return (
+ 76:     <div className={styles.controlContainer}>
+ 77:       <div className={styles.controlContainerHeader}>Controls</div>
+ 78:       <div className={styles.controlItems}>
+ 79:         {/* Display Options Group */}
+ 80:         <div className={styles.controlGroup}>
+ 81:           <div className={styles.controlGroupTitle}>Display Options</div>
+ 82:           <div className={styles.controlItem}>
+ 83:             <Switch checked={showUserInstructions} onChange={() => setShowUserInstructions(!showUserInstructions)} label="Show User Instructions" id="user-instructions-toggle" />
+ 84:           </div>
+ 85:           <div className={styles.controlItem}>
+ 86:             <label className={styles.controlSelectLabel} htmlFor="file-tree-mode">File Tree:</label>
+ 87:             <select id="file-tree-mode" value={fileTreeMode} onChange={(e) => setFileTreeMode(e.target.value as FileTreeMode)} className={styles.controlSelect}>
+ 88:               <option value="none">None</option>
+ 89:               <option value="selected">Selected Files Only</option>
+ 90:               <option value="selected-with-roots">Selected Files with Path</option>
+ 91:               <option value="complete">Complete Tree (Mark Selected)</option>
+ 92:             </select>
+ 93:           </div>
+ 94:         </div>
+ 95: 
+ 96:         {/* Output Format Group */}
+ 97:         <div className={styles.controlGroup}>
+ 98:           <div className={styles.controlGroupTitle}>Output Format</div>
+ 99:           <div className={styles.controlItem}>
+100:             <DropdownAdapter
+101:               options={OUTPUT_FORMAT_OPTIONS}
+102:               value={outputFormat}
+103:               onChange={(value) => {
+104:                 if (typeof value === 'string') {
+105:                   setOutputFormat(value as OutputFormatType);
+106:                 }
+107:               }}
+108:               title="Select output format"
+109:               side="top"
+110:             />
+111:           </div>
+112:         </div>
+113: 
+114:         {/* Output Options Group */}
+115:         <div className={styles.controlGroup}>
+116:           <div className={styles.controlGroupTitle}>Output</div>
+117:           <div className={styles.controlItem}>
+118:             <ButtonGroup size="sm">
+119:               <Button
+120:                 variant="secondary"
+121:                 onClick={handleCopy}
+122:                 startIcon={isCopying ? <Loader2 size={16} className="animate-spin" /> : copied ? <Check size={16} /> : <Copy size={16} />}
+123:                 disabled={selectedFilesCount === 0 || isCopying || isDownloading}
+124:                 title={isCopying ? "Copying..." : copied ? "Copied!" : `Copy ${selectedFilesCount} selected files to clipboard`}
+125:               >
+126:                 {isCopying ? 'Copying...' : copied ? 'Copied!' : `Copy (${selectedFilesCount})`}
+127:               </Button>
+128:               <Button
+129:                 variant="secondary"
+130:                 onClick={handleDownload}
+131:                 startIcon={isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+132:                 disabled={selectedFilesCount === 0 || isCopying || isDownloading}
+133:                 title={isDownloading ? "Saving..." : "Save selected files content"}
+134:               >
+135:                 {isDownloading ? 'Saving...' : 'Save'}
+136:               </Button>
+137:             </ButtonGroup>
+138:           </div>
+139:         </div>
+140:       </div>
+141:     </div>
+142:   );
+143: };
+144: 
+145: export default ControlContainer;
 ````
 
 ## File: src/components/IgnorePatterns.tsx
