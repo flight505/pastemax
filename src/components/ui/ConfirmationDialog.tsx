@@ -28,6 +28,9 @@ export function ConfirmationDialog({
     onClose(); // Typically close after confirm
   };
 
+  // Determine the button variant based on the dialog variant
+  const buttonVariant = variant === 'destructive' ? 'destructive' : 'primary';
+
   return (
     <Dialog
       isOpen={isOpen}
@@ -45,7 +48,7 @@ export function ConfirmationDialog({
             {cancelLabel}
           </Button>
           <Button
-            variant="primary" // Standard confirm button (not destructive red)
+            variant={buttonVariant} // Use destructive or primary variant based on dialog variant
             size="sm"
             onClick={handleConfirm}
           >

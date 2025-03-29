@@ -64,6 +64,9 @@ export const UserInstructionsWithTemplates: React.FC<UserInstructionsWithTemplat
     localStorage.setItem(TEMPLATE_STORAGE_KEY, value);
     setSelectedTemplate(value);
     
+    // Also update the preview template when selected
+    setPreviewTemplate(template);
+    
     // If instructions are empty, directly insert
     if (!instructions.trim()) {
       setInstructions(template.content);
@@ -92,14 +95,6 @@ export const UserInstructionsWithTemplates: React.FC<UserInstructionsWithTemplat
       });
     }
   }, [setInstructions]);
-
-  // Handle template preview on hover
-  const handleTemplateHover = useCallback((value: string) => {
-    const template = PROMPT_TEMPLATES.find(t => t.id === value);
-    if (template) {
-      setPreviewTemplate(template);
-    }
-  }, []);
 
   // Get the selected template name
   const getSelectedTemplateName = () => {

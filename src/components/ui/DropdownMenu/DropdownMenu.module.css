@@ -211,25 +211,3 @@
 :global(.dark) .dropdownItem:hover:not(.disabled) {
   background-color: var(--hover-color);
 }
-
-/* Template dropdown specific styles */
-.templateDropdown {
-  font-weight: 500;
-  border: 1px solid var(--primary-color);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
-}
-
-.templateDropdown:hover {
-  box-shadow: 0 0 0 1px var(--primary-color-alpha);
-}
-
-.templateDropdownMenu {
-  max-width: 450px;
-  padding: 0.75rem;
-  border-color: var(--primary-color);
-}
-
-.categoryIcon {
-  opacity: 0.85;
-  color: var(--primary-color);
-} 

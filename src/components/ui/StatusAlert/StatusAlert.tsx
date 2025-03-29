@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, Check, AlertTriangle, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import styles from './StatusAlert.module.css';
 
 // Core structure with TypeScript props
@@ -26,14 +26,6 @@ interface StatusAlertProps {
       processing: styles.processing,
       complete: styles.success,
       error: styles.error
-    };
-    
-    // Array of icon components by status
-    const statusIcons = {
-      idle: () => <div />, // Empty icon
-      processing: () => <Loader2 className="animate-spin" size={14} />,
-      complete: () => <Check size={14} />,
-      error: () => <AlertTriangle size={14} />
     };
     
     // Define handleExit before it's used in useEffect
