@@ -1407,8 +1407,8 @@ ipcMain.handle('clear-local-ignore-patterns', async (event, { folderPath }) => {
     const result = await clearLocalIgnorePatterns(folderPath);
     
     // Clear the cache for this folder to ensure patterns are reloaded
-    if (ignoreInstanceCache[folderPath]) {
-      delete ignoreInstanceCache[folderPath];
+    if (patternCache.combined[folderPath]) {
+      delete patternCache.combined[folderPath];
     }
     
     return { success: true };
