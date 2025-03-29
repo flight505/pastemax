@@ -454,28 +454,6 @@ const App = () => {
           return sortDir === "ascending" ? comparison : -comparison;
       });
 
-      // --- Concatenate content (similar to previous logic) ---
-      let concatenatedString = "";
-      if (fileTreeMode !== "none" && selectedFolder) {
-          // Generate tree based on *all* files metadata for context if needed by mode
-          const filesForTree = fileTreeMode === "complete" ? allFiles : sortedFiles;
-          const asciiTree = generateAsciiFileTree(filesForTree, selectedFolder, fileTreeMode);
-          concatenatedString += `<file_map>\n${selectedFolder}\n${asciiTree}\n</file_map>\n\n`;
-      }
-
-      sortedFiles.forEach(file => {
-        let relativePath = file.path;
-        if (selectedFolder && file.path.startsWith(selectedFolder)) {
-          relativePath = file.path.substring(selectedFolder.length).replace(/^[/\\]/, '');
-        }
-        concatenatedString += `\n\n// ---- File: ${relativePath} (${file.tokenCount || 'N/A'} tokens) ----\n\n`;
-        concatenatedString += file.content;
-      });
-
-      const userInstructionsBlock = userInstructions.trim()
-        ? `\n<user_instructions>\n${userInstructions}\n</user_instructions>\n\n`
-        : "";
-
       // Generate the file tree string
       let fileTreeString = "";
       if (fileTreeMode !== "none" && selectedFolder) {

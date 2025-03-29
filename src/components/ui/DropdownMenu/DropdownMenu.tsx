@@ -147,7 +147,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     const triggerRect = triggerRef.current.getBoundingClientRect();
     const menuRect = menuRef.current.getBoundingClientRect();
     
-    const { top, left, bottom, right, width, height } = triggerRect;
+    const { top, left, bottom, right, width } = triggerRect;
     const { innerWidth, innerHeight } = window;
     const scrollY = window.scrollY || document.documentElement.scrollTop;
     const scrollX = window.scrollX || document.documentElement.scrollLeft;
