@@ -102,6 +102,13 @@ export const UserInstructionsWithTemplates: React.FC<UserInstructionsWithTemplat
     }
   }, []);
 
+  // Get the selected template name
+  const getSelectedTemplateName = () => {
+    if (!selectedTemplate) return null;
+    const template = PROMPT_TEMPLATES.find(t => t.id === selectedTemplate);
+    return template ? template.name : null;
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -110,7 +117,7 @@ export const UserInstructionsWithTemplates: React.FC<UserInstructionsWithTemplat
             options={templateOptions}
             value={selectedTemplate || undefined}
             onChange={handleTemplateSelect}
-            placeholder="Select a template..."
+            placeholder="Select a prompt template..."
             title="Select a prompt template"
           />
         </div>
@@ -120,17 +127,21 @@ export const UserInstructionsWithTemplates: React.FC<UserInstructionsWithTemplat
         <textarea
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
-          placeholder="Enter your instructions here..."
+          placeholder="Enter your instructions here to guide the AI response..."
           className={styles.textarea}
           aria-label="User instructions"
         />
       </div>
 
-      {previewTemplate && (
+      {selectedTemplate && (
         <div className={styles.templatePreview} role="complementary" aria-label="Template preview">
-          <h4>{previewTemplate.name}</h4>
-          <p className={styles.templateDescription}>{previewTemplate.description}</p>
-          <pre className={styles.templateContent}>{previewTemplate.content}</pre>
+          <h4>Selected Template: {getSelectedTemplateName()}</h4>
+          {previewTemplate && (
+            <>
+              <p className={styles.templateDescription}>{previewTemplate.description}</p>
+              <pre className={styles.templateContent}>{previewTemplate.content}</pre>
+            </>
+          )}
         </div>
       )}
 

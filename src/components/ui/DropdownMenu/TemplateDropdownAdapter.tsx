@@ -28,6 +28,9 @@ interface TemplateDropdownAdapterProps {
   menuClassName?: string;
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
+  align?: 'start' | 'center' | 'end';
+  side?: 'top' | 'right' | 'bottom' | 'left' | 'auto';
+  sideOffset?: number;
 }
 
 export const TemplateDropdownAdapter: React.FC<TemplateDropdownAdapterProps> = ({
@@ -40,20 +43,30 @@ export const TemplateDropdownAdapter: React.FC<TemplateDropdownAdapterProps> = (
   menuClassName,
   size = 'md',
   disabled = false,
+  align = 'start',
+  side = 'bottom',
+  sideOffset = 5,
 }) => {
-  // Map category to Lucide component icons
+  // Map category to Lucide component icons with enhanced visibility
   const getIconForCategory = (category: TemplateCategory) => {
+    const iconProps = {
+      size: 18,
+      className: `${styles.itemIcon} ${styles.categoryIcon}`,
+      strokeWidth: 2,
+      'aria-hidden': true,
+    };
+    
     switch (category) {
       case 'Code Review':
-        return <BookText size={16} className={styles.itemIcon} aria-hidden="true" />;
+        return <BookText {...iconProps} />;
       case 'Documentation Generation':
-        return <FileText size={16} className={styles.itemIcon} aria-hidden="true" />;
+        return <FileText {...iconProps} />;
       case 'Analysis and Improvement':
-        return <BarChart size={16} className={styles.itemIcon} aria-hidden="true" />;
+        return <BarChart {...iconProps} />;
       case 'Testing':
-        return <TestTube size={16} className={styles.itemIcon} aria-hidden="true" />;
+        return <TestTube {...iconProps} />;
       case 'Code Quality':
-        return <CheckCircle size={16} className={styles.itemIcon} aria-hidden="true" />;
+        return <CheckCircle {...iconProps} />;
       default:
         return null;
     }
@@ -75,13 +88,13 @@ export const TemplateDropdownAdapter: React.FC<TemplateDropdownAdapterProps> = (
       onChange={onChange}
       placeholder={placeholder}
       title={title}
-      className={className}
-      menuClassName={menuClassName}
+      className={`${styles.templateDropdown} ${className || ''}`}
+      menuClassName={`${styles.templateDropdownMenu} ${menuClassName || ''}`}
       size={size}
       disabled={disabled}
-      align="start"
-      side="bottom"
-      sideOffset={5}
+      align={align}
+      side={side}
+      sideOffset={sideOffset}
     />
   );
 }; 

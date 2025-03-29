@@ -224,6 +224,9 @@
 
 .userInstructionsContainer {
   margin-top: 1rem;
+  animation: instructionsSlideDown 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transform-origin: top;
+  overflow: hidden;
 }
 
 .emptyStateContent {
@@ -267,6 +270,19 @@
   }
   to {
     opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes instructionsSlideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
     transform: translateY(0);
   }
 } 

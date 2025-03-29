@@ -78,7 +78,9 @@ const App = () => {
   const savedShowInstructions = localStorage.getItem('pastemax-show-instructions');
 
   // State for user interface controls
-  const [showUserInstructions, setShowUserInstructions] = useState(savedShowInstructions !== 'false');
+  const [showUserInstructions, setShowUserInstructions] = useState(
+    savedShowInstructions === null ? false : savedShowInstructions !== 'false'
+  );
   const [fileTreeMode, setFileTreeMode] = useState<FileTreeMode>('complete');
 
   // Initialize expanded nodes from localStorage if available
